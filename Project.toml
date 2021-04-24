@@ -16,7 +16,7 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 [compat]
 CSV = "0.6, 0.7"
 DataFrames = "0.20, 0.21"
-Dierckx = "0.4"
+Dierckx = "0.4, 0.5"
 NCDatasets = "0.10"
 NetCDF = "0.10"
 YAML = "0.4"

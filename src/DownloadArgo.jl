@@ -117,7 +117,8 @@ function GetOneProfile(ds,m)
 
     #
     pnum_txt=ds["PLATFORM_NUMBER"][:,m]
-    ii=findall(in.(pnum_txt,"0123456789"))
+    #pnum_txt=pnum_txt[findall((!ismissing).(pnum_txt))]
+    ii=findall(skipmissing(in.(pnum_txt,"0123456789")))
     ~isempty(ii) ? pnum_txt=String(vec(Char.(pnum_txt[ii]))) : pnum_txt="9999"
     pnum=parse(Int,pnum_txt)
 
@@ -187,7 +188,7 @@ function GetOneProfile(ds,m)
         t=fill(missing,size(t))
         t_ERR=fill(0.0,size(t))
     else #apply QC
-        tmp1=findall( (!in).(t_QC,"1258") )
+        tmp1=findall(skipmissing((!in).(t_QC,"1258")))
         t[tmp1].=missing
     end
 
@@ -195,7 +196,7 @@ function GetOneProfile(ds,m)
         s=fill(missing,size(s))
         s_ERR=fill(0.0,size(s))
     else #apply QC
-        tmp1=findall( (!in).(s_QC,"1258") )
+        tmp1=findall(skipmissing((!in).(s_QC,"1258")))
         s[tmp1].=missing
     end
 

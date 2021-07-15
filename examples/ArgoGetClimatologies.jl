@@ -6,12 +6,12 @@
 #     text_representation:
 #       extension: .jl
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       format_version: '1.5'
+#       jupytext_version: 1.11.3
 #   kernelspec:
-#     display_name: Julia 1.3.1
+#     display_name: Julia 1.6.0
 #     language: julia
-#     name: julia-1.3
+#     name: julia-1.6
 # ---
 
 include("ArgoToMITprof.jl")
@@ -60,14 +60,14 @@ include("ArgoToMITprof.jl")
 #
 #     % error variance bounds
 #     for kk=1:size(sigma.T{1},3);
-#       %cap sigma.T(:,:,kk) to ...
+#       # # # %cap sigma.T(:,:,kk) to ...
 #       tmp1=convert2vector(sigma.T(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
 #       tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
 #       tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
 #       sigma.T(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
-#       %cap sigma.S(:,:,kk) to ...
+#       # # # %cap sigma.S(:,:,kk) to ...
 #       tmp1=convert2vector(sigma.S(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
@@ -84,21 +84,23 @@ include("ArgoToMITprof.jl")
 # +
 using MeshArrays
 
-γ=GridSpec("LatLonCap","GRID_LLC90/")
+γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
 Γ=GridLoad(γ)
 (f,i,j,w)=InterpolationFactors(Γ,prof["lon"],prof["lat"])
-XC=Interpolate(Γ["XC"],f,i,j,w)
-YC=Interpolate(Γ["YC"],f,i,j,w)
+XC=Interpolate(Γ.XC,f,i,j,w)
+YC=Interpolate(Γ.YC,f,i,j,w)
 
 #[prof["lon"] XC]
 #[prof["lat"] YC]
 
 # +
-pth="gcmfaces_climatologies/"
-msk=write(Γ["hFacC"])
+using OceanStateEstimation
+
+pth=MITPROFclim_path
+msk=write(Γ.hFacC)
 msk[findall(msk.>0.0)].=1.0
 msk[findall(msk.==0.0)].=NaN
-msk=read(msk,Γ["hFacC"])
+msk=read(msk,Γ.hFacC)
 
 function MonthlyClimatology(fil,msk)
     fid = open(fil)

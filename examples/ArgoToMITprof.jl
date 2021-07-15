@@ -2,16 +2,17 @@
 # ---
 # jupyter:
 #   jupytext:
+#     cell_metadata_json: true
 #     formats: ipynb,jl:light
 #     text_representation:
 #       extension: .jl
 #       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.2.4
+#       format_version: '1.5'
+#       jupytext_version: 1.11.3
 #   kernelspec:
-#     display_name: Julia 1.3.1
+#     display_name: Julia 1.6.0
 #     language: julia
-#     name: julia-1.3
+#     name: julia-1.6
 # ---
 
 # +
@@ -21,6 +22,8 @@ fil="ArgoToMITprof.yml"
 meta=DownloadArgo.mitprof_interp_setup(fil)
 greylist=DataFrame(CSV.File(meta["dirIn"]*"../ar_greylist.txt"));
 # -
+
+meta
 
 f=1
 println(meta["dirIn"]*meta["fileInList"][f])
@@ -40,7 +43,7 @@ scatter(prof["S"],prof["T"])
 
 # + {"cell_style": "split"}
 #scatter(prof["S"],-prof["p"])
-# + {}
+# +
 lonlatISbad=false
 (prof["lat"]<-90.0)|(prof["lat"]>90.0) ? lonlatISbad=true : nothing
 (prof["lon"]<-180.0)|(prof["lon"]>360.0) ? lonlatISbad=true : nothing

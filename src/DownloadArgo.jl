@@ -59,7 +59,7 @@ function mitprof_interp_setup(fil::String)
 
     #2. coordinate
 
-    z_std=meta["z"]
+    z_std=meta["depthLevels"]
     if length(z_std)>1
         tmp1=(z_std[2:end]+z_std[1:end-1])/2
         z_top=[z_std[1]-(z_std[2]-z_std[1])/2;tmp1]
@@ -91,6 +91,9 @@ function mitprof_interp_setup(fil::String)
     meta["fillval"] = -9999.0
     meta["buffer_size"] = 10000
 
+    meta["fileOut"]=meta["name"]*"_"*meta["subset"]["basin"]*"_"*string(meta["subset"]["year"])*".nc"
+    meta["var_out"]=meta["variables"]
+    
     return meta
 end
 

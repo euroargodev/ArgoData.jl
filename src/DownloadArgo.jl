@@ -59,7 +59,7 @@ function mitprof_interp_setup(fil::String)
 
     #2. coordinate
 
-    z_std=meta["z"]
+    z_std=meta["depthLevels"]
     if length(z_std)>1
         tmp1=(z_std[2:end]+z_std[1:end-1])/2
         z_top=[z_std[1]-(z_std[2]-z_std[1])/2;tmp1]
@@ -91,6 +91,9 @@ function mitprof_interp_setup(fil::String)
     meta["fillval"] = -9999.0
     meta["buffer_size"] = 10000
 
+    meta["fileOut"]=meta["name"]*"_"*meta["subset"]["basin"]*"_"*string(meta["subset"]["year"])*".nc"
+    meta["var_out"]=meta["variables"]
+    
     return meta
 end
 
@@ -117,7 +120,8 @@ function GetOneProfile(ds,m)
 
     #
     pnum_txt=ds["PLATFORM_NUMBER"][:,m]
-    ii=findall(in.(pnum_txt,"0123456789"))
+    #pnum_txt=pnum_txt[findall((!ismissing).(pnum_txt))]
+    ii=findall(skipmissing(in.(pnum_txt,"0123456789")))
     ~isempty(ii) ? pnum_txt=String(vec(Char.(pnum_txt[ii]))) : pnum_txt="9999"
     pnum=parse(Int,pnum_txt)
 
@@ -187,7 +191,7 @@ function GetOneProfile(ds,m)
         t=fill(missing,size(t))
         t_ERR=fill(0.0,size(t))
     else #apply QC
-        tmp1=findall( (!in).(t_QC,"1258") )
+        tmp1=findall(skipmissing((!in).(t_QC,"1258")))
         t[tmp1].=missing
     end
 
@@ -195,7 +199,7 @@ function GetOneProfile(ds,m)
         s=fill(missing,size(s))
         s_ERR=fill(0.0,size(s))
     else #apply QC
-        tmp1=findall( (!in).(s_QC,"1258") )
+        tmp1=findall(skipmissing((!in).(s_QC,"1258")))
         s[tmp1].=missing
     end
 

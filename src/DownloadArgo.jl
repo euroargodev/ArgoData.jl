@@ -109,6 +109,9 @@ function GetOneProfile(ds,m)
     ymd=Dates.year(t)*1e4+Dates.month(t)*1e2+Dates.day(t)
     hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
 
+    prof_date=t-DateTime(0)
+    prof_date=prof_date.value/86400/1000    
+
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]
     lon < 0.0 ? lon=lon+360.0 : nothing
@@ -207,6 +210,7 @@ function GetOneProfile(ds,m)
     prof["pnum_txt"]=pnum_txt
     prof["ymd"]=convert(Union{Int,Missing},ymd)
     prof["hms"]=convert(Union{Int,Missing},hms)
+    prof["date"]=convert(Union{Float64,Missing},prof_date)
     prof["lat"]=convert(Union{Float64,Missing},lat)
     prof["lon"]=convert(Union{Float64,Missing},lon)
     prof["direc"]=convert(Union{Int,Missing},direc)

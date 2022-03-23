@@ -60,14 +60,14 @@ include("ArgoToMITprof.jl")
 #
 #     % error variance bounds
 #     for kk=1:size(sigma.T{1},3);
-#       # # # # %cap sigma.T(:,:,kk) to ...
+#       # # # # # # %cap sigma.T(:,:,kk) to ...
 #       tmp1=convert2vector(sigma.T(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
 #       tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
 #       tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
 #       sigma.T(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
-#       # # # # %cap sigma.S(:,:,kk) to ...
+#       # # # # # # %cap sigma.S(:,:,kk) to ...
 #       tmp1=convert2vector(sigma.S(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
@@ -156,5 +156,34 @@ contourf(vec(lon[:,1]),vec(lat[1,:]),log10.(transpose(σTm[:,:,20])),clims=(-2.5
 
 tmp=Interpolate(T[:,20,6],f,i,j,w)
 contourf(vec(lon[:,1]),vec(lat[1,:]),tmp,clims=(-2.0,30.0))
+
+ii=1
+prof["lon"][ii],prof["lat"][ii]
+
+# +
+#1. spatial interpolation
+
+(f,i,j,w)=InterpolationFactors(Γ,prof["lon"][ii],prof["lat"][ii])
+# -
+
+tmp=[Interpolate(σT[:,k],f,i,j,w)[1] for k=1:50]
+
+plot(tmp,Γ.RC)
+
+# +
+#2. vertical interpolation
+
+using Dierckx
+# -
+
+x=-Γ.RC
+y=tmp
+jj=findall(isfinite.(y))
+yi=meta["z_std"][1:55]
+spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
+
+plot(spl(yi),-yi)
+
+plot(spl(0.1:0.1:200))
 
 

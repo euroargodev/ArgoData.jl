@@ -60,14 +60,14 @@ include("ArgoToMITprof.jl")
 #
 #     % error variance bounds
 #     for kk=1:size(sigma.T{1},3);
-#       # # # # # # %cap sigma.T(:,:,kk) to ...
+#       % cap sigma.T(:,:,kk) to 
 #       tmp1=convert2vector(sigma.T(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
 #       tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
 #       tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
 #       sigma.T(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
-#       # # # # # # %cap sigma.S(:,:,kk) to ...
+#       # %cap sigma.S(:,:,kk) to ...
 #       tmp1=convert2vector(sigma.S(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
@@ -185,5 +185,12 @@ spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
 plot(spl(yi),-yi)
 
 plot(spl(0.1:0.1:200))
+
+# +
+#3. combine instrumental and representation error
+
+T_weight=1 ./(spl(meta["z_std"]).^2 .+ prof["T_ERR"].^2)
+T_weight[1:5]
+# -
 
 

@@ -298,6 +298,7 @@ function prof_interp!(prof,meta)
                 e_std = []
             end
             prof[v]=t_std
+            prof[v*"_ERR"]=e_std
         end
     end
 end

@@ -9,9 +9,9 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.11.3
 #   kernelspec:
-#     display_name: Julia 1.6.0
+#     display_name: Julia 1.7.2
 #     language: julia
-#     name: julia-1.6
+#     name: julia-1.7
 # ---
 
 include("ArgoToMITprof.jl")
@@ -60,14 +60,14 @@ include("ArgoToMITprof.jl")
 #
 #     % error variance bounds
 #     for kk=1:size(sigma.T{1},3);
-#       # # # %cap sigma.T(:,:,kk) to ...
+#       # # # # %cap sigma.T(:,:,kk) to ...
 #       tmp1=convert2vector(sigma.T(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
 #       tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
 #       tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
 #       sigma.T(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
-#       # # # %cap sigma.S(:,:,kk) to ...
+#       # # # # %cap sigma.S(:,:,kk) to ...
 #       tmp1=convert2vector(sigma.S(:,:,kk).*mygrid.mskC(:,:,kk));
 #       tmp1(tmp1==0)=NaN;
 #       tmp2=prctile(tmp1,5);%... its fifth percentile...
@@ -85,7 +85,7 @@ include("ArgoToMITprof.jl")
 using MeshArrays
 
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
-Γ=GridLoad(γ)
+Γ=GridLoad(γ,option="full")
 (f,i,j,w)=InterpolationFactors(Γ,prof["lon"],prof["lat"])
 XC=Interpolate(Γ.XC,f,i,j,w)
 YC=Interpolate(Γ.YC,f,i,j,w)

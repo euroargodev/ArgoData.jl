@@ -10,9 +10,9 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.11.3
 #   kernelspec:
-#     display_name: Julia 1.6.0
+#     display_name: Julia 1.7.2
 #     language: julia
-#     name: julia-1.6
+#     name: julia-1.7
 # ---
 
 # +
@@ -78,5 +78,4 @@ scatter!(prof["T"],-meta["z_std"])
 scatter(S_step1,-D_step1,title="salinity")
 scatter!(prof["S"],-meta["z_std"])
 # -
-
 

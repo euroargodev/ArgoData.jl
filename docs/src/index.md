@@ -6,7 +6,7 @@ This package is at a very early stage of development. Stay tuned ...
 ```
 
 ```@autodocs
-Modules = [MITprof,DownloadArgo]
+Modules = [MITprof,DownloadArgo,GDAC]
 Order   = [:type,:function]
 ```
 

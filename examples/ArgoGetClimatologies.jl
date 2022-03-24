@@ -194,10 +194,10 @@ using Dierckx
 x=-Γ.RC
 y=prof_σT
 jj=findall(isfinite.(y))
-yi=meta["z_std"][1:55]
+yi=meta["z_std"]
 spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
 
-plot(spl(yi),-yi)
+plot(spl(yi)[1:55],-yi[1:55])
 
 # +
 #inspect the interpolation behavior:
@@ -210,5 +210,27 @@ plot(spl(0.1:0.1:200))
 T_weight=1 ./(spl(meta["z_std"]).^2 .+ prof["T_ERR"].^2)
 T_weight[1:5]
 # -
+
+fac,rec=ArgoTools.monthly_climatology_factors(prof["date"])
+
+# +
+#tmp=Interpolate(T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
+
+prof_T1=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_T2=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_T0=fac[1]*prof_T1+fac[2]*prof_T2;
+
+# +
+x=-Γ.RC
+y=prof_T0
+jj=findall(isfinite.(y))
+yi=meta["z_std"]
+spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
+
+prof_Tclim=spl(yi)
+# -
+
+plot(prof_Tclim,-yi,leg=:none)
+scatter!(prof["T"][1:55],-yi[1:55])
 
 

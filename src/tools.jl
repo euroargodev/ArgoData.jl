@@ -1,6 +1,6 @@
-module DownloadArgo
+module ArgoTools
 
-using Dates, YAML, NetCDF, NCDatasets, CSV, DataFrames, Dierckx
+using Dates, YAML, NetCDF, NCDatasets, CSV, DataFrames, Dierckx, Printf
 
 """
     mitprof_interp_setup(fil::String)

@@ -1,9 +1,9 @@
 module ArgoData
 
 include("MITprof.jl")
-include("DownloadArgo.jl")
 include("GDAC.jl")
+include("tools.jl")
 
-export MITprof, DownloadArgo, GDAC
+export MITprof, GDAC, ArgoTools
 
 end # module

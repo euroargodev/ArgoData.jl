@@ -89,7 +89,7 @@ function GetOneProfile(ds,m)
     hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
 
     prof_date=t-DateTime(0)
-    prof_date=prof_date.value/86400/1000    
+    prof_date=prof_date.value/86400/1000 #days since DateTime(0)
 
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]
@@ -216,7 +216,7 @@ function prof_PtoZ!(prof,meta)
     prof[v]=similar(prof["p"],Union{Missing,Float64})
     prof[v].=missing
     k=findall((!ismissing).(prof["p"]))
-    prof[v][k]=[DownloadArgo.sw_dpth(Float64(prof["p"][kk]),Float64(l)) for kk in k]
+    prof[v][k]=[sw_dpth(Float64(prof["p"][kk]),Float64(l)) for kk in k]
 end
 
 """
@@ -229,7 +229,7 @@ function prof_TtoΘ!(prof,meta)
     P=0.981*1.027*prof[meta["var_out"][1]]
     S=35.0*ones(size(T))
     k=findall( (!ismissing).(T) )
-    T[k]=[DownloadArgo.sw_ptmp(Float64(S[kk]),Float64(T[kk]),Float64(P[kk])) for kk in k]
+    T[k]=[sw_ptmp(Float64(S[kk]),Float64(T[kk]),Float64(P[kk])) for kk in k]
 end
 
 
@@ -404,6 +404,53 @@ function sw_adtg(S,T,P)
     (  e0 + (e1 + e2.*T).*T ).*P.*P
 
     return ADTG
+end
+
+"""
+    monthly_climatology_factors(date)
+
+if `date` is a date in `days since DateTime(0)`
+
+and `ff(rec)` returns a value for month `rec` in `1:12`
+
+then compute the factors to interpolate from `rec[1],rec[2]` to `date`.
+
+For example :
+
+```
+ff(x)=sin((x-0.5)/12*2pi)
+fac,rec=monthly_climatology_factors(prof["date"])
+
+gg=fac[1]*ff(rec[1])+fac[2]*ff(rec[2])
+(ff(rec[1]),gg,ff(rec[2]))
+```
+"""
+function monthly_climatology_factors(date)
+    
+    tmp2=ones(13,1)*[1991 1 1 0 0 0]; tmp2[1:12,2].=(1:12); tmp2[13,1]=1992.0;
+    tmp2=[DateTime(tmp2[i,:]...) for i in 1:13]
+    
+    tim_fld=tmp2 .-DateTime(1991,1,1); 
+    tim_fld=1/2*(tim_fld[1:12]+tim_fld[2:13])    
+    tim_fld=[tim_fld[i].value for i in 1:12]/86400/1000
+    
+    tim_fld=[tim_fld[12]-365.0;tim_fld...;tim_fld[1]+365.0]
+    rec_fld=[12;1:12;1]
+    
+#    year0=floor(profIn["ymd"]/1e4)    
+    year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
+    date0=DateTime(year0,1,1)-DateTime(0)
+
+    date0=date0.value/86400/1000    
+    tim_prof=date-date0
+    tim_prof>365.0 ? tim_prof=365.0 : nothing
+
+    #tim_fld,rec_fld,tim_prof
+
+    tt=maximum(findall(tim_fld.<=tim_prof))
+    a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
+    
+    return (1-a0,a0),(rec_fld[tt],rec_fld[tt+1])
 end
 
 end

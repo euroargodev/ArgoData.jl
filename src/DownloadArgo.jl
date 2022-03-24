@@ -1,27 +1,6 @@
 module DownloadArgo
 
-using Printf, Dates, YAML, NetCDF, NCDatasets, CSV, DataFrames, Dierckx
-
-"""
-    GDAC_FTP(b::String,y::Int,m::Int)
-
-Download Argo data files for one regional domain (b), year (y), and
-month (m) from the `GDAC` FTP server (`ftp://ftp.ifremer.fr/ifremer/argo`
-or, equivalently, `ftp://usgodae.org/pub/outgoing/argo`).
-
-```
-b="atlantic"; yy=2009:2009; mm=8:12;
-for y=yy, m=mm;
-    println("\$b/\$y/\$m"); DownloadArgo.GDAC_FTP(b,y,m)
-end
-```
-"""
-function GDAC_FTP(b::String,y::Int,m::Int)
-    yy = @sprintf "%04d" y
-    mm = @sprintf "%02d" m
-    c=`wget --quiet -r ftp://ftp.ifremer.fr/ifremer/argo/geo/"$b"_ocean/$yy/$mm`
-    run(c)
-end
+using Dates, YAML, NetCDF, NCDatasets, CSV, DataFrames, Dierckx
 
 """
     mitprof_interp_setup(fil::String)

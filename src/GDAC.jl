@@ -1,7 +1,7 @@
 
 module GDAC
 
-using NCDatasets, CSV, DataFrames, FTPClient, Downloads
+using NCDatasets, CSV, DataFrames, FTPClient, Downloads, Printf
 
 """
     Argo_float_files()
@@ -98,6 +98,27 @@ function Argo_float_download(list_files,ii,suff="prof",ftp=missing)
     end
     
     return fil_out
+end
+
+"""
+    wget_geo(b::String,y::Int,m::Int)
+
+Download, using wget, Argo data files for one regional domain (b), year (y), and
+month (m) from the `GDAC` FTP server (`ftp://ftp.ifremer.fr/ifremer/argo`
+or, equivalently, `ftp://usgodae.org/pub/outgoing/argo`).
+
+```
+b="atlantic"; yy=2009:2009; mm=8:12;
+for y=yy, m=mm;
+    println("\$b/\$y/\$m"); GDAC.wget_geo(b,y,m)
+end
+```
+"""
+function wget_geo(b::String,y::Int,m::Int)
+    yy = @sprintf "%04d" y
+    mm = @sprintf "%02d" m
+    c=`wget --quiet -r ftp://ftp.ifremer.fr/ifremer/argo/geo/"$b"_ocean/$yy/$mm`
+    run(c)
 end
 
 end

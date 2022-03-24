@@ -14,6 +14,8 @@
 #     name: julia-1.7
 # ---
 
+include("ArgoToMITprof_step1.jl")
+
 # ## Left after step 1
 #
 # ```
@@ -46,11 +48,13 @@
 # if ~strcmp(dataset.coord,'depth'); mygrid=[]; atlas=[]; sigma=[]; end;
 # ```
 
-include("ArgoToMITprof.jl")
-
 # ## load gridded fields
 #
-# Remains to be implemented:
+# - grid : ECCO global grid (LLC90; incl. land mask).
+# - monthly T/S mean climatology (jan,feb, .. dec)
+# - annual T/S variance climatology (non-seasonal)
+#
+# **Note: the following remains to be implemented.**
 #
 # ```
 # % error variance bounds
@@ -77,8 +81,9 @@ using MeshArrays
 
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
 Γ=GridLoad(γ,option="full")
-
 msk=MITprof.NaN_mask(Γ)
+
+"Done"
 
 # +
 using OceanStateEstimation
@@ -104,7 +109,7 @@ function interpolate_map(Γ)
     (f=f,i=i,j=j,w=w,lon=vec(lon[:,1]),lat=vec(lat[1,:]))
 end
 
-🌐=interpolate_map(Γ)    
+🌐=interpolate_map(Γ);   
 # -
 
 ni,nj=length(🌐.lon),length(🌐.lat)
@@ -117,13 +122,21 @@ end
 # +
 using Plots
 
-contourf(🌐.lon,🌐.lat,log10.(transpose(σTm[:,:,20])),clims=(-2.5,0.75))
+contourf(🌐.lon,🌐.lat,log10.(transpose(σTm[:,:,20]).^2),clims=(-2.5,1.0),title="log10(temperature variance) at 300m")
 # -
 
 tmp=Interpolate(T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
-contourf(🌐.lon,🌐.lat,tmp,clims=(-2.0,30.0))
+contourf(🌐.lon,🌐.lat,tmp,clims=(-2.0,20.0),title="temperature in June at 300m")
 
-# ## uncertainty profile / weight
+# ### Uncertainty Profile
+#
+# The result is expressed as a least-squares weight.
+#
+# 1. spatial interpolation
+# 2. vertical interpolation
+# 3. combine instrumental and representation error
+#
+# **Note: σT needs to account for bounds.**
 
 # +
 #1. spatial interpolation
@@ -161,7 +174,7 @@ T_weight=1 ./(spl(meta["z_std"]).^2 .+ prof["T_ERR"].^2)
 T_weight[1:5]
 # -
 
-# ## Climatology profile
+# ### Seasonal Climatology Profile
 
 # +
 #4. spatio-temporal interpolation

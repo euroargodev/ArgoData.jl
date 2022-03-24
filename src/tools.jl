@@ -1,6 +1,6 @@
 module ArgoTools
 
-using Dates, YAML, NetCDF, NCDatasets, CSV, DataFrames, Dierckx, Printf
+using Dates, YAML, NCDatasets, CSV, DataFrames, Dierckx, Printf
 
 """
     mitprof_interp_setup(fil::String)

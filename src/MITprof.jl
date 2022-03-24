@@ -1,6 +1,12 @@
 module MITprof
 
-using NetCDF, Dates, MeshArrays
+using Dates, MeshArrays, NCDatasets
+
+function ncread(f::String,v::String)
+    Dataset(f,"r") do ds
+        ds[v][:]
+    end
+end
 
 """
     read(f::String="MITprof/MITprof_mar2016_argo9506.nc")

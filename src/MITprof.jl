@@ -1,6 +1,6 @@
 module MITprof
 
-using NetCDF, Dates
+using NetCDF, Dates, MeshArrays
 
 """
     read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
@@ -54,6 +54,40 @@ function loop(pth::String="profiles/")
     end
 
     return Float64.(lo),Float64.(la),Float64.(ye)
+end
+
+function NaN_mask(Γ)
+    msk=write(Γ.hFacC)
+    msk[findall(msk.>0.0)].=1.0
+    msk[findall(msk.==0.0)].=NaN
+    msk=MeshArrays.read(msk,Γ.hFacC)
+end
+
+function MonthlyClimatology(fil,msk)
+    fid = open(fil)
+    tmp = Array{Float32,4}(undef,(90,1170,50,12))
+    read!(fid,tmp)
+    tmp = hton.(tmp)
+    close(fid)
+    
+    T=MeshArray(msk.grid,Float64,50,12)
+    for tt=1:12
+        T[:,:,tt]=msk*MeshArrays.read(tmp[:,:,:,tt],T[:,:,tt])
+    end
+
+    return T
+end
+
+function AnnualClimatology(fil,msk)
+    fid = open(fil)
+    tmp=Array{Float32,3}(undef,(90,1170,50))
+    read!(fid,tmp)
+    tmp = hton.(tmp)
+    close(fid)
+
+    T=MeshArray(msk.grid,Float64,50)
+    T=msk*MeshArrays.read(convert(Array{Float64},tmp),T)
+    return T
 end
 
 end

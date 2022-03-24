@@ -286,6 +286,34 @@ function prof_interp!(prof,meta)
     end
 end
 
+
+"""
+    prof_convert!(prof,meta)
+
+Appply conversions to variables (lon,lat,depth,temperature) in `prof` if specified in `meta`.
+"""
+function prof_convert!(prof,meta)
+    lonlatISbad=false
+    (prof["lat"]<-90.0)|(prof["lat"]>90.0) ? lonlatISbad=true : nothing
+    (prof["lon"]<-180.0)|(prof["lon"]>360.0) ? lonlatISbad=true : nothing
+
+    #if needed then reset lon,lat after issuing a warning
+    lonlatISbad==true ? println("warning: out of range lon/lat was reset to 0.0,-89.99") : nothing 
+    lonlatISbad ? (prof["lon"],prof["lat"])=(0.0,-89.99) : nothing
+
+    #if needed then fix longitude range to 0-360
+    (~lonlatISbad)&(prof["lon"]>180.0) ? prof["lon"]-=360.0 : nothing
+    
+    #if needed then convert pressure to depth
+    (~meta["inclZ"])&(~lonlatISbad) ? ArgoTools.prof_PtoZ!(prof,meta) : nothing
+    println(prof[meta["var_out"][1]][200]-398.625084513574966)
+
+    #if needed then convert T to potential temperature θ
+    meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof,meta) : nothing
+        
+    #prof
+end
+
 """
     sw_dpth(P,LAT)
 

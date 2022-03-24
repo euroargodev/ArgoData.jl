@@ -14,8 +14,8 @@
 #     name: julia-1.7
 # ---
 
-include("ArgoToMITprof.jl")
-
+# ## Left after step 1
+#
 # ```
 # # %load standardized data set:
 # if ~dataset.skipSTEP1;
@@ -30,7 +30,6 @@ include("ArgoToMITprof.jl")
 # MITprofCur.prof_Sflag=zeros(size(MITprofCur.prof_S));
 #
 # # %instrumental + representation error profile:
-#
 # MITprofCur=profiles_prep_weights(dataset,MITprofCur,sigma);
 #
 # [MITprofCur]=profiles_prep_tests_cmpatlas(dataset,MITprofCur,atlas);
@@ -47,38 +46,30 @@ include("ArgoToMITprof.jl")
 # if ~strcmp(dataset.coord,'depth'); mygrid=[]; atlas=[]; sigma=[]; end;
 # ```
 
+include("ArgoToMITprof.jl")
+
+# ## load gridded fields
+#
+# Remains to be implemented:
+#
 # ```
-#     for tt=1:12;
-#         fldT(:,:,:,tt)=read_bin('T_OWPv1_M_eccollc_90x50.bin',tt).*mygrid.mskC;
-#         fldS(:,:,:,tt)=read_bin('S_OWPv1_M_eccollc_90x50.bin',tt).*mygrid.mskC;
-#     end;
-#
-#     fprintf(['loading uncertainties from ' dirClim ' ...\n']);
-#     sigma.T=read_bin([dirClim 'sigma_T_nov2015.bin']);
-#     sigma.S=read_bin([dirClim 'sigma_S_nov2015.bin']);
-#     disp('... uncertainties have been loaded');
-#
-#     % error variance bounds
-#     for kk=1:size(sigma.T{1},3);
-#       % cap sigma.T(:,:,kk) to ..
-#       tmp1=convert2vector(sigma.T(:,:,kk).*mygrid.mskC(:,:,kk));
-#       tmp1(tmp1==0)=NaN;
-#       tmp2=prctile(tmp1,5);%... its fifth percentile...
-#       tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
-#       tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
-#       sigma.T(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
-#       % cap sigma.S(:,:,kk) to ..
-#       tmp1=convert2vector(sigma.S(:,:,kk).*mygrid.mskC(:,:,kk));
-#       tmp1(tmp1==0)=NaN;
-#       tmp2=prctile(tmp1,5);%... its fifth percentile...
-#       tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
-#       tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
-#       sigma.S(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
-#     end;
-#
-#
-# #tmp_weight=1./(sig_out.^2+sig_instr.^2);
-# #eval(['MITprofCur.prof_' vv 'weight=tmp_weight;']);
+# % error variance bounds
+# for kk=1:size(sigma.T{1},3);
+#   % cap sigma.T(:,:,kk) to ..
+#   tmp1=convert2vector(sigma.T(:,:,kk).*mygrid.mskC(:,:,kk));
+#   tmp1(tmp1==0)=NaN;
+#   tmp2=prctile(tmp1,5);%... its fifth percentile...
+#   tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
+#   tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
+#   sigma.T(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
+#   % cap sigma.S(:,:,kk) to ..
+#   tmp1=convert2vector(sigma.S(:,:,kk).*mygrid.mskC(:,:,kk));
+#   tmp1(tmp1==0)=NaN;
+#   tmp2=prctile(tmp1,5);%... its fifth percentile...
+#   tmp2=max(tmp2,1e-3);%... or 1e-3 instrumental error floor:
+#   tmp1(tmp1<tmp2|isnan(tmp1))=tmp2;
+#   sigma.S(:,:,kk)=convert2vector(tmp1).*mygrid.mskC(:,:,kk);
+# end;
 # ```
 
 # +
@@ -86,57 +77,21 @@ using MeshArrays
 
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
 Γ=GridLoad(γ,option="full")
-(f,i,j,w)=InterpolationFactors(Γ,prof["lon"],prof["lat"])
-XC=Interpolate(Γ.XC,f,i,j,w)
-YC=Interpolate(Γ.YC,f,i,j,w)
 
-#[prof["lon"] XC]
-#[prof["lat"] YC]
+msk=MITprof.NaN_mask(Γ)
 
 # +
 using OceanStateEstimation
 
 pth=MITPROFclim_path
-msk=write(Γ.hFacC)
-msk[findall(msk.>0.0)].=1.0
-msk[findall(msk.==0.0)].=NaN
-msk=read(msk,Γ.hFacC)
 
-function MonthlyClimatology(fil,msk)
-    fid = open(fil)
-    tmp = Array{Float32,4}(undef,(90,1170,50,12))
-    read!(fid,tmp)
-    tmp = hton.(tmp)
-    close(fid)
-    
-    T=MeshArray(γ,Float64,50,12)
-    for tt=1:12
-        T[:,:,tt]=msk*read(tmp[:,:,:,tt],T[:,:,tt])
-    end
+T=MITprof.MonthlyClimatology(pth*"T_OWPv1_M_eccollc_90x50.bin",msk)
+S=MITprof.MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
 
-    return T
-end
+σT=MITprof.AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)
+σs=MITprof.AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
 
-function AnnualClimatology(fil,msk)
-    fid = open(fil)
-    tmp=Array{Float32,3}(undef,(90,1170,50))
-    read!(fid,tmp)
-    tmp = hton.(tmp)
-    close(fid)
-
-    T=MeshArray(γ,Float64,50)
-    T=msk*read(convert(Array{Float64},tmp),T)
-    return T
-end
-
-T=MonthlyClimatology(pth*"T_OWPv1_M_eccollc_90x50.bin",msk)
-S=MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
-
-σT=AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)
-σs=AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
-
-#heatmap(T[2,20,3])
-#heatmap(σT[2,20])
+"Done"
 # -
 
 # ### Plot maps via interpolation
@@ -168,22 +123,17 @@ contourf(🌐.lon,🌐.lat,log10.(transpose(σTm[:,:,20])),clims=(-2.5,0.75))
 tmp=Interpolate(T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
 contourf(🌐.lon,🌐.lat,tmp,clims=(-2.0,30.0))
 
-# +
-#0. select a profile
-
-ii=1
-prof["lon"][ii],prof["lat"][ii]
+# ## uncertainty profile / weight
 
 # +
 #1. spatial interpolation
 
-(f,i,j,w)=InterpolationFactors(Γ,prof["lon"][ii],prof["lat"][ii])
+(f,i,j,w)=InterpolationFactors(Γ,prof["lon"],prof["lat"])
 📚=(f=f,i=i,j=j,w=w)
 # -
 
 prof_σT=[Interpolate(σT[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-
-plot(prof_σT,Γ.RC)
+prof_σT[1:5]
 
 # +
 #2. vertical interpolation
@@ -194,15 +144,15 @@ using Dierckx
 x=-Γ.RC
 y=prof_σT
 jj=findall(isfinite.(y))
-yi=meta["z_std"]
+xi=meta["z_std"]
 spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
 
-plot(spl(yi)[1:55],-yi[1:55])
+plot(prof_σT,Γ.RC,label="native", legend = :bottomright,marker=:+, xlabel="degree K", ylabel="depth")
+plot!(spl(xi)[1:55],-xi[1:55],label="interpolated",marker=:x)
 
 # +
 #inspect the interpolation behavior:
-
-plot(spl(0.1:0.1:200))
+#plot(spl(0.1:0.1:200))
 
 # +
 #3. combine instrumental and representation error
@@ -211,10 +161,13 @@ T_weight=1 ./(spl(meta["z_std"]).^2 .+ prof["T_ERR"].^2)
 T_weight[1:5]
 # -
 
-fac,rec=ArgoTools.monthly_climatology_factors(prof["date"])
+# ## Climatology profile
 
 # +
-#tmp=Interpolate(T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
+#4. spatio-temporal interpolation
+
+fac,rec=ArgoTools.monthly_climatology_factors(prof["date"])
+# -
 
 prof_T1=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
 prof_T2=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
@@ -228,9 +181,10 @@ yi=meta["z_std"]
 spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
 
 prof_Tclim=spl(yi)
+prof_Tclim[1:5]
 # -
 
-plot(prof_Tclim,-yi,leg=:none)
-scatter!(prof["T"][1:55],-yi[1:55])
+plot(prof_Tclim,-yi,marker=:x,label="climatology", legend = :bottomright, xlabel="degree C", ylabel="depth")
+plot!(prof["T"][1:55],-yi[1:55],marker=:o,label="data")
 
 

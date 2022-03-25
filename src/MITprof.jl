@@ -1,8 +1,9 @@
 module MITprof
 
 using Dates, MeshArrays, NCDatasets, OrderedCollections
+import ArgoData.ArgoProfileOriginal
 
-## reading MITprof files
+## reading MITprof files in bulk
 
 function ncread(f::String,v::String)
     Dataset(f,"r") do ds
@@ -102,7 +103,17 @@ end
 
 ## writing MITprof files
 
-function MITprof_write(meta::Dict,profiles::Array{Dict{Any, Any}};path="")
+
+"""
+    MITprof.MITprof_write(meta,profiles,profiles_std;path="")
+
+Write to file.
+
+```
+MITprof.MITprof_write(meta,profiles,profiles_std)
+```
+"""
+function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
 
     isempty(path) ? p=tempdir() : p=path
     fil=joinpath(p,meta["fileOut"])
@@ -142,7 +153,7 @@ function MITprof_write(meta::Dict,profiles::Array{Dict{Any, Any}};path="")
     
     ##
     
-    [data1[i]=profiles[i]["lon"] for i in 1:iPROF]
+    [data1[i]=profiles[i].lon for i in 1:iPROF]
     
     NCDataset(fil,"a") do ds
       defVar(ds,"prof_lon",data1,("iPROF",),
@@ -153,7 +164,7 @@ function MITprof_write(meta::Dict,profiles::Array{Dict{Any, Any}};path="")
       ))
     end
     
-    [data1[i]=profiles[i]["lat"] for i in 1:iPROF]
+    [data1[i]=profiles[i].lat for i in 1:iPROF]
     
     NCDataset(fil,"a") do ds
       defVar(ds,"prof_lat",data1,("iPROF",),
@@ -170,7 +181,7 @@ function MITprof_write(meta::Dict,profiles::Array{Dict{Any, Any}};path="")
     
     ##
     
-    [data[i,:].=profiles[i]["T"][k] for i in 1:iPROF]
+    [data[i,:].=profiles_std[i].T[k] for i in 1:iPROF]
     
     NCDataset(fil,"a") do ds
       defVar(ds,"prof_T",data,("iPROF","iDEPTH"),

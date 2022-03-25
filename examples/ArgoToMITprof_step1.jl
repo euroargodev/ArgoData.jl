@@ -39,7 +39,7 @@ prof=ArgoTools.GetOneProfile(argo_data,m)
 
 # +
 #for verification, record intermediate step:
-T_step0=prof["T"]; S_step0=prof["S"]; p_step0=prof["p"];
+T_step0=prof.T; S_step0=prof.S; p_step0=prof.pressure;
 
 argo_data["JULD"][1]
 # -
@@ -51,11 +51,11 @@ argo_data["JULD"][1]
 ArgoTools.prof_convert!(prof,meta)
 
 #for verification, record intermediate step:
-T_step1=prof["T"]; S_step1=prof["S"]; D_step1=prof["depth"];
+T_step1=prof.T; S_step1=prof.S; D_step1=prof.depth;
 # -
 
 #interpolate to standard depth levels
-ArgoTools.prof_interp!(prof,meta)
+prof_std=ArgoTools.prof_interp!(prof,meta)
 
 # ## verification / CI
 
@@ -69,14 +69,14 @@ println(T_step1[200]==13.80094224720384374)
 # ## verification / visual
 
 scatter(S_step0,T_step0,title="temperature-salinity")
-scatter!(prof["S"],prof["T"],leg=:none)
+scatter!(prof_std.S,prof_std.T,leg=:none)
 
 # + {"cell_style": "center"}
 scatter(T_step1,-D_step1,title="temperature")
-scatter!(prof["T"],-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
+scatter!(prof_std.T,-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
 
 # + {"cell_style": "center"}
 scatter(S_step1,-D_step1,title="salinity")
-scatter!(prof["S"],-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
+scatter!(prof_std.S,-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
 # -
 

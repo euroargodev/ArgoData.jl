@@ -1,6 +1,7 @@
 module ArgoTools
 
 using Dates, YAML, NCDatasets, CSV, DataFrames, Dierckx, Printf
+import ArgoData.ArgoProfileOriginal
 
 """
     mitprof_interp_setup(fil::String)
@@ -185,48 +186,48 @@ function GetOneProfile(ds,m)
         s[tmp1].=missing
     end
 
-    prof=Dict()
-    prof["pnum_txt"]=pnum_txt
-    prof["ymd"]=convert(Union{Int,Missing},ymd)
-    prof["hms"]=convert(Union{Int,Missing},hms)
-    prof["date"]=convert(Union{Float64,Missing},prof_date)
-    prof["lat"]=convert(Union{Float64,Missing},lat)
-    prof["lon"]=convert(Union{Float64,Missing},lon)
-    prof["direc"]=convert(Union{Int,Missing},direc)
-    prof["T"]=convert(Array{Union{Float64,Missing}},t)
-    prof["S"]=convert(Array{Union{Float64,Missing}},s)
-    prof["p"]=convert(Array{Union{Float64,Missing}},p)
-    prof["T_ERR"]=convert(Array{Union{Float64,Missing}},t_ERR)
-    prof["S_ERR"]=convert(Array{Union{Float64,Missing}},s_ERR)
-    prof["isBAD"]=isBAD
-    prof["DATA_MODE"]=ds["DATA_MODE"][m]
-
+    prof=ArgoProfileOriginal(
+        convert(Union{Float64,Missing},lon),
+        convert(Union{Float64,Missing},lat),
+        convert(Union{Float64,Missing},prof_date),
+        convert(Union{Int,Missing},ymd),
+        convert(Union{Int,Missing},hms),
+        convert(Array{Union{Float64,Missing}},t),
+        convert(Array{Union{Float64,Missing}},s),
+        convert(Array{Union{Float64,Missing}},p),
+        convert(Array{Union{Float64,Missing}},p), #place holder for depth
+        convert(Array{Union{Float64,Missing}},t_ERR),
+        convert(Array{Union{Float64,Missing}},s_ERR),
+        pnum_txt,
+        convert(Union{Int,Missing},direc),
+        isBAD,
+        ds["DATA_MODE"][m]
+        )
+    
     return prof
 end
 
+## ArgoProfile data structure
 
 """
-    prof_PtoZ!(prof,meta)
+    prof_PtoZ!(prof)
 
 Convert prof["p"] to prof["depth"]
 """
-function prof_PtoZ!(prof,meta)
-    l=prof["lat"]
-    v=meta["var_out"][1]
-    prof[v]=similar(prof["p"],Union{Missing,Float64})
-    prof[v].=missing
-    k=findall((!ismissing).(prof["p"]))
-    prof[v][k]=[sw_dpth(Float64(prof["p"][kk]),Float64(l)) for kk in k]
+function prof_PtoZ!(prof)
+    l=prof.lat
+    k=findall((!ismissing).(prof.pressure))
+    prof.depth[k].=[sw_dpth(Float64(prof.pressure[kk]),Float64(l)) for kk in k]
 end
 
 """
-    prof_TtoΘ!(prof,meta)
+    prof_TtoΘ!(prof)
 
 Convert prof["T"] to potential temperature
 """
-function prof_TtoΘ!(prof,meta)
-    T=prof[meta["var_out"][2]]
-    P=0.981*1.027*prof[meta["var_out"][1]]
+function prof_TtoΘ!(prof)
+    T=prof.T
+    P=0.981*1.027*prof.depth
     S=35.0*ones(size(T))
     k=findall( (!ismissing).(T) )
     T[k]=[sw_ptmp(Float64(S[kk]),Float64(T[kk]),Float64(P[kk])) for kk in k]
@@ -239,18 +240,22 @@ end
 Interpolate from prof["depth"] to meta["z_std"]
 """
 function prof_interp!(prof,meta)
+    z_std=meta["z_std"]
+    i_T=similar(z_std,Union{Missing,Float64})
+    i_S=similar(z_std,Union{Missing,Float64})
+    i_T_ERR=similar(z_std,Union{Missing,Float64})
+    i_S_ERR=similar(z_std,Union{Missing,Float64})
     for ii=2:length(meta["var_out"])
         v=meta["var_out"][ii]
         v_e=v*"_ERR"
 
-        z_std=meta["z_std"]
         t_std=similar(z_std,Union{Missing,Float64})
         e_std=similar(z_std,Union{Missing,Float64})
 
-        z=prof["depth"]
-        t=prof[v]
-        do_e=haskey(prof,v_e)
-        do_e ? e=prof[v_e] : e=[]
+        z=prof.depth
+        v=="T" ? t=prof.T : t=prof.S
+        do_e=true #haskey(prof,v_e)
+        v=="T" ? e=prof.T_ERR : e=prof.S_ERR
 
         kk=findall((!ismissing).(z.*t))
         if (meta["doInterp"])&&(length(kk)>1)
@@ -280,10 +285,16 @@ function prof_interp!(prof,meta)
                 t_std = []
                 e_std = []
             end
-            prof[v]=t_std
-            prof[v*"_ERR"]=e_std
+        end
+        if v=="T"
+            i_T.=t_std
+            i_T_ERR.=e_std
+        else
+            i_S.=t_std
+            i_S_ERR.=e_std
         end
     end
+    (T=i_T,S=i_S,T_ERR=i_T_ERR,s_ERR=i_S_ERR)
 end
 
 
@@ -294,22 +305,22 @@ Appply conversions to variables (lon,lat,depth,temperature) in `prof` if specifi
 """
 function prof_convert!(prof,meta)
     lonlatISbad=false
-    (prof["lat"]<-90.0)|(prof["lat"]>90.0) ? lonlatISbad=true : nothing
-    (prof["lon"]<-180.0)|(prof["lon"]>360.0) ? lonlatISbad=true : nothing
+    (prof.lat<-90.0)|(prof.lat>90.0) ? lonlatISbad=true : nothing
+    (prof.lon<-180.0)|(prof.lon>360.0) ? lonlatISbad=true : nothing
 
     #if needed then reset lon,lat after issuing a warning
     lonlatISbad==true ? println("warning: out of range lon/lat was reset to 0.0,-89.99") : nothing 
-    lonlatISbad ? (prof["lon"],prof["lat"])=(0.0,-89.99) : nothing
+    lonlatISbad ? (prof.lon,prof.lat)=(0.0,-89.99) : nothing
 
     #if needed then fix longitude range to 0-360
-    (~lonlatISbad)&(prof["lon"]>180.0) ? prof["lon"]-=360.0 : nothing
+    (~lonlatISbad)&(prof.lon>180.0) ? prof.lon-=360.0 : nothing
     
     #if needed then convert pressure to depth
-    (~meta["inclZ"])&(~lonlatISbad) ? ArgoTools.prof_PtoZ!(prof,meta) : nothing
-    println(prof[meta["var_out"][1]][200]-398.625084513574966)
+    (~meta["inclZ"])&(~lonlatISbad) ? ArgoTools.prof_PtoZ!(prof) : nothing
+    println(prof.depth[200]-398.625084513574966)
 
     #if needed then convert T to potential temperature θ
-    meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof,meta) : nothing
+    meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof) : nothing
         
     #prof
 end

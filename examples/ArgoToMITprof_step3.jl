@@ -19,77 +19,9 @@ include("ArgoToMITprof_step2.jl")
 prof
 
 # ## File Creation
+#
 
-using NCDatasets
-using OrderedCollections
-
-# +
-fil2=joinpath(tempdir(),"test.nc")
-
-iPROF = 10
-iDEPTH = 55
-iINTERP = 4
-lTXT = 30
-
-##
-
-NCDataset(fil2,"c") do ds
-    defDim(ds,"iINTERP",iINTERP)
-    defDim(ds,"lTXT",lTXT)
-    ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
-end
-
-##
-
-data = Array{Union{Missing, Float64}, 2}(undef, iPROF, iDEPTH)
-
-#data = randn(iPROF,iDEPTH)
-#data = reshape(prof["T"][1:iDEPTH],(1,iDEPTH))
-#data = reshape(nomissing(prof["T"][1:iDEPTH],-9999.),(iPROF,iDEPTH))
-
-##
-
-[data[i,:].=prof["T"][1:iDEPTH] for i in 1:iPROF]
-
-NCDataset(fil2,"a") do ds
-  defVar(ds,"prof_T",data,("iPROF","iDEPTH"), 
-        attrib = OrderedDict(
-     "units" => "degree_Celsius",
-     "_FillValue" => -9999.,
-     "long_name" => "Temperature"
-  ))
-end
-
-##
-
-data1=Float64.(meta["depthLevels"])[1:iDEPTH]
-
-NCDataset(fil2,"a") do ds
-  defVar(ds,"prof_depth",data1,("iDEPTH",), 
-        attrib = OrderedDict(
-     "units" => "m",
-     "_FillValue" => -9999.,
-     "long_name" => "Depth"
-  ))
-end
-
-##
-
-data1=fill(prof["lon"],iPROF)
-
-NCDataset(fil2,"a") do ds
-  defVar(ds,"prof_lon",data1,("iPROF",), 
-        attrib = OrderedDict(
-     "units" => "degrees_east",
-     "_FillValue" => -9999.,
-     "long_name" => "Longitude (degree East)"
-  ))
-end
-
-
-#[data[i,:].=prof["T"][1:iDEPTH] for i in 1:iPROF]
-
-# -
+MITprof.MITprof_write(meta,[prof,prof,prof],[prof_std,prof_std,prof_std])
 
 # ## Example from file created in 2018
 
@@ -130,37 +62,40 @@ end
 # ```
 #
 
-# ## Documentation example
-
-# +
-# This creates a new NetCDF file /tmp/test.nc.
-# The mode "c" stands for creating a new file (clobber)
-ds = Dataset(joinpath(tempdir(),"test.nc"),"c")
-
-# Define the dimension "lon" and "lat" with the size 100 and 110 resp.
-defDim(ds,"lon",100)
-defDim(ds,"lat",110)
-
-# Define a global attribute
-ds.attrib["title"] = "this is a test file"
-
-# Define the variables temperature with the attribute units
-v = defVar(ds,"temperature",Float32,("lon","lat"), attrib = OrderedDict(
-    "units" => "degree Celsius"))
-
-# add additional attributes
-v.attrib["comments"] = "this is a string attribute with Unicode Ω ∈ ∑ ∫ f(x) dx"
-
-# Generate some example data
-data = [Float32(i+j) for i = 1:100, j = 1:110]
-
-# write a single column
-v[:,1] = data[:,1]
-
-# write a the complete data set
-v[:,:] = data
-
-close(ds)
-# -
+# ## Variables List
+#
+# ```
+# 	double prof_depth(iDEPTH) ;
+# 	double prof_date(iPROF) ;
+# 	double prof_YYYYMMDD(iPROF) ;
+# 	double prof_HHMMSS(iPROF) ;
+#     
+# 	double prof_lon(iPROF) ;
+# 	double prof_lat(iPROF) ;
+# 	double prof_basin(iPROF) ;
+# 	double prof_point(iPROF) ;
+#     
+# 	double prof_T(iPROF, iDEPTH) ;
+# 	double prof_Tweight(iPROF, iDEPTH) ;
+# 	double prof_Testim(iPROF, iDEPTH) ;
+# 	double prof_Terr(iPROF, iDEPTH) ;
+# 	double prof_Tflag(iPROF, iDEPTH) ;
+#     
+# 	double prof_S(iPROF, iDEPTH) ;
+# 	double prof_Sweight(iPROF, iDEPTH) ;
+# 	double prof_Sestim(iPROF, iDEPTH) ;
+# 	double prof_Serr(iPROF, iDEPTH) ;
+# 	double prof_Sflag(iPROF, iDEPTH) ;
+#     
+# 	double prof_interp_XC11(iPROF) ;
+# 	double prof_interp_YC11(iPROF) ;
+# 	double prof_interp_XCNINJ(iPROF) ;
+# 	double prof_interp_YCNINJ(iPROF) ;
+# 	double prof_interp_i(iPROF, iINTERP) ;
+# 	double prof_interp_j(iPROF, iINTERP) ;
+# 	double prof_interp_lon(iPROF, iINTERP) ;
+# 	double prof_interp_lat(iPROF, iINTERP) ;
+# 	double prof_interp_weights(iPROF, iINTERP) ;
+# ```
 
 

@@ -16,6 +16,8 @@
 
 include("ArgoToMITprof_step1.jl")
 
+do_plot=true
+
 # ## Left after step 1
 #
 # ```
@@ -122,11 +124,15 @@ end
 # +
 using Plots
 
-contourf(🌐.lon,🌐.lat,log10.(transpose(σTm[:,:,20]).^2),clims=(-2.5,1.0),title="log10(temperature variance) at 300m")
+if do_plot
+    contourf(🌐.lon,🌐.lat,log10.(transpose(σTm[:,:,20]).^2),clims=(-2.5,1.0),title="log10(temperature variance) at 300m")
+end
 # -
 
-tmp=Interpolate(T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
-contourf(🌐.lon,🌐.lat,tmp,clims=(-2.0,20.0),title="temperature in June at 300m")
+if do_plot
+    tmp=Interpolate(T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
+    contourf(🌐.lon,🌐.lat,tmp,clims=(-2.0,20.0),title="temperature in June at 300m")
+end
 
 # ### Uncertainty Profile
 #
@@ -141,7 +147,7 @@ contourf(🌐.lon,🌐.lat,tmp,clims=(-2.0,20.0),title="temperature in June at 3
 # +
 #1. spatial interpolation
 
-(f,i,j,w)=InterpolationFactors(Γ,prof["lon"],prof["lat"])
+(f,i,j,w)=InterpolationFactors(Γ,prof.lon,prof.lat)
 📚=(f=f,i=i,j=j,w=w)
 # -
 
@@ -160,8 +166,10 @@ jj=findall(isfinite.(y))
 xi=meta["z_std"]
 spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
 
-plot(prof_σT,Γ.RC,label="native", legend = :bottomright,marker=:+, xlabel="degree K", ylabel="depth")
-plot!(spl(xi)[1:55],-xi[1:55],label="interpolated",marker=:x)
+if do_plot
+    plot(prof_σT,Γ.RC,label="native", legend = :bottomright,marker=:+, xlabel="degree K", ylabel="depth")
+    plot!(spl(xi)[1:55],-xi[1:55],label="interpolated",marker=:x)
+end
 
 # +
 #inspect the interpolation behavior:
@@ -170,7 +178,7 @@ plot!(spl(xi)[1:55],-xi[1:55],label="interpolated",marker=:x)
 # +
 #3. combine instrumental and representation error
 
-T_weight=1 ./(spl(meta["z_std"]).^2 .+ prof["T_ERR"].^2)
+T_weight=1 ./(spl(meta["z_std"]).^2 .+ prof_std.T_ERR.^2)
 T_weight[1:5]
 # -
 
@@ -179,7 +187,7 @@ T_weight[1:5]
 # +
 #4. spatio-temporal interpolation
 
-fac,rec=ArgoTools.monthly_climatology_factors(prof["date"])
+fac,rec=ArgoTools.monthly_climatology_factors(prof.date)
 # -
 
 prof_T1=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
@@ -197,7 +205,7 @@ prof_Tclim=spl(yi)
 prof_Tclim[1:5]
 # -
 
-plot(prof_Tclim,-yi,marker=:x,label="climatology", legend = :bottomright, xlabel="degree C", ylabel="depth")
-plot!(prof["T"][1:55],-yi[1:55],marker=:o,label="data")
-
-
+if do_plot
+    plot(prof_Tclim,-yi,marker=:x,label="climatology", legend = :bottomright, xlabel="degree C", ylabel="depth")
+    plot!(prof_std[1][1:55],-yi[1:55],marker=:o,label="data")
+end

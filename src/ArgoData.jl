@@ -7,6 +7,6 @@ include("GDAC.jl")
 include("tools.jl")
 
 export MITprof, GDAC, ArgoTools
-export ArgoProfileOriginal
+export ProfileNative
 
 end # module

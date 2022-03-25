@@ -1,7 +1,7 @@
 module MITprof
 
 using Dates, MeshArrays, NCDatasets, OrderedCollections
-import ArgoData.ArgoProfileOriginal
+import ArgoData.ProfileNative
 
 ## reading MITprof files in bulk
 

@@ -1,7 +1,7 @@
 module ArgoTools
 
 using Dates, YAML, NCDatasets, CSV, DataFrames, Dierckx, Printf
-import ArgoData.ArgoProfileOriginal
+import ArgoData.ProfileNative
 
 """
     mitprof_interp_setup(fil::String)
@@ -186,7 +186,7 @@ function GetOneProfile(ds,m)
         s[tmp1].=missing
     end
 
-    prof=ArgoProfileOriginal(
+    prof=ProfileNative(
         convert(Union{Float64,Missing},lon),
         convert(Union{Float64,Missing},lat),
         convert(Union{Float64,Missing},prof_date),

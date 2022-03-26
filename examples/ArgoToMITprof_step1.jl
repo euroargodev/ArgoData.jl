@@ -37,9 +37,17 @@ haskey(argo_data.dim,"N_PROF") ? np=argo_data.dim["N_PROF"] : np=NaN
 m=1
 prof=ArgoTools.GetOneProfile(argo_data,m)
 
+nz=length(meta["z_std"])
+prof_std=ArgoData.ProfileStandard(
+    Array{Union{Float64,Missing},1}(undef,nz),
+    Array{Union{Float64,Missing},1}(undef,nz),
+    Array{Union{Float64,Missing},1}(undef,nz),
+    Array{Union{Float64,Missing},1}(undef,nz)
+)
+
 # +
 #for verification, record intermediate step:
-T_step0=prof.T; S_step0=prof.S; p_step0=prof.pressure;
+prof_step0=(T=prof.T, S=prof.S, P=prof.pressure)
 
 argo_data["JULD"][1]
 # -
@@ -51,32 +59,32 @@ argo_data["JULD"][1]
 ArgoTools.prof_convert!(prof,meta)
 
 #for verification, record intermediate step:
-T_step1=prof.T; S_step1=prof.S; D_step1=prof.depth;
+prof_step1=(T=prof.T, S=prof.S, D=prof.depth)
 # -
 
 #interpolate to standard depth levels
-prof_std=ArgoTools.prof_interp!(prof,meta)
+ArgoTools.prof_interp!(prof,prof_std,meta)
 
 # ## verification / CI
 
 #verification / CI
-k=findall((!ismissing).(p_step0))[200]
-println(p_step0[k]==401.799987792968724)
+k=findall((!ismissing).(prof_step0.P))[200]
+println(prof_step0.P[k]==401.799987792968724)
 
 #verification / CI
-println(T_step1[200]==13.80094224720384374)
+println(prof_step1.T[200]==13.80094224720384374)
 
 # ## verification / visual
 
-scatter(S_step0,T_step0,title="temperature-salinity")
+scatter(prof_step0.S,prof_step0.T,title="temperature-salinity")
 scatter!(prof_std.S,prof_std.T,leg=:none)
 
 # + {"cell_style": "center"}
-scatter(T_step1,-D_step1,title="temperature")
+scatter(prof_step1.T,-prof_step1.D,title="temperature")
 scatter!(prof_std.T,-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
 
 # + {"cell_style": "center"}
-scatter(S_step1,-D_step1,title="salinity")
+scatter(prof_step1.S,-prof_step1.D,title="salinity")
 scatter!(prof_std.S,-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
 # -
 

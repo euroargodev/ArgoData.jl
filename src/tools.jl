@@ -239,12 +239,8 @@ end
 
 Interpolate from prof["depth"] to meta["z_std"]
 """
-function prof_interp!(prof,meta)
+function prof_interp!(prof,prof_std,meta)
     z_std=meta["z_std"]
-    i_T=similar(z_std,Union{Missing,Float64})
-    i_S=similar(z_std,Union{Missing,Float64})
-    i_T_ERR=similar(z_std,Union{Missing,Float64})
-    i_S_ERR=similar(z_std,Union{Missing,Float64})
     for ii=2:length(meta["var_out"])
         v=meta["var_out"][ii]
         v_e=v*"_ERR"
@@ -287,14 +283,13 @@ function prof_interp!(prof,meta)
             end
         end
         if v=="T"
-            i_T.=t_std
-            i_T_ERR.=e_std
+            prof_std.T .=t_std
+            prof_std.T_ERR .=e_std
         else
-            i_S.=t_std
-            i_S_ERR.=e_std
+            prof_std.S .=t_std
+            prof_std.S_ERR .=e_std
         end
     end
-    (T=i_T,S=i_S,T_ERR=i_T_ERR,s_ERR=i_S_ERR)
 end
 
 

@@ -207,5 +207,7 @@ prof_Tclim[1:5]
 
 if do_plot
     plot(prof_Tclim,-yi,marker=:x,label="climatology", legend = :bottomright, xlabel="degree C", ylabel="depth")
-    plot!(prof_std[1][1:55],-yi[1:55],marker=:o,label="data")
+    plot!(prof_std.T[1:55],-yi[1:55],marker=:o,label="data")
 end
+
+

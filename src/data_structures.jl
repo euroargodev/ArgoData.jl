@@ -3,8 +3,8 @@ struct ProfileNative
     lon
     lat
     date
-    hms
     ymd
+    hms
     T
     S
     pressure

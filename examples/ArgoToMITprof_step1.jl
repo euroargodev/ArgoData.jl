@@ -38,12 +38,7 @@ m=1
 prof=ArgoTools.GetOneProfile(argo_data,m)
 
 nz=length(meta["z_std"])
-prof_std=ArgoData.ProfileStandard(
-    Array{Union{Float64,Missing},1}(undef,nz),
-    Array{Union{Float64,Missing},1}(undef,nz),
-    Array{Union{Float64,Missing},1}(undef,nz),
-    Array{Union{Float64,Missing},1}(undef,nz)
-)
+prof_std=ArgoData.ProfileStandard(nz)
 
 # +
 #for verification, record intermediate step:

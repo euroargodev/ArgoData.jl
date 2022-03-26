@@ -182,16 +182,39 @@ function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
     ##
     
     [data[i,:].=profiles_std[i].T[k] for i in 1:iPROF]
-    
-    NCDataset(fil,"a") do ds
-      defVar(ds,"prof_T",data,("iPROF","iDEPTH"),
-            attrib = OrderedDict(
-         "units" => "degree_Celsius",
-         "_FillValue" => -9999.,
-         "long_name" => "Temperature"
-      ))
-    end
+    ncwrite(data,fil,"prof_T","degree_Celsius","Temperature")
+
+    [data[i,:].=profiles_std[i].Tweight[k] for i in 1:iPROF]
+    ncwrite(data,fil,"prof_Tweight","(degree C)^-2","Temperature least-square weight")
+
+    [data[i,:].=profiles_std[i].Testim[k] for i in 1:iPROF]
+    ncwrite(data,fil,"prof_Testim","degree_Celsius","Temperature atlas (monthly clim.)")
+
+    ##
+
+    [data[i,:].=profiles_std[i].S[k] for i in 1:iPROF]
+    ncwrite(data,fil,"prof_S","psu","Salinity")
+
+    [data[i,:].=profiles_std[i].Sweight[k] for i in 1:iPROF]
+    ncwrite(data,fil,"prof_Sweight","(psu)^-2","Salinity least-square weight")
+
+    [data[i,:].=profiles_std[i].Sestim[k] for i in 1:iPROF]
+    ncwrite(data,fil,"prof_Sestim","psu","Salinity atlas (monthly clim.)")
 
 end
+
+
+#[data[i,:].=profiles_std[i].T[k] for i in 1:iPROF]
+function ncwrite(data,fil,name,long_name,units)
+    NCDataset(fil,"a") do ds
+      defVar(ds,name,data,("iPROF","iDEPTH"),
+            attrib = OrderedDict(
+         "units" => units,
+         "_FillValue" => -9999.,
+         "long_name" => long_name
+      ))
+    end
+end
+
 
 end

@@ -16,7 +16,7 @@
 
 include("ArgoToMITprof_step1.jl")
 
-do_plot=true
+do_plot=false
 
 # ## Left after step 1
 #
@@ -96,7 +96,7 @@ T=MITprof.MonthlyClimatology(pth*"T_OWPv1_M_eccollc_90x50.bin",msk)
 S=MITprof.MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
 
 σT=MITprof.AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)
-σs=MITprof.AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
+σS=MITprof.AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
 
 "Done"
 # -
@@ -116,9 +116,12 @@ end
 
 ni,nj=length(🌐.lon),length(🌐.lat)
 σTm=Array{Float64,3}(undef,(ni,nj,50))
+σSm=Array{Float64,3}(undef,(ni,nj,50))
 for k=1:50
     tmp=Interpolate(σT[:,k],🌐.f,🌐.i,🌐.j,🌐.w)
     σTm[:,:,k]=reshape(tmp,(ni,nj))
+    tmp=Interpolate(σS[:,k],🌐.f,🌐.i,🌐.j,🌐.w)
+    σSm[:,:,k]=reshape(tmp,(ni,nj))
 end
 
 # +
@@ -152,6 +155,7 @@ end
 # -
 
 prof_σT=[Interpolate(σT[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_σS=[Interpolate(σS[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
 prof_σT[1:5]
 
 # +
@@ -178,8 +182,20 @@ end
 # +
 #3. combine instrumental and representation error
 
-T_weight=1 ./(spl(meta["z_std"]).^2 .+ prof_std.T_ERR.^2)
-T_weight[1:5]
+prof_std.Tweight.=1 ./(spl(meta["z_std"]).^2 .+ prof_std.T_ERR.^2)
+prof_std.Tweight[1:5]
+
+# +
+#4. salinity
+
+x=-Γ.RC
+y=prof_σS
+jj=findall(isfinite.(y))
+xi=meta["z_std"]
+spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
+prof_std.Sweight.=1 ./(spl(meta["z_std"]).^2 .+ prof_std.S_ERR.^2)
+prof_std.Sweight[1:5]
+
 # -
 
 # ### Seasonal Climatology Profile
@@ -201,13 +217,30 @@ jj=findall(isfinite.(y))
 yi=meta["z_std"]
 spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
 
-prof_Tclim=spl(yi)
-prof_Tclim[1:5]
+prof_std.Testim.=spl(yi)
+prof_std.Testim[1:5]
 # -
 
 if do_plot
-    plot(prof_Tclim,-yi,marker=:x,label="climatology", legend = :bottomright, xlabel="degree C", ylabel="depth")
+    plot(prof_std.Testim,-yi,marker=:x,label="climatology", legend = :bottomright, xlabel="degree C", ylabel="depth")
     plot!(prof_std.T[1:55],-yi[1:55],marker=:o,label="data")
 end
 
+# +
+#4. spatio-temporal interpolation
+
+prof_S1=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_S2=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_S0=fac[1]*prof_S1+fac[2]*prof_S2;
+
+# +
+x=-Γ.RC
+y=prof_S0
+jj=findall(isfinite.(y))
+yi=meta["z_std"]
+spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
+
+prof_std.Sestim.=spl(yi)
+prof_std.Sestim[1:5]
+# -
 

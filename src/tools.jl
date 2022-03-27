@@ -272,6 +272,7 @@ function prof_interp!(prof,prof_std,meta)
                 t_std[msk1].=missing
                 t_std[msk2].=missing
                 if do_e
+                    e_in[findall(ismissing.(e_in))].=0.0
                     spl = Spline1D(z_in, e_in)
                     e_std[:] = spl(z_std)
                     e_std[msk1].=missing
@@ -312,12 +313,15 @@ function prof_convert!(prof,meta)
     
     #if needed then convert pressure to depth
     (~meta["inclZ"])&(~lonlatISbad) ? ArgoTools.prof_PtoZ!(prof) : nothing
-    println(prof.depth[200]-398.625084513574966)
 
     #if needed then convert T to potential temperature θ
     meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof) : nothing
-        
-    #prof
+end
+
+function interp1(x,y,xi)
+    jj=findall(isfinite.(y))
+    spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
+    return spl(xi)
 end
 
 """

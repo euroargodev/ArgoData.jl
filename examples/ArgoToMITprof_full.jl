@@ -11,6 +11,8 @@ msk=MITprof.NaN_mask(Γ)
 
 using OceanStateEstimation
 pth=MITPROFclim_path
+MITPROFclim_download()
+
 T=MITprof.MonthlyClimatology(pth*"T_OWPv1_M_eccollc_90x50.bin",msk)
 S=MITprof.MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
 σT=MITprof.AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)

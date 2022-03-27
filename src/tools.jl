@@ -1,27 +1,7 @@
-module DownloadArgo
+module ArgoTools
 
-using Printf, Dates, YAML, NetCDF, NCDatasets, CSV, DataFrames, Dierckx
-
-"""
-    GDAC_FTP(b::String,y::Int,m::Int)
-
-Download Argo data files for one regional domain (b), year (y), and
-month (m) from the `GDAC` FTP server (`ftp://ftp.ifremer.fr/ifremer/argo`
-or, equivalently, `ftp://usgodae.org/pub/outgoing/argo`).
-
-```
-b="atlantic"; yy=2009:2009; mm=8:12;
-for y=yy, m=mm;
-    println("\$b/\$y/\$m"); DownloadArgo.GDAC_FTP(b,y,m)
-end
-```
-"""
-function GDAC_FTP(b::String,y::Int,m::Int)
-    yy = @sprintf "%04d" y
-    mm = @sprintf "%02d" m
-    c=`wget --quiet -r ftp://ftp.ifremer.fr/ifremer/argo/geo/"$b"_ocean/$yy/$mm`
-    run(c)
-end
+using Dates, YAML, NCDatasets, CSV, DataFrames, Dierckx, Printf
+import ArgoData.ProfileNative
 
 """
     mitprof_interp_setup(fil::String)
@@ -41,8 +21,12 @@ function mitprof_interp_setup(fil::String)
     list0=Array{Array,1}(undef,12)
     for m=1:12
         sd="$b"*"_ocean/$y/"*Printf.@sprintf("%02d/",m)
-        tmp=readdir(d*sd)
-        list0[m]=[sd*tmp[i] for i=1:length(tmp)]
+        if isdir(d*sd)
+            tmp=readdir(d*sd)
+            list0[m]=[sd*tmp[i] for i=1:length(tmp)]
+        else
+            list0[m]=[]
+        end
     end
 
     nf=sum(length.(list0))
@@ -108,6 +92,9 @@ function GetOneProfile(ds,m)
     t=ds["JULD"][m]
     ymd=Dates.year(t)*1e4+Dates.month(t)*1e2+Dates.day(t)
     hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
+
+    prof_date=t-DateTime(0)
+    prof_date=prof_date.value/86400/1000 #days since DateTime(0)
 
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]
@@ -203,50 +190,51 @@ function GetOneProfile(ds,m)
         s[tmp1].=missing
     end
 
-    prof=Dict()
-    prof["pnum_txt"]=pnum_txt
-    prof["ymd"]=convert(Union{Int,Missing},ymd)
-    prof["hms"]=convert(Union{Int,Missing},hms)
-    prof["lat"]=convert(Union{Float64,Missing},lat)
-    prof["lon"]=convert(Union{Float64,Missing},lon)
-    prof["direc"]=convert(Union{Int,Missing},direc)
-    prof["T"]=convert(Array{Union{Float64,Missing}},t)
-    prof["S"]=convert(Array{Union{Float64,Missing}},s)
-    prof["p"]=convert(Array{Union{Float64,Missing}},p)
-    prof["T_ERR"]=convert(Array{Union{Float64,Missing}},t_ERR)
-    prof["S_ERR"]=convert(Array{Union{Float64,Missing}},s_ERR)
-    prof["isBAD"]=isBAD
-    prof["DATA_MODE"]=ds["DATA_MODE"][m]
-
+    prof=ProfileNative(
+        convert(Union{Float64,Missing},lon),
+        convert(Union{Float64,Missing},lat),
+        convert(Union{Float64,Missing},prof_date),
+        convert(Union{Int,Missing},ymd),
+        convert(Union{Int,Missing},hms),
+        convert(Array{Union{Float64,Missing}},t),
+        convert(Array{Union{Float64,Missing}},s),
+        convert(Array{Union{Float64,Missing}},p),
+        convert(Array{Union{Float64,Missing}},p), #place holder for depth
+        convert(Array{Union{Float64,Missing}},t_ERR),
+        convert(Array{Union{Float64,Missing}},s_ERR),
+        pnum_txt,
+        convert(Union{Int,Missing},direc),
+        isBAD,
+        ds["DATA_MODE"][m]
+        )
+    
     return prof
 end
 
+## ArgoProfile data structure
 
 """
-    prof_PtoZ!(prof,meta)
+    prof_PtoZ!(prof)
 
 Convert prof["p"] to prof["depth"]
 """
-function prof_PtoZ!(prof,meta)
-    l=prof["lat"]
-    v=meta["var_out"][1]
-    prof[v]=similar(prof["p"],Union{Missing,Float64})
-    prof[v].=missing
-    k=findall((!ismissing).(prof["p"]))
-    prof[v][k]=[DownloadArgo.sw_dpth(Float64(prof["p"][kk]),Float64(l)) for kk in k]
+function prof_PtoZ!(prof)
+    l=prof.lat
+    k=findall((!ismissing).(prof.pressure))
+    prof.depth[k].=[sw_dpth(Float64(prof.pressure[kk]),Float64(l)) for kk in k]
 end
 
 """
-    prof_TtoΘ!(prof,meta)
+    prof_TtoΘ!(prof)
 
 Convert prof["T"] to potential temperature
 """
-function prof_TtoΘ!(prof,meta)
-    T=prof[meta["var_out"][2]]
-    P=0.981*1.027*prof[meta["var_out"][1]]
+function prof_TtoΘ!(prof)
+    T=prof.T
+    P=0.981*1.027*prof.depth
     S=35.0*ones(size(T))
     k=findall( (!ismissing).(T) )
-    T[k]=[DownloadArgo.sw_ptmp(Float64(S[kk]),Float64(T[kk]),Float64(P[kk])) for kk in k]
+    T[k]=[sw_ptmp(Float64(S[kk]),Float64(T[kk]),Float64(P[kk])) for kk in k]
 end
 
 
@@ -255,19 +243,19 @@ end
 
 Interpolate from prof["depth"] to meta["z_std"]
 """
-function prof_interp!(prof,meta)
+function prof_interp!(prof,prof_std,meta)
+    z_std=meta["z_std"]
     for ii=2:length(meta["var_out"])
         v=meta["var_out"][ii]
         v_e=v*"_ERR"
 
-        z_std=meta["z_std"]
         t_std=similar(z_std,Union{Missing,Float64})
         e_std=similar(z_std,Union{Missing,Float64})
 
-        z=prof["depth"]
-        t=prof[v]
-        do_e=haskey(prof,v_e)
-        do_e ? e=prof[v_e] : e=[]
+        z=prof.depth
+        v=="T" ? t=prof.T : t=prof.S
+        do_e=true #haskey(prof,v_e)
+        v=="T" ? e=prof.T_ERR : e=prof.S_ERR
 
         kk=findall((!ismissing).(z.*t))
         if (meta["doInterp"])&&(length(kk)>1)
@@ -288,6 +276,7 @@ function prof_interp!(prof,meta)
                 t_std[msk1].=missing
                 t_std[msk2].=missing
                 if do_e
+                    e_in[findall(ismissing.(e_in))].=0.0
                     spl = Spline1D(z_in, e_in)
                     e_std[:] = spl(z_std)
                     e_std[msk1].=missing
@@ -297,9 +286,46 @@ function prof_interp!(prof,meta)
                 t_std = []
                 e_std = []
             end
-            prof[v]=t_std
+        end
+        if v=="T"
+            prof_std.T .=t_std
+            prof_std.T_ERR .=e_std
+        else
+            prof_std.S .=t_std
+            prof_std.S_ERR .=e_std
         end
     end
+end
+
+
+"""
+    prof_convert!(prof,meta)
+
+Appply conversions to variables (lon,lat,depth,temperature) in `prof` if specified in `meta`.
+"""
+function prof_convert!(prof,meta)
+    lonlatISbad=false
+    (prof.lat<-90.0)|(prof.lat>90.0) ? lonlatISbad=true : nothing
+    (prof.lon<-180.0)|(prof.lon>360.0) ? lonlatISbad=true : nothing
+
+    #if needed then reset lon,lat after issuing a warning
+    lonlatISbad==true ? println("warning: out of range lon/lat was reset to 0.0,-89.99") : nothing 
+    lonlatISbad ? (prof.lon,prof.lat)=(0.0,-89.99) : nothing
+
+    #if needed then fix longitude range to 0-360
+    (~lonlatISbad)&(prof.lon>180.0) ? prof.lon-=360.0 : nothing
+    
+    #if needed then convert pressure to depth
+    (~meta["inclZ"])&(~lonlatISbad) ? ArgoTools.prof_PtoZ!(prof) : nothing
+
+    #if needed then convert T to potential temperature θ
+    meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof) : nothing
+end
+
+function interp1(x,y,xi)
+    jj=findall(isfinite.(y))
+    spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
+    return spl(xi)
 end
 
 """
@@ -420,6 +446,53 @@ function sw_adtg(S,T,P)
     (  e0 + (e1 + e2.*T).*T ).*P.*P
 
     return ADTG
+end
+
+"""
+    monthly_climatology_factors(date)
+
+if `date` is a date in `days since DateTime(0)`
+
+and `ff(rec)` returns a value for month `rec` in `1:12`
+
+then compute the factors to interpolate from `rec[1],rec[2]` to `date`.
+
+For example :
+
+```
+ff(x)=sin((x-0.5)/12*2pi)
+fac,rec=monthly_climatology_factors(prof["date"])
+
+gg=fac[1]*ff(rec[1])+fac[2]*ff(rec[2])
+(ff(rec[1]),gg,ff(rec[2]))
+```
+"""
+function monthly_climatology_factors(date)
+    
+    tmp2=ones(13,1)*[1991 1 1 0 0 0]; tmp2[1:12,2].=(1:12); tmp2[13,1]=1992.0;
+    tmp2=[DateTime(tmp2[i,:]...) for i in 1:13]
+    
+    tim_fld=tmp2 .-DateTime(1991,1,1); 
+    tim_fld=1/2*(tim_fld[1:12]+tim_fld[2:13])    
+    tim_fld=[tim_fld[i].value for i in 1:12]/86400/1000
+    
+    tim_fld=[tim_fld[12]-365.0;tim_fld...;tim_fld[1]+365.0]
+    rec_fld=[12;1:12;1]
+    
+#    year0=floor(profIn["ymd"]/1e4)    
+    year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
+    date0=DateTime(year0,1,1)-DateTime(0)
+
+    date0=date0.value/86400/1000    
+    tim_prof=date-date0
+    tim_prof>365.0 ? tim_prof=365.0 : nothing
+
+    #tim_fld,rec_fld,tim_prof
+
+    tt=maximum(findall(tim_fld.<=tim_prof))
+    a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
+    
+    return (1-a0,a0),(rec_fld[tt],rec_fld[tt+1])
 end
 
 end

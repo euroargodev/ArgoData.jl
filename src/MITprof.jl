@@ -1,9 +1,18 @@
 module MITprof
 
-using NetCDF, Dates
+using Dates, MeshArrays, NCDatasets, OrderedCollections
+import ArgoData.ProfileNative
+
+## reading MITprof files in bulk
+
+function ncread(f::String,v::String)
+    Dataset(f,"r") do ds
+        ds[v][:]
+    end
+end
 
 """
-    read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
+    MITprof_read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
 
 Standard Depth Argo Data Example.
 
@@ -16,7 +25,7 @@ The produced figure shows the number of profiles as function of time for a chose
 using ArgoData, Plots
 
 fi="MITprof/MITprof_mar2016_argo9506.nc"
-(lo,la,ye)=MITprof.read(fi)
+(lo,la,ye)=MITprof.MITprof_read(fi)
 
 h = histogram(ye,bins=20,label=fi[end-10:end],title="Argo profiles")
 
@@ -25,7 +34,7 @@ kk=findall((ye.>ye0) .* (ye.<ye1))
 scatter(lo[kk],la[kk],label=fi[end-10:end],title="Argo profiles count")
 ```
 """
-function read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
+function MITprof_read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
     #i = ncinfo(f)
     lo = ncread(f, "prof_lon")
     la = ncread(f, "prof_lat")
@@ -54,6 +63,166 @@ function loop(pth::String="profiles/")
     end
 
     return Float64.(lo),Float64.(la),Float64.(ye)
+end
+
+## global ocean grid
+
+function NaN_mask(Γ)
+    msk=write(Γ.hFacC)
+    msk[findall(msk.>0.0)].=1.0
+    msk[findall(msk.==0.0)].=NaN
+    msk=MeshArrays.read(msk,Γ.hFacC)
+end
+
+function MonthlyClimatology(fil,msk)
+    fid = open(fil)
+    tmp = Array{Float32,4}(undef,(90,1170,50,12))
+    read!(fid,tmp)
+    tmp = hton.(tmp)
+    close(fid)
+    
+    T=MeshArray(msk.grid,Float64,50,12)
+    for tt=1:12
+        T[:,:,tt]=msk*MeshArrays.read(tmp[:,:,:,tt],T[:,:,tt])
+    end
+
+    return T
+end
+
+function AnnualClimatology(fil,msk)
+    fid = open(fil)
+    tmp=Array{Float32,3}(undef,(90,1170,50))
+    read!(fid,tmp)
+    tmp = hton.(tmp)
+    close(fid)
+
+    T=MeshArray(msk.grid,Float64,50)
+    T=msk*MeshArrays.read(convert(Array{Float64},tmp),T)
+    return T
+end
+
+## writing MITprof files
+
+
+"""
+    MITprof.MITprof_write(meta,profiles,profiles_std;path="")
+
+Write to file.
+
+```
+MITprof.MITprof_write(meta,profiles,profiles_std)
+```
+"""
+function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
+
+    isempty(path) ? p=tempdir() : p=path
+    fil=joinpath(p,meta["fileOut"])
+
+    z=Float64.(meta["depthLevels"])
+    k=findall((z.>=meta["depthRange"][1]) .& (z.<=meta["depthRange"][2]))
+
+    iPROF = length(profiles[:])
+    iDEPTH = length(k)
+    iINTERP = 4
+    lTXT = 30
+    
+    ##
+    
+    NCDataset(fil,"c") do ds
+        defDim(ds,"iPROF",iPROF)
+        defDim(ds,"iDEPTH",iDEPTH)
+        defDim(ds,"iINTERP",iINTERP)
+        defDim(ds,"lTXT",lTXT)
+        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
+    end
+
+    ##
+
+    NCDataset(fil,"a") do ds
+      defVar(ds,"prof_depth",z[k],("iDEPTH",),
+            attrib = OrderedDict(
+         "units" => "m",
+         "_FillValue" => -9999.,
+         "long_name" => "Depth"
+      ))
+    end
+    
+    ##
+    
+    data1 = Array{Union{Missing, Float64}, 1}(undef, iPROF)
+    
+    ##
+    
+    [data1[i]=profiles[i].lon for i in 1:iPROF]
+    ncwrite_1d(data1,fil,"prof_lon","Longitude (degree East)","degrees_east")
+    
+    [data1[i]=profiles[i].date for i in 1:iPROF]
+    ncwrite_1d(data1,fil,"prof_date","Julian day since Jan-1-0000"," ") ##need units
+    
+    [data1[i]=profiles[i].ymd for i in 1:iPROF]
+    ncwrite_1d(data1,fil,"prof_YYYYMMDD","year (4 digits), month (2 digits), day (2 digits)"," ") ##need units
+
+    [data1[i]=profiles[i].hms for i in 1:iPROF]
+    ncwrite_1d(data1,fil,"prof_HHMMSS","hour (2 digits), minute (2 digits), second (2 digits)"," ") ##need units
+
+# 	double prof_basin(iPROF) ;
+# 	double prof_point(iPROF) ;
+
+    ##
+
+    data = Array{Union{Missing, Float64}, 2}(undef, iPROF, iDEPTH)
+    
+    ##
+    
+    [data[i,:].=profiles_std[i].T[k] for i in 1:iPROF]
+    ncwrite_2d(data,fil,"prof_T","Temperature","degree_Celsius")
+
+    [data[i,:].=profiles_std[i].Tweight[k] for i in 1:iPROF]
+    ncwrite_2d(data,fil,"prof_Tweight","Temperature least-square weight","(degree C)^-2")
+
+    [data[i,:].=profiles_std[i].Testim[k] for i in 1:iPROF]
+    ncwrite_2d(data,fil,"prof_Testim","Temperature atlas (monthly clim.)","degree_Celsius")
+
+# 	double prof_Terr(iPROF, iDEPTH) ;
+# 	double prof_Tflag(iPROF, iDEPTH) ;
+
+    ##
+
+    [data[i,:].=profiles_std[i].S[k] for i in 1:iPROF]
+    ncwrite_2d(data,fil,"prof_S","Salinity","psu")
+
+    [data[i,:].=profiles_std[i].Sweight[k] for i in 1:iPROF]
+    ncwrite_2d(data,fil,"prof_Sweight","Salinity least-square weight","(psu)^-2")
+
+    [data[i,:].=profiles_std[i].Sestim[k] for i in 1:iPROF]
+    ncwrite_2d(data,fil,"prof_Sestim","Salinity atlas (monthly clim.)","psu")
+
+# 	double prof_Serr(iPROF, iDEPTH) ;
+# 	double prof_Sflag(iPROF, iDEPTH) ;
+
+end
+
+
+function ncwrite_2d(data,fil,name,long_name,units)
+    NCDataset(fil,"a") do ds
+      defVar(ds,name,data,("iPROF","iDEPTH"),
+            attrib = OrderedDict(
+         "units" => units,
+         "_FillValue" => -9999.,
+         "long_name" => long_name
+      ))
+    end
+end
+
+function ncwrite_1d(data,fil,name,long_name,units)
+    NCDataset(fil,"a") do ds
+        defVar(ds,name,data,("iPROF",),
+            attrib = OrderedDict(
+        "units" => units,
+        "_FillValue" => -9999.,
+        "long_name" => long_name
+        ))
+    end
 end
 
 end

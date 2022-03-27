@@ -1,8 +1,12 @@
 module ArgoData
 
-include("MITprof.jl")
-include("DownloadArgo.jl")
+include("data_structures.jl")
 
-export MITprof, DownloadArgo
+include("MITprof.jl")
+include("GDAC.jl")
+include("tools.jl")
+
+export MITprof, GDAC, ArgoTools
+export ProfileNative
 
 end # module

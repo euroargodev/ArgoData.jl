@@ -10,4 +10,8 @@ using Test
     fil=GDAC.Argo_float_download(list_files,10000,"meta",ftp)
 
     @test isfile(fil)
+
+    include("../examples/ArgoToMITprof_full.jl")
+
+    @test isa(profiles,Vector{ProfileNative})
 end

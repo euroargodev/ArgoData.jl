@@ -1,5 +1,6 @@
 
-using ArgoData, CSV, DataFrames, NCDatasets, Downloads
+using ArgoData, Downloads, NCDatasets
+#using CSV, DataFrames
 
 ##
 
@@ -17,7 +18,7 @@ S=MITprof.MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
 
 ##
 
-fil="ArgoToMITprof.yml"
+fil="../examples/ArgoToMITprof.yml"
 meta=ArgoTools.mitprof_interp_setup(fil)
 #greylist=DataFrame(CSV.File(meta["dirIn"]*"../ar_greylist.txt"));
 nz=length(meta["z_std"])

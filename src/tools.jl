@@ -21,8 +21,12 @@ function mitprof_interp_setup(fil::String)
     list0=Array{Array,1}(undef,12)
     for m=1:12
         sd="$b"*"_ocean/$y/"*Printf.@sprintf("%02d/",m)
-        tmp=readdir(d*sd)
-        list0[m]=[sd*tmp[i] for i=1:length(tmp)]
+        if isdir(d*sd)
+            tmp=readdir(d*sd)
+            list0[m]=[sd*tmp[i] for i=1:length(tmp)]
+        else
+            list0[m]=[]
+        end
     end
 
     nf=sum(length.(list0))

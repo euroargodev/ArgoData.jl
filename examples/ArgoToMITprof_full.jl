@@ -1,5 +1,5 @@
 
-using ArgoData, CSV, DataFrames, NCDatasets
+using ArgoData, CSV, DataFrames, NCDatasets, Downloads
 
 ##
 
@@ -19,12 +19,17 @@ S=MITprof.MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
 
 fil="ArgoToMITprof.yml"
 meta=ArgoTools.mitprof_interp_setup(fil)
-greylist=DataFrame(CSV.File(meta["dirIn"]*"../ar_greylist.txt"));
+#greylist=DataFrame(CSV.File(meta["dirIn"]*"../ar_greylist.txt"));
 nz=length(meta["z_std"])
 
-f=1
-println(meta["dirIn"]*meta["fileInList"][f])
-argo_data=Dataset(meta["dirIn"]*meta["fileInList"][f])
+#f=1
+#fil=meta["dirIn"]*meta["fileInList"][f]; println(fil)
+
+url0="https://data-argo.ifremer.fr/dac/coriolis/"; wmo=6900900
+fil=Downloads.download(url0*"/$(wmo)/$(wmo)_prof.nc")
+meta["fileOut"]="$(wmo)_MITprof.nc"
+
+argo_data=Dataset(fil)
 haskey(argo_data.dim,"N_PROF") ? np=argo_data.dim["N_PROF"] : np=NaN
 
 profiles=Array{ArgoData.ProfileNative,1}(undef,np)

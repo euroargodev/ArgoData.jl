@@ -6,7 +6,7 @@ import ArgoData.ProfileNative
 """
     mitprof_interp_setup(fil::String)
 
-Get parameters etc from yaml file (`fil`).
+Get parameters to call `MITprof_format` from yaml file (`fil`, e.g. "../examples/ArgoToMITprof.yml").
 """
 function mitprof_interp_setup(fil::String)
 
@@ -79,6 +79,21 @@ function mitprof_interp_setup(fil::String)
     meta["var_out"]=meta["variables"]
     
     return meta
+end
+
+"""
+    meta(input_file,output_file)
+
+Get parameters to call `MITprof_format` which will read from `input_file` to create `output_file`.
+"""
+function meta(input_file,output_file)
+    fil="../examples/ArgoToMITprof.yml"
+    meta=ArgoTools.mitprof_interp_setup(fil)
+    #f=1
+    #input_file=meta["dirIn"]*meta["fileInList"][f]
+    meta["fileOut"]=output_file
+
+    meta
 end
 
 """
@@ -495,4 +510,68 @@ function monthly_climatology_factors(date)
     return (1-a0,a0),(rec_fld[tt],rec_fld[tt+1])
 end
 
+end #module ArgoTools
+
+
+module GriddedFields
+
+using MeshArrays, OceanStateEstimation
+
+function NaN_mask(Γ)
+    msk=write(Γ.hFacC)
+    msk[findall(msk.>0.0)].=1.0
+    msk[findall(msk.==0.0)].=NaN
+    msk=MeshArrays.read(msk,Γ.hFacC)
 end
+
+function MonthlyClimatology(fil,msk)
+    fid = open(fil)
+    tmp = Array{Float32,4}(undef,(90,1170,50,12))
+    read!(fid,tmp)
+    tmp = hton.(tmp)
+    close(fid)
+    
+    T=MeshArray(msk.grid,Float64,50,12)
+    for tt=1:12
+        T[:,:,tt]=msk*MeshArrays.read(tmp[:,:,:,tt],T[:,:,tt])
+    end
+
+    return T
+end
+
+function AnnualClimatology(fil,msk)
+    fid = open(fil)
+    tmp=Array{Float32,3}(undef,(90,1170,50))
+    read!(fid,tmp)
+    tmp = hton.(tmp)
+    close(fid)
+
+    T=MeshArray(msk.grid,Float64,50)
+    T=msk*MeshArrays.read(convert(Array{Float64},tmp),T)
+    return T
+end
+
+"""
+    load()
+
+Load gridded fields from files (and download the files if needed).
+Originally this function returned `(Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)`.
+"""
+function load()
+    γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
+    Γ=GridLoad(γ,option="full")
+    
+    msk=NaN_mask(Γ)
+
+    pth=MITPROFclim_path
+    OceanStateEstimation.MITPROFclim_download()
+
+    T=MonthlyClimatology(pth*"T_OWPv1_M_eccollc_90x50.bin",msk)
+    S=MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
+    σT=AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)
+    σS=AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
+
+    (Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)
+end
+
+end #module GriddedFields

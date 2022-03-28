@@ -17,69 +17,90 @@
 
 using ArgoData, DataFrames, CSV, NCDatasets, Plots
 
-# ## parameter files
+# ## Input File
+#
+# 1. Choose one Argo float (e.g., `wmo=6900900`)
+# 1. Download file to temporary folder (if needed).
+# 1. Set up file names and parameters (`meta`)
+# 1. Open file for lazy access (`data`)
 
 # +
-fil="ArgoToMITprof.yml"
-meta=ArgoTools.mitprof_interp_setup(fil)
-greylist=DataFrame(CSV.File(meta["dirIn"]*"../ar_greylist.txt"));
+wmo=6900900
 
-meta
+url0="https://data-argo.ifremer.fr/dac/coriolis/"
+input_url=url0*"/$(wmo)/$(wmo)_prof.nc"
+input_file=joinpath(tempdir(),"$(wmo)_prof.nc")
+output_file=joinpath(tempdir(),"$(wmo)_MITprof.nc")
+
+!isfile(input_file) ? fil=Downloads.download(input_url,input_file) : nothing
+
+meta=ArgoTools.meta(input_file,output_file)
+
+data=Dataset(input_file)
 # -
 
-# ## read file, get profile
+# ## Read Profile
+#
+# Let's read the first T/S profile from the input file (`prof`) and set up the data structure (`prof_std`) that will be used when interpolating to standard levels.
 
-f=1
-println(meta["dirIn"]*meta["fileInList"][f])
-argo_data=Dataset(meta["dirIn"]*meta["fileInList"][f])
-haskey(argo_data.dim,"N_PROF") ? np=argo_data.dim["N_PROF"] : np=NaN
-
-m=1
-prof=ArgoTools.GetOneProfile(argo_data,m)
+m=51
+prof=ArgoTools.GetOneProfile(data,m);
 
 nz=length(meta["z_std"])
-prof_std=ArgoData.ProfileStandard(nz)
+prof_std=ArgoData.ProfileStandard(nz);
 
 # +
 #for verification, record intermediate step:
 prof_step0=(T=prof.T, S=prof.S, P=prof.pressure)
 
-argo_data["JULD"][1]
+#display date
+data["JULD"][m]
 # -
 
-# ## process profile
+# ## Process Profile
+#
+# 1. Conversions, as specified in `meta`.
+# 1. Interpolation to standard depth levels.
 
 # +
-#various conversions (if meta says so):
+#various conversions (as specified in `meta`):
 ArgoTools.prof_convert!(prof,meta)
 
 #for verification, record intermediate step:
-prof_step1=(T=prof.T, S=prof.S, D=prof.depth)
+prof_step1=(T=prof.T, S=prof.S, D=prof.depth);
 # -
 
 #interpolate to standard depth levels
 ArgoTools.prof_interp!(prof,prof_std,meta)
 
-# ## verification / CI
+# ## Verification / CI
 
 #verification / CI
-k=findall((!ismissing).(prof_step0.P))[200]
-println(prof_step0.P[k]==401.799987792968724)
+k=findall((!ismissing).(prof_step0.P))[50]
+println(prof_step0.P[k]==937.0)
+
+prof_step0.T[k]
 
 #verification / CI
-println(prof_step1.T[200]==13.80094224720384374)
+println(prof_step1.T[k]==2.8032383695780343)
 
-# ## verification / visual
+# ## Verification / Visual
 
-scatter(prof_step0.S,prof_step0.T,title="temperature-salinity")
-scatter!(prof_std.S,prof_std.T,leg=:none)
-
-# + {"cell_style": "center"}
-scatter(prof_step1.T,-prof_step1.D,title="temperature")
-scatter!(prof_std.T,-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
+scatter(prof_step0.S,prof_step0.T,title="Temperature-Salinity relationship",
+    label="original levels",xlabel="psu",ylabel="degree C")
+scatter!(prof_std.S,prof_std.T,color=:red,
+    label="standard levels",legend = :topright)
 
 # + {"cell_style": "center"}
-scatter(prof_step1.S,-prof_step1.D,title="salinity")
-scatter!(prof_std.S,-meta["z_std"],ylims=(-2000.0,0.0),leg=:none)
+scatter(prof_step1.T,-prof_step1.D,title="Potential Temperature",
+    label="original levels",xlabel="degree C",ylabel="m")
+scatter!(prof_std.T,-meta["z_std"],color=:red,ylims=(-2000.0,0.0),
+    label="standard levels",legend = :bottomright)
+
+# + {"cell_style": "center"}
+scatter(prof_step1.S,-prof_step1.D,title="Salinity",
+    label="original levels",xlabel="psu",ylabel="m")
+scatter!(prof_std.S,-meta["z_std"],color=:red,ylims=(-2000.0,0.0),
+    label="standard levels",legend = :topright)
 # -
 

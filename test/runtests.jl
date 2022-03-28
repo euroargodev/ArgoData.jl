@@ -11,7 +11,10 @@ using Test
 
     @test isfile(fil)
 
+    tmp=GDAC.greylist()
+    @test isa(tmp,GDAC.DataFrame)
+
     include("../examples/ArgoToMITprof_full.jl")
 
-    @test isa(profiles,Vector{ProfileNative})
+    @test isa(output_file,String)
 end

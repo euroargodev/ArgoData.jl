@@ -4,6 +4,23 @@ module GDAC
 using NCDatasets, CSV, DataFrames, FTPClient, Downloads, Printf
 
 """
+    greylist(fil::String)
+
+Read "ar_greylist.txt" file into a DataFrame.
+"""
+greylist(fil::String) = DataFrame(CSV.File(fil))
+
+"""
+    greylist()
+
+Download "ar_greylist.txt" from GDAC and read file into a DataFrame.
+"""
+function greylist()
+    Downloads.download("https://data-argo.ifremer.fr/ar_greylist.txt",joinpath(tempdir(),"ar_greylist.txt"))
+    greylist(joinpath(tempdir(),"ar_greylist.txt"))
+end
+
+"""
     Argo_float_files()
 
 Get list of Argo float files from Ifremer GDAC server     

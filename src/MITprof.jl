@@ -1,7 +1,10 @@
 module MITprof
 
-using Dates, MeshArrays, NCDatasets, OrderedCollections
+using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack
+
 import ArgoData.ProfileNative
+import ArgoData.ProfileStandard
+import ArgoData.ArgoTools
 
 ## reading MITprof files in bulk
 
@@ -202,6 +205,7 @@ function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
 
 end
 
+##
 
 function ncwrite_2d(data,fil,name,long_name,units)
     NCDataset(fil,"a") do ds
@@ -223,6 +227,80 @@ function ncwrite_1d(data,fil,name,long_name,units)
         "long_name" => long_name
         ))
     end
+end
+
+##
+
+"""
+    MITprof.MITprof_format(meta,gridded_fields,input_file,output_file="")
+
+From Argo file name as input : read input file content, process into the MITprof format, and write to MITprof file.
+
+```
+MITprof.MITprof_format(meta,gridded_fields,input_file)
+```
+"""
+function MITprof_format(meta,gridded_fields,input_file,output_file="")
+    @unpack Γ,msk,T,S,σT,σS = gridded_fields
+    z_std = meta["z_std"]
+
+    isempty(output_file) ? output_file="MITprof_"*input_file : nothing
+    output_file=joinpath(tempdir(),output_file)
+
+    argo_data=Dataset(input_file)
+    haskey(argo_data.dim,"N_PROF") ? np=argo_data.dim["N_PROF"] : np=NaN
+
+    nz=length(z_std)
+
+    profiles=Array{ProfileNative,1}(undef,np)
+    profiles_std=Array{ProfileStandard,1}(undef,np)
+    
+    for m in 1:np
+        #println(m)
+    
+        prof=ArgoTools.GetOneProfile(argo_data,m)
+        prof_std=ProfileStandard(nz)
+    
+        ArgoTools.prof_convert!(prof,meta)
+        ArgoTools.prof_interp!(prof,prof_std,meta)
+    
+        ##
+    
+        (f,i,j,w)=InterpolationFactors(Γ,prof.lon,prof.lat)
+        📚=(f=f,i=i,j=j,w=w)
+    
+        prof_σT=[Interpolate(σT[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        prof_σS=[Interpolate(σS[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+    
+        prof_σT=ArgoTools.interp1(-Γ.RC,prof_σT,z_std)
+        prof_σS=ArgoTools.interp1(-Γ.RC,prof_σS,z_std)
+    
+        #3. combine instrumental and representation error
+        prof_std.Tweight.=1 ./(prof_σT.^2 .+ prof_std.T_ERR.^2)
+        prof_std.Sweight.=1 ./(prof_σS.^2 .+ prof_std.S_ERR.^2)
+    
+        ##
+    
+        fac,rec=ArgoTools.monthly_climatology_factors(prof.date)
+    
+        tmp1=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        tmp2=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        prof_std.Testim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+    
+        tmp1=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        tmp2=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        prof_std.Sestim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+    
+        #
+    
+        profiles[m]=prof
+        profiles_std[m]=prof_std
+    end
+
+
+    MITprof.MITprof_write(meta,profiles,profiles_std)
+
+    output_file
 end
 
 end

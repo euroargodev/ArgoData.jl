@@ -15,6 +15,7 @@ NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
 OceanStateEstimation = "891f6deb-a4f5-4bc5-a2e3-1e8f649cdd2c"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]

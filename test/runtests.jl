@@ -13,5 +13,5 @@ using Test
 
     include("../examples/ArgoToMITprof_full.jl")
 
-    @test isa(profiles,Vector{ProfileNative})
+    @test isa(output_file,String)
 end

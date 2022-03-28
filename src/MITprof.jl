@@ -195,7 +195,7 @@ end
 ##
 
 """
-    MITprof.MITprof_format(meta,gridded_fields,input_file,output_file="")
+    MITprof_format(meta,gridded_fields,input_file,output_file="")
 
 From Argo file name as input : read input file content, process into the MITprof format, and write to MITprof file.
 

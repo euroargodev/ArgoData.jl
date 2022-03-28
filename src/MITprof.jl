@@ -207,8 +207,7 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
     @unpack Γ,msk,T,S,σT,σS = gridded_fields
     z_std = meta["z_std"]
 
-    isempty(output_file) ? output_file="MITprof_"*input_file : nothing
-    output_file=joinpath(tempdir(),output_file)
+    isempty(output_file) ? output_file=joinpath(tempdir(),"MITprof_"*input_file) : nothing
 
     argo_data=Dataset(input_file)
     haskey(argo_data.dim,"N_PROF") ? np=argo_data.dim["N_PROF"] : np=NaN

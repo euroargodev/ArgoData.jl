@@ -2,11 +2,20 @@ module ArgoTools
 
 using Dates, YAML, NCDatasets, CSV, DataFrames, Dierckx, Printf
 import ArgoData.ProfileNative
+function meta(input_file,output_file)
+    fil="../examples/ArgoToMITprof.yml"
+    meta=ArgoTools.mitprof_interp_setup(fil)
+    #f=1
+    #input_file=meta["dirIn"]*meta["fileInList"][f]
+    meta["fileOut"]=output_file
+
+    meta
+end
 
 """
     mitprof_interp_setup(fil::String)
 
-Get parameters etc from yaml file (`fil`).
+Get parameters to call `MITprof_format` from yaml file (`fil`, e.g. "../examples/ArgoToMITprof.yml").
 """
 function mitprof_interp_setup(fil::String)
 
@@ -79,6 +88,21 @@ function mitprof_interp_setup(fil::String)
     meta["var_out"]=meta["variables"]
     
     return meta
+end
+
+"""
+    meta(input_file,output_file)
+
+Get parameters to call `MITprof_format` which will read from `input_file` to create `output_file`.
+"""
+function meta(input_file,output_file)
+    fil="../examples/ArgoToMITprof.yml"
+    meta=ArgoTools.mitprof_interp_setup(fil)
+    #f=1
+    #input_file=meta["dirIn"]*meta["fileInList"][f]
+    meta["fileOut"]=output_file
+
+    meta
 end
 
 """

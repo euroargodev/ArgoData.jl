@@ -14,7 +14,8 @@ using Test
     tmp=GDAC.greylist()
     @test isa(tmp,GDAC.DataFrame)
 
-    include("../examples/ArgoToMITprof_full.jl")
+    fil=joinpath(dirname(pathof(ArgoData)),"..","examples","ArgoToMITprof_full.jl")
+    include(fil)
 
     @test isa(output_file,String)
 end

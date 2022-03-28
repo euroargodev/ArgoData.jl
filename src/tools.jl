@@ -8,11 +8,21 @@ import ArgoData.ProfileNative
 
 Get parameters to call `MITprof_format` from yaml file (`fil`, e.g. "../examples/ArgoToMITprof.yml").
 """
-function mitprof_interp_setup(fil::String)
+function mitprof_interp_setup(fil="")
 
-    meta=YAML.load(open(fil))
-
-    #1. file list
+    if !isempty(fil)
+        meta=YAML.load(open(fil))
+    else
+        z_std=[[5:10:185]... ; [200:20:500]... ; [550:50:1000]...; [1100:100:6000]...]
+        meta=Dict("name" => "argo",
+        "variables"   => ["depth", "T", "S"],
+        "subset"      => Dict{Any, Any}("year"=>2016, "basin"=>"indian"),
+        "depthLevels" => z_std,
+        "dirOut"      => joinpath(tempdir(),"argo_example"),
+        "depthRange"  => [0, 2000],
+        "dirIn"       =>  joinpath(tempdir(),"argo_example"),
+        )
+    end
 
     d=meta["dirIn"]
     b=meta["subset"]["basin"]
@@ -87,8 +97,7 @@ end
 Get parameters to call `MITprof_format` which will read from `input_file` to create `output_file`.
 """
 function meta(input_file,output_file)
-    fil="../examples/ArgoToMITprof.yml"
-    meta=ArgoTools.mitprof_interp_setup(fil)
+    meta=ArgoTools.mitprof_interp_setup()
     #f=1
     #input_file=meta["dirIn"]*meta["fileInList"][f]
     meta["fileOut"]=output_file

@@ -256,11 +256,14 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
         prof_std.Sestim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
     
         #
+
+        ArgoTools.prof_test_set2!(prof_std,meta)
+
+        #
     
         profiles[m]=prof
         profiles_std[m]=prof_std
     end
-
 
     MITprof.MITprof_write(meta,profiles,profiles_std)
 

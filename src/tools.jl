@@ -372,6 +372,29 @@ function prof_test_set1!(prof,prof_std,meta)
     
 end
 
+function prof_test_set2!(prof_std,meta)
+    max_cost=50
+
+    tmp_cost=prof_std.Tweight.*((prof_std.T-prof_std.Testim).^2)
+    ii=findall( ((!ismissing).(tmp_cost)).&&(tmp_cost.>max_cost) )
+    prof_std.Ttest[ii].=10*prof_std.Ttest[ii] .+5
+
+    tmp_cost=prof_std.Sweight.*((prof_std.S-prof_std.Sestim).^2)
+    ii=findall( ((!ismissing).(tmp_cost)).&&(tmp_cost.>max_cost) )
+    prof_std.Stest[ii].=10*prof_std.Stest[ii] .+5
+
+    ii=findall( 
+        ((ismissing).(prof_std.T)).||((ismissing).(prof_std.Testim)).||(prof_std.Ttest.>0)
+        )
+    prof_std.Tweight[ii].=0
+
+    ii=findall( 
+        ((ismissing).(prof_std.S)).||((ismissing).(prof_std.Sestim)).||(prof_std.Stest.>0)
+        )
+    prof_std.Sweight[ii].=0
+
+end
+
 """
     prof_convert!(prof,meta)
 

@@ -10,6 +10,33 @@ _This package is in early developement stage when breaking changes can be expect
 ```@index
 ```
 
+## Workflows
+
+Downloading and accessing an Argo file can simply be done like this.
+
+```
+using Downloads, NCDatasets
+
+wmo=6900900
+url0="https://data-argo.ifremer.fr/dac/coriolis/"
+input_url=url0*"/$(wmo)/$(wmo)_prof.nc"
+input_file=joinpath(tempdir(),"$(wmo)_prof.nc")
+fil=Downloads.download(input_url,input_file)
+Dataset(fil)
+```
+
+Formatting of an Argo file (`input_file`) into an MITprof file (`output_file`) proceeds as follows.
+
+```
+using ArgoData
+
+meta=ArgoTools.meta(input_file,output_file)
+gridded_fields=GriddedFields.load()
+MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)
+```
+
+For additional detail, please refer to the [examples/ArgoToMITprof.jl](https://github.com/JuliaOcean/ArgoData.jl/blob/master/examples/ArgoToMITprof.jl) example.
+
 ## Functions
 
 ```@autodocs

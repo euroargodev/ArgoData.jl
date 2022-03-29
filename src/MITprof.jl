@@ -226,6 +226,8 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
         ArgoTools.prof_convert!(prof,meta)
         ArgoTools.prof_interp!(prof,prof_std,meta)
     
+        ArgoTools.prof_test_set1!(prof,prof_std,meta)
+
         ##
     
         (f,i,j,w)=InterpolationFactors(Γ,prof.lon,prof.lat)

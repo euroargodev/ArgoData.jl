@@ -228,8 +228,8 @@ function GetOneProfile(ds,m)
         convert(Array{Union{Float64,Missing}},s_ERR),
         pnum_txt,
         convert(Union{Int,Missing},direc),
-        isBAD,
-        ds["DATA_MODE"][m]
+        ds["DATA_MODE"][m],
+        isBAD
         )
     
     return prof
@@ -321,6 +321,56 @@ function prof_interp!(prof,prof_std,meta)
     end
 end
 
+function prof_test_set1!(prof,prof_std,meta)
+
+    #test for 'not enough data near standard level'
+    z=prof.depth
+    nz1=length(z)
+    nz2=length(meta["z_top"])
+    tmp1=[meta["z_top"][j]-z[i] for i in 1:nz1, j in 1:nz2]
+    tmp2=[meta["z_bot"][j]-z[i] for i in 1:nz1, j in 1:nz2]
+    tmp1=1.0*(tmp1.<0.0)
+    tmp2=1.0*(tmp2.>=0.0)
+    tmp3=tmp1.*tmp2
+    tmp3[findall(ismissing.(tmp3))].=0.0
+    tmp3=sum(tmp3,dims=1)
+
+    prof_std.Ttest.=0.0
+    prof_std.Ttest[findall( (tmp3[:].<=0.0).&((!ismissing).(prof_std.T[:])) )].=1.0
+    prof_std.Stest.=0.0
+    prof_std.Stest[findall( (tmp3[:].<=0.0).&((!ismissing).(prof_std.S[:])) )].=1.0
+
+    #test for "absurd" salinity values :
+    prof_std.Stest[findall( (prof_std.S[:].>42.0).&((!ismissing).(prof_std.S[:])) )].=
+    10*prof_std.Stest[findall( (prof_std.S[:].>42.0).&((!ismissing).(prof_std.S[:])) )] .+ 2
+    prof_std.Stest[findall( (prof_std.S[:].<15.0).&((!ismissing).(prof_std.S[:])) )].=
+    10*prof_std.Stest[findall( (prof_std.S[:].<15.0).&((!ismissing).(prof_std.S[:])) )] .+ 2
+
+    #bad pressure flag:
+    if prof.isBAD>0
+        prof_std.Ttest.=10*prof_std.Ttest .+ 6
+        prof_std.Stest.=10*prof_std.Stest .+ 6
+    end;
+    
+    #Argo grey list:
+    if !isempty(meta["greylist"])
+        test1=!(prof.DATA_MODE.=='D') #true = real time profile ('R' or 'A')
+        test2=sum(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
+        if test1&(test2>0)
+            II=findall(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"])
+            for ii in II
+                time0=meta["greylist"][ii,"START_DATE"]
+                timeP=prof.ymd
+                time1=meta["greylist"][ii,"END_DATE"]
+                if (time0<timeP)&&(ismissing(time1)||(tmp1>timeP))
+                    prof_std.Ttest.=10*prof_std.Ttest .+ 4
+                    prof_std.Stest.=10*prof_std.Stest .+ 4
+                end
+            end
+        end
+    end
+    
+end
 
 """
     prof_convert!(prof,meta)
@@ -579,6 +629,24 @@ function load()
     S=MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
     σT=AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)
     σS=AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
+
+    tmp=σT.grid.write(σT)
+    for kk in 1:size(tmp,3)
+        tmp1=tmp[:,:,kk]; tmp2=tmp1[findall((!isnan).(tmp1))]; 
+        tmp3=max(quantile(tmp2,0.05),1e-3)
+        tmp1[findall(tmp1.<tmp3)].=tmp3
+        tmp[:,:,kk].=tmp1
+    end
+    σT=σT.grid.read(tmp,σT.grid)
+
+    tmp=σS.grid.write(σS)
+    for kk in 1:size(tmp,3)
+        tmp1=tmp[:,:,kk]; tmp2=tmp1[findall((!isnan).(tmp1))]; 
+        tmp3=max(quantile(tmp2,0.05),1e-3)
+        tmp1[findall(tmp1.<tmp3)].=tmp3
+        tmp[:,:,kk].=tmp1
+    end
+    σS=σS.grid.read(tmp,σS.grid)
 
     (Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)
 end

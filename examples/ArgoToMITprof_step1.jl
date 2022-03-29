@@ -36,6 +36,9 @@ output_file=joinpath(tempdir(),"$(wmo)_MITprof.nc")
 
 meta=ArgoTools.meta(input_file,output_file)
 
+fil=joinpath(tempdir(),"ar_greylist.txt")
+isfile(fil) ? meta["greylist"]=GDAC.greylist(fil) : nothing
+
 data=Dataset(input_file)
 # -
 
@@ -72,6 +75,9 @@ prof_step1=(T=prof.T, S=prof.S, D=prof.depth);
 
 #interpolate to standard depth levels
 ArgoTools.prof_interp!(prof,prof_std,meta)
+
+#first series of tests
+ArgoTools.prof_test_set1!(prof,prof_std,meta)
 
 # ## Verification / CI
 

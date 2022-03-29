@@ -1,4 +1,4 @@
-using ArgoData, Downloads
+using ArgoData, Downloads, NCDatasets, Statistics
 
 ##
 
@@ -20,3 +20,19 @@ isfile(fil) ? meta["greylist"]=GDAC.greylist(fil) : nothing
 
 gridded_fields=GriddedFields.load()
 output_file=MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)
+
+##
+
+ds=Dataset(output_file)
+
+tmp_cost=ds["prof_Sweight"].* ((ds["prof_S"]-ds["prof_Sestim"]).^2)
+ii=findall( ((!ismissing).(tmp_cost)).&&(ds["prof_Sweight"].>0) );
+println(mean(tmp_cost[ii]))
+#1.365848840650727
+#1.3658547749903598
+
+tmp_cost=ds["prof_Tweight"].* ((ds["prof_T"]-ds["prof_Testim"]).^2);
+ii=findall( ((!ismissing).(tmp_cost)).&&(ds["prof_Tweight"].>0) );
+println(mean(tmp_cost[ii]))
+#1.4125672446566286
+#1.41256622801185

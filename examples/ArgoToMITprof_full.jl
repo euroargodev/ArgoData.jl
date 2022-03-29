@@ -9,6 +9,7 @@ input_file=joinpath(tempdir(),"$(wmo)_prof.nc")
 output_file=joinpath(tempdir(),"$(wmo)_MITprof.nc")
 
 !isfile(input_file) ? fil=Downloads.download(input_url,input_file) : nothing
+isfile(output_file) ? rm(output_file) : nothing
 
 ##
 

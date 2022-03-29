@@ -376,11 +376,11 @@ function prof_test_set2!(prof_std,meta)
     max_cost=50
 
     tmp_cost=prof_std.Tweight.*((prof_std.T-prof_std.Testim).^2)
-    ii=findall( ((!ismissing).(tmp_cost)).&(tmp_cost.>max_cost) )
+    ii=findall( ((!ismissing).(tmp_cost)).*(tmp_cost.>max_cost) )
     prof_std.Ttest[ii].=10*prof_std.Ttest[ii] .+5
 
     tmp_cost=prof_std.Sweight.*((prof_std.S-prof_std.Sestim).^2)
-    ii=findall( ((!ismissing).(tmp_cost)).&(tmp_cost.>max_cost) )
+    ii=findall( ((!ismissing).(tmp_cost)).*(tmp_cost.>max_cost) )
     prof_std.Stest[ii].=10*prof_std.Stest[ii] .+5
 
     ii=findall( 

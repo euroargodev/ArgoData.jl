@@ -246,11 +246,11 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
         fac,rec=ArgoTools.monthly_climatology_factors(prof.date)
     
         tmp1=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-        tmp2=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        tmp2=[Interpolate(T[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
         prof_std.Testim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
     
         tmp1=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-        tmp2=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        tmp2=[Interpolate(S[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
         prof_std.Sestim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
     
         #

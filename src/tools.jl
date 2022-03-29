@@ -1,6 +1,6 @@
 module ArgoTools
 
-using Dates, YAML, NCDatasets, CSV, DataFrames, Dierckx, Printf
+using Dates, YAML, NCDatasets, CSV, DataFrames, Interpolations, Printf
 import ArgoData.ProfileNative
 
 """
@@ -118,7 +118,7 @@ function GetOneProfile(ds,m)
     hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
 
     prof_date=t-DateTime(0)
-    prof_date=prof_date.value/86400/1000 #days since DateTime(0)
+    prof_date=prof_date.value/86400/1000+1 #+1 is to match Matlab's datenum
 
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]
@@ -295,14 +295,14 @@ function prof_interp!(prof,prof_std,meta)
             #avoid duplicates:
             msk2=findall( ([false;(z_in[1:end-1]-z_in[2:end]).==0.0]).==true )
             if length(kk)>5
-                spl = Spline1D(z_in, t_in)
-                t_std[:] = spl(z_std)
+                interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(t_in), extrapolation_bc=Line()) 
+                t_std[:] = interp_linear_extrap(z_std)
                 t_std[msk1].=missing
                 t_std[msk2].=missing
                 if do_e
                     e_in[findall(ismissing.(e_in))].=0.0
-                    spl = Spline1D(z_in, e_in)
-                    e_std[:] = spl(z_std)
+                    interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(e_in), extrapolation_bc=Line()) 
+                    e_std[:] = interp_linear_extrap(z_std)
                     e_std[msk1].=missing
                     e_std[msk2].=missing
                 end
@@ -348,8 +348,8 @@ end
 
 function interp1(x,y,xi)
     jj=findall(isfinite.(y))
-    spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
-    return spl(xi)
+    interp_linear_extrap = LinearInterpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
+    return interp_linear_extrap(xi)
 end
 
 """
@@ -507,7 +507,7 @@ function monthly_climatology_factors(date)
     year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
     date0=DateTime(year0,1,1)-DateTime(0)
 
-    date0=date0.value/86400/1000    
+    date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
     tim_prof=date-date0
     tim_prof>365.0 ? tim_prof=365.0 : nothing
 

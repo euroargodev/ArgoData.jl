@@ -574,7 +574,7 @@ end #module ArgoTools
 
 module GriddedFields
 
-using MeshArrays, OceanStateEstimation
+using MeshArrays, OceanStateEstimation, Statistics
 
 function NaN_mask(Γ)
     msk=write(Γ.hFacC)

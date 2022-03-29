@@ -16,7 +16,7 @@ isfile(output_file) ? rm(output_file) : nothing
 meta=ArgoTools.meta(input_file,output_file)
 
 fil=joinpath(tempdir(),"ar_greylist.txt")
-isfile(fil) ? meta["greylist"]=greylist(fil) : nothing
+isfile(fil) ? meta["greylist"]=GDAC.greylist(fil) : nothing
 
 gridded_fields=GriddedFields.load()
 output_file=MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)

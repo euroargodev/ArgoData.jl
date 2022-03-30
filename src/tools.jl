@@ -367,11 +367,11 @@ function prof_test_set1!(prof,prof_std,meta)
         test2=sum(parse(Int,prof.pnum_txt[1]).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
         if test1&(test2>0)
             II=findall(parse(Int,prof.pnum_txt[1]).==meta["greylist"][:,"PLATFORM_CODE"])
+            timeP=prof.ymd[1]
             for ii in II
                 time0=meta["greylist"][ii,"START_DATE"]
-                timeP=prof.ymd[1]
                 time1=meta["greylist"][ii,"END_DATE"]
-                if (time0<timeP)&&(ismissing(time1)||(tmp1>timeP))
+                if (time0<timeP)&&(ismissing(time1)||(time1>timeP))
                     prof_std.Ttest.=10*prof_std.Ttest .+ 4
                     prof_std.Stest.=10*prof_std.Stest .+ 4
                 end

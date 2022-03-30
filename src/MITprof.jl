@@ -5,6 +5,8 @@ using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack
 import ArgoData.ProfileNative
 import ArgoData.ProfileStandard
 import ArgoData.ArgoTools
+import ArgoData.GriddedFields
+import ArgoData.GDAC
 
 ## reading MITprof files in bulk
 
@@ -119,9 +121,12 @@ function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
     
     ##
     
-    [data1[i]=profiles[i].lon for i in 1:iPROF]
+    [data1[i]=profiles[i].lon[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_lon","Longitude (degree East)","degrees_east")
-    
+
+    [data1[i]=profiles[i].lat[1] for i in 1:iPROF]
+    ncwrite_1d(data1,fil,"prof_lat","Latitude (degree North)","degrees_north")
+
     [data1[i]=profiles[i].date for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_date","Julian day since Jan-1-0000"," ") ##need units
     
@@ -230,7 +235,9 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
 
         ##
     
-        (f,i,j,w)=InterpolationFactors(Γ,prof.lon,prof.lat)
+        if prof.lat[1]>-89.99
+
+        (f,i,j,w)=InterpolationFactors(Γ,prof.lon[1],prof.lat[1])
         📚=(f=f,i=i,j=j,w=w)
     
         prof_σT=[Interpolate(σT[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
@@ -254,6 +261,8 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
         tmp1=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
         tmp2=[Interpolate(S[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
         prof_std.Sestim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+
+        end #if prof.lat[1]>-89.99
     
         #
 
@@ -270,4 +279,57 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
     output_file
 end
 
+"""
+    Mitprof_format_loop(II)
+
+Loop over files and call `MITprof_format`.
+
+```
+Mitprof_format_loop(1:10)
+```   
+"""
+function Mitprof_format_loop(II)
+
+    pth0=joinpath(tempdir(),"Argo_MITprof_files")
+    pth1=joinpath(pth0,"input")
+    pth2=joinpath(pth0,"MITprof")
+    gridded_fields=GriddedFields.load()
+
+    fil=joinpath(pth1,"ar_greylist.txt")
+    isfile(fil) ? greylist=GDAC.greylist(fil) : greylist=""
+
+    list_files=GDAC.Argo_float_files()
+
+    for i in II
+        println(i)
+
+        wmo=string(list_files[i,:wmo])
+        input_file=joinpath(pth1,list_files[i,:folder],wmo,wmo*"_prof.nc")
+        output_file=joinpath(pth2,wmo*"_MITprof.nc")
+
+        meta=ArgoTools.meta(input_file,output_file)
+        meta["greylist"]=greylist
+
+        if isfile(input_file)
+            ds=Dataset(input_file)
+            if haskey(ds,"PSAL")*haskey(ds,"TEMP")
+                output_file=MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)
+                println("✔ $(wmo)")
+            else
+                io = open(output_file[1:end-3]*".txt", "w")
+                write(io, "Skipped file $(wmo) <- missing PSAL or TEMP\n")
+                close(io)
+
+                println("... skipping $(wmo)!")
+            end
+
+        else
+            io = open(output_file[1:end-3]*".txt", "w")
+            write(io, "Skipped file $(wmo) <- no input file\n")
+            close(io)
+
+            println("... skipping $(wmo)!")
+        end
+    end
+    end
 end

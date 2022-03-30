@@ -122,7 +122,7 @@ function GetOneProfile(ds,m)
 
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]
-    lon < 0.0 ? lon=lon+360.0 : nothing
+    (!ismissing(lon))&&(lon < 0.0) ? lon=lon+360.0 : nothing
 
     direction=ds["DIRECTION"][m]
     direc=0
@@ -215,8 +215,8 @@ function GetOneProfile(ds,m)
     end
 
     prof=ProfileNative(
-        convert(Union{Float64,Missing},lon),
-        convert(Union{Float64,Missing},lat),
+        convert(Array{Union{Float64,Missing}},[lon]),
+        convert(Array{Union{Float64,Missing}},[lat]),
         convert(Union{Float64,Missing},prof_date),
         convert(Union{Int,Missing},ymd),
         convert(Union{Int,Missing},hms),
@@ -243,7 +243,7 @@ end
 Convert prof["p"] to prof["depth"]
 """
 function prof_PtoZ!(prof)
-    l=prof.lat
+    l=prof.lat[1]
     k=findall((!ismissing).(prof.pressure))
     prof.depth[k].=[sw_dpth(Float64(prof.pressure[kk]),Float64(l)) for kk in k]
 end
@@ -257,7 +257,7 @@ function prof_TtoΘ!(prof)
     T=prof.T
     P=0.981*1.027*prof.depth
     S=35.0*ones(size(T))
-    k=findall( (!ismissing).(T) )
+    k=findall( ((!ismissing).(T)).*((!ismissing).(P)) )
     T[k]=[sw_ptmp(Float64(S[kk]),Float64(T[kk]),Float64(P[kk])) for kk in k]
 end
 
@@ -406,15 +406,15 @@ Appply conversions to variables (lon,lat,depth,temperature) in `prof` if specifi
 """
 function prof_convert!(prof,meta)
     lonlatISbad=false
-    (prof.lat<-90.0)|(prof.lat>90.0) ? lonlatISbad=true : nothing
-    (prof.lon<-180.0)|(prof.lon>360.0) ? lonlatISbad=true : nothing
+    ismissing(prof.lat[1])||(prof.lat[1]<-90.0)||(prof.lat[1]>90.0) ? lonlatISbad=true : nothing
+    ismissing(prof.lon[1])||(prof.lon[1]<-180.0)||(prof.lon[1]>360.0) ? lonlatISbad=true : nothing
 
     #if needed then reset lon,lat after issuing a warning
     lonlatISbad==true ? println("warning: out of range lon/lat was reset to 0.0,-89.99") : nothing 
-    lonlatISbad ? (prof.lon,prof.lat)=(0.0,-89.99) : nothing
+    lonlatISbad ? (prof.lon[1],prof.lat[1])=(0.0,-89.99) : nothing
 
     #if needed then fix longitude range to 0-360
-    (~lonlatISbad)&(prof.lon>180.0) ? prof.lon-=360.0 : nothing
+    (~lonlatISbad)&(prof.lon[1]>180.0) ? prof.lon[1]-=360.0 : nothing
     
     #if needed then convert pressure to depth
     (~meta["inclZ"])&(~lonlatISbad) ? ArgoTools.prof_PtoZ!(prof) : nothing

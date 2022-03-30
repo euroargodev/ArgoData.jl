@@ -388,12 +388,12 @@ function prof_test_set2!(prof_std,meta)
     prof_std.Stest[ii].=10*prof_std.Stest[ii] .+5
 
     ii=findall( 
-        ((ismissing).(prof_std.T)).||((ismissing).(prof_std.Testim)).||(prof_std.Ttest.>0)
+        ((ismissing).(prof_std.T)).+((ismissing).(prof_std.Testim)).+(prof_std.Ttest.>0).>0
         )
     prof_std.Tweight[ii].=0
 
     ii=findall( 
-        ((ismissing).(prof_std.S)).||((ismissing).(prof_std.Sestim)).||(prof_std.Stest.>0)
+        ((ismissing).(prof_std.S)).+((ismissing).(prof_std.Sestim)).+(prof_std.Stest.>0).>0
         )
     prof_std.Sweight[ii].=0
 

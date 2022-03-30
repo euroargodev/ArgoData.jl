@@ -114,11 +114,17 @@ function GetOneProfile(ds,m)
 
     #
     t=ds["JULD"][m]
-    ymd=Dates.year(t)*1e4+Dates.month(t)*1e2+Dates.day(t)
-    hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
+    if !ismissing(t)
+        ymd=Dates.year(t)*1e4+Dates.month(t)*1e2+Dates.day(t)
+        hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
 
-    prof_date=t-DateTime(0)
-    prof_date=prof_date.value/86400/1000+1 #+1 is to match Matlab's datenum
+        prof_date=t-DateTime(0)
+        prof_date=prof_date.value/86400/1000+1 #+1 is to match Matlab's datenum
+    else
+        ymd=0
+        hms=0
+        prof_date=0.0
+    end
 
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]

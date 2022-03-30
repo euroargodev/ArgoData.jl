@@ -332,6 +332,9 @@ function prof_test_set1!(prof,prof_std,meta)
     tmp1=1.0*(tmp1.<0.0)
     tmp2=1.0*(tmp2.>=0.0)
     tmp3=tmp1.*tmp2
+    if isa(tmp3,Matrix{Missing})
+        tmp3=convert(Array{Union{Float64,Missing}},tmp3)
+    end
     tmp3[findall(ismissing.(tmp3))].=0.0
     tmp3=sum(tmp3,dims=1)
 

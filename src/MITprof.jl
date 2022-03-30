@@ -127,13 +127,13 @@ function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
     [data1[i]=profiles[i].lat[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_lat","Latitude (degree North)","degrees_north")
 
-    [data1[i]=profiles[i].date for i in 1:iPROF]
+    [data1[i]=profiles[i].date[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_date","Julian day since Jan-1-0000"," ") ##need units
     
-    [data1[i]=profiles[i].ymd for i in 1:iPROF]
+    [data1[i]=profiles[i].ymd[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_YYYYMMDD","year (4 digits), month (2 digits), day (2 digits)"," ") ##need units
 
-    [data1[i]=profiles[i].hms for i in 1:iPROF]
+    [data1[i]=profiles[i].hms[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_HHMMSS","hour (2 digits), minute (2 digits), second (2 digits)"," ") ##need units
 
 # 	double prof_basin(iPROF) ;
@@ -258,7 +258,7 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
         ##
         
         if sum( (!isnan).(prof_σT) )>0
-            fac,rec=ArgoTools.monthly_climatology_factors(prof.date)
+            fac,rec=ArgoTools.monthly_climatology_factors(prof.date[1])
 
             tmp1=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
             tmp2=[Interpolate(T[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]

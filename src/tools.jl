@@ -218,18 +218,18 @@ function GetOneProfile(ds,m)
         convert(Array{Union{Float64,Missing}},[lon]),
         convert(Array{Union{Float64,Missing}},[lat]),
         convert(Union{Float64,Missing},prof_date),
-        convert(Union{Int,Missing},ymd),
-        convert(Union{Int,Missing},hms),
+        convert(Array{Union{Int,Missing}},[ymd]),
+        convert(Array{Union{Int,Missing}},[hms]),
         convert(Array{Union{Float64,Missing}},t),
         convert(Array{Union{Float64,Missing}},s),
         convert(Array{Union{Float64,Missing}},p),
         convert(Array{Union{Float64,Missing}},p), #place holder for depth
         convert(Array{Union{Float64,Missing}},t_ERR),
         convert(Array{Union{Float64,Missing}},s_ERR),
-        pnum_txt,
-        convert(Union{Int,Missing},direc),
-        ds["DATA_MODE"][m],
-        isBAD
+        convert(Array{Union{String,Missing}},[pnum_txt]),
+        convert(Array{Union{Int,Missing}},[direc]),
+        convert(Array{Union{Char,Missing}},[ds["DATA_MODE"][m]]),
+        convert(Array{Union{Int,Missing}},[isBAD])
         )
     
     return prof
@@ -350,20 +350,20 @@ function prof_test_set1!(prof,prof_std,meta)
     10*prof_std.Stest[findall( (prof_std.S[:].<15.0).&((!ismissing).(prof_std.S[:])) )] .+ 2
 
     #bad pressure flag:
-    if prof.isBAD>0
+    if prof.isBAD[1]>0
         prof_std.Ttest.=10*prof_std.Ttest .+ 6
         prof_std.Stest.=10*prof_std.Stest .+ 6
     end;
     
     #Argo grey list:
     if !isempty(meta["greylist"])
-        test1=!(prof.DATA_MODE.=='D') #true = real time profile ('R' or 'A')
-        test2=sum(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
+        test1=!(prof.DATA_MODE[1].=='D') #true = real time profile ('R' or 'A')
+        test2=sum(parse(Int,prof.pnum_txt[1]).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
         if test1&(test2>0)
-            II=findall(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"])
+            II=findall(parse(Int,prof.pnum_txt[1]).==meta["greylist"][:,"PLATFORM_CODE"])
             for ii in II
                 time0=meta["greylist"][ii,"START_DATE"]
-                timeP=prof.ymd
+                timeP=prof.ymd[1]
                 time1=meta["greylist"][ii,"END_DATE"]
                 if (time0<timeP)&&(ismissing(time1)||(tmp1>timeP))
                     prof_std.Ttest.=10*prof_std.Ttest .+ 4
@@ -583,15 +583,12 @@ function monthly_climatology_factors(date)
     tim_fld=[tim_fld[12]-365.0;tim_fld...;tim_fld[1]+365.0]
     rec_fld=[12;1:12;1]
     
-#    year0=floor(profIn["ymd"]/1e4)    
     year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
     date0=DateTime(year0,1,1)-DateTime(0)
 
     date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
     tim_prof=date-date0
     tim_prof>365.0 ? tim_prof=365.0 : nothing
-
-    #tim_fld,rec_fld,tim_prof
 
     tt=maximum(findall(tim_fld.<=tim_prof))
     a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])

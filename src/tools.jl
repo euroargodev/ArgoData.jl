@@ -311,10 +311,10 @@ function prof_interp!(prof,prof_std,meta)
                 e_std = []
             end
         end
-        if v=="T"
+        if v=="T"&&!isempty(t_std)
             prof_std.T .=t_std
             prof_std.T_ERR .=e_std
-        else
+        elseif v=="S"&&!isempty(t_std)
             prof_std.S .=t_std
             prof_std.S_ERR .=e_std
         end

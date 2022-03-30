@@ -285,20 +285,19 @@ end
 Loop over files and call `MITprof_format`.
 
 ```
-Mitprof_format_loop(1:10)
+gridded_fields=GriddedFields.load()
+list_files=GDAC.Argo_float_files()
+MITprof.MITprof_format_loop(gridded_fields,list_files,1:10)
 ```   
 """
-function Mitprof_format_loop(II)
+function MITprof_format_loop(gridded_fields,list_files,II)
 
     pth0=joinpath(tempdir(),"Argo_MITprof_files")
     pth1=joinpath(pth0,"input")
     pth2=joinpath(pth0,"MITprof")
-    gridded_fields=GriddedFields.load()
 
     fil=joinpath(pth1,"ar_greylist.txt")
     isfile(fil) ? greylist=GDAC.greylist(fil) : greylist=""
-
-    list_files=GDAC.Argo_float_files()
 
     for i in II
         println(i)

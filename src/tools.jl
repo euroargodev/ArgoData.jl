@@ -1,6 +1,6 @@
 module ArgoTools
 
-using Dates, YAML, NCDatasets, CSV, DataFrames, Dierckx, Printf
+using Dates, YAML, NCDatasets, CSV, DataFrames, Interpolations, Printf
 import ArgoData.ProfileNative
 
 """
@@ -8,11 +8,21 @@ import ArgoData.ProfileNative
 
 Get parameters to call `MITprof_format` from yaml file (`fil`, e.g. "../examples/ArgoToMITprof.yml").
 """
-function mitprof_interp_setup(fil::String)
+function mitprof_interp_setup(fil="")
 
-    meta=YAML.load(open(fil))
-
-    #1. file list
+    if !isempty(fil)
+        meta=YAML.load(open(fil))
+    else
+        z_std=[[5:10:185]... ; [200:20:500]... ; [550:50:1000]...; [1100:100:6000]...]
+        meta=Dict("name" => "argo",
+        "variables"   => ["depth", "T", "S"],
+        "subset"      => Dict{Any, Any}("year"=>2016, "basin"=>"indian"),
+        "depthLevels" => z_std,
+        "dirOut"      => joinpath(tempdir(),"argo_example"),
+        "depthRange"  => [0, 2000],
+        "dirIn"       =>  joinpath(tempdir(),"argo_example"),
+        )
+    end
 
     d=meta["dirIn"]
     b=meta["subset"]["basin"]
@@ -87,8 +97,7 @@ end
 Get parameters to call `MITprof_format` which will read from `input_file` to create `output_file`.
 """
 function meta(input_file,output_file)
-    fil="../examples/ArgoToMITprof.yml"
-    meta=ArgoTools.mitprof_interp_setup(fil)
+    meta=ArgoTools.mitprof_interp_setup()
     #f=1
     #input_file=meta["dirIn"]*meta["fileInList"][f]
     meta["fileOut"]=output_file
@@ -109,7 +118,7 @@ function GetOneProfile(ds,m)
     hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
 
     prof_date=t-DateTime(0)
-    prof_date=prof_date.value/86400/1000 #days since DateTime(0)
+    prof_date=prof_date.value/86400/1000+1 #+1 is to match Matlab's datenum
 
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]
@@ -219,8 +228,8 @@ function GetOneProfile(ds,m)
         convert(Array{Union{Float64,Missing}},s_ERR),
         pnum_txt,
         convert(Union{Int,Missing},direc),
-        isBAD,
-        ds["DATA_MODE"][m]
+        ds["DATA_MODE"][m],
+        isBAD
         )
     
     return prof
@@ -286,14 +295,14 @@ function prof_interp!(prof,prof_std,meta)
             #avoid duplicates:
             msk2=findall( ([false;(z_in[1:end-1]-z_in[2:end]).==0.0]).==true )
             if length(kk)>5
-                spl = Spline1D(z_in, t_in)
-                t_std[:] = spl(z_std)
+                interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(t_in), extrapolation_bc=Line()) 
+                t_std[:] = interp_linear_extrap(z_std)
                 t_std[msk1].=missing
                 t_std[msk2].=missing
                 if do_e
                     e_in[findall(ismissing.(e_in))].=0.0
-                    spl = Spline1D(z_in, e_in)
-                    e_std[:] = spl(z_std)
+                    interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(e_in), extrapolation_bc=Line()) 
+                    e_std[:] = interp_linear_extrap(z_std)
                     e_std[msk1].=missing
                     e_std[msk2].=missing
                 end
@@ -312,6 +321,83 @@ function prof_interp!(prof,prof_std,meta)
     end
 end
 
+function prof_test_set1!(prof,prof_std,meta)
+
+    #test for 'not enough data near standard level'
+    z=prof.depth
+    nz1=length(z)
+    nz2=length(meta["z_top"])
+    tmp1=[meta["z_top"][j]-z[i] for i in 1:nz1, j in 1:nz2]
+    tmp2=[meta["z_bot"][j]-z[i] for i in 1:nz1, j in 1:nz2]
+    tmp1=1.0*(tmp1.<0.0)
+    tmp2=1.0*(tmp2.>=0.0)
+    tmp3=tmp1.*tmp2
+    tmp3[findall(ismissing.(tmp3))].=0.0
+    tmp3=sum(tmp3,dims=1)
+
+    prof_std.Ttest.=0.0
+    prof_std.Ttest[findall( (tmp3[:].<=0.0).&((!ismissing).(prof_std.T[:])) )].=1.0
+    prof_std.Stest.=0.0
+    prof_std.Stest[findall( (tmp3[:].<=0.0).&((!ismissing).(prof_std.S[:])) )].=1.0
+
+    #test for "absurd" salinity values :
+    prof_std.Stest[findall( (prof_std.S[:].>42.0).&((!ismissing).(prof_std.S[:])) )].=
+    10*prof_std.Stest[findall( (prof_std.S[:].>42.0).&((!ismissing).(prof_std.S[:])) )] .+ 2
+    prof_std.Stest[findall( (prof_std.S[:].<15.0).&((!ismissing).(prof_std.S[:])) )].=
+    10*prof_std.Stest[findall( (prof_std.S[:].<15.0).&((!ismissing).(prof_std.S[:])) )] .+ 2
+
+    #bad pressure flag:
+    if prof.isBAD>0
+        prof_std.Ttest.=10*prof_std.Ttest .+ 6
+        prof_std.Stest.=10*prof_std.Stest .+ 6
+    end;
+    
+    #Argo grey list:
+    if !isempty(meta["greylist"])
+        test1=!(prof.DATA_MODE.=='D') #true = real time profile ('R' or 'A')
+        test2=sum(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
+        if test1&(test2>0)
+            II=findall(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"])
+            for ii in II
+                time0=meta["greylist"][ii,"START_DATE"]
+                timeP=prof.ymd
+                time1=meta["greylist"][ii,"END_DATE"]
+                if (time0<timeP)&&(ismissing(time1)||(tmp1>timeP))
+                    prof_std.Ttest.=10*prof_std.Ttest .+ 4
+                    prof_std.Stest.=10*prof_std.Stest .+ 4
+                end
+            end
+        end
+    end
+    
+end
+
+function prof_test_set2!(prof_std,meta)
+    max_cost=50
+
+    tmp_cost=prof_std.Tweight.*((prof_std.T-prof_std.Testim).^2)
+    tmp_cost=convert(Array{Union{Float64,Missing}},tmp_cost)
+    tmp_cost[findall(ismissing.(tmp_cost))].=0.0
+    ii=findall( (tmp_cost.>max_cost) )
+    prof_std.Ttest[ii].=10*prof_std.Ttest[ii] .+5
+
+    tmp_cost=prof_std.Sweight.*((prof_std.S-prof_std.Sestim).^2)
+    tmp_cost=convert(Array{Union{Float64,Missing}},tmp_cost)
+    tmp_cost[findall(ismissing.(tmp_cost))].=0.0
+    ii=findall( (tmp_cost.>max_cost) )
+    prof_std.Stest[ii].=10*prof_std.Stest[ii] .+5
+
+    ii=findall( 
+        ((ismissing).(prof_std.T)).+((ismissing).(prof_std.Testim)).+(prof_std.Ttest.>0).>0
+        )
+    prof_std.Tweight[ii].=0
+
+    ii=findall( 
+        ((ismissing).(prof_std.S)).+((ismissing).(prof_std.Sestim)).+(prof_std.Stest.>0).>0
+        )
+    prof_std.Sweight[ii].=0
+
+end
 
 """
     prof_convert!(prof,meta)
@@ -339,8 +425,8 @@ end
 
 function interp1(x,y,xi)
     jj=findall(isfinite.(y))
-    spl = Spline1D(x[jj], y[jj], k=1, bc="nearest")
-    return spl(xi)
+    interp_linear_extrap = LinearInterpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
+    return interp_linear_extrap(xi)
 end
 
 """
@@ -498,7 +584,7 @@ function monthly_climatology_factors(date)
     year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
     date0=DateTime(year0,1,1)-DateTime(0)
 
-    date0=date0.value/86400/1000    
+    date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
     tim_prof=date-date0
     tim_prof>365.0 ? tim_prof=365.0 : nothing
 
@@ -515,7 +601,7 @@ end #module ArgoTools
 
 module GriddedFields
 
-using MeshArrays, OceanStateEstimation
+using MeshArrays, OceanStateEstimation, Statistics
 
 function NaN_mask(Γ)
     msk=write(Γ.hFacC)
@@ -570,6 +656,24 @@ function load()
     S=MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
     σT=AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)
     σS=AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
+
+    tmp=σT.grid.write(σT)
+    for kk in 1:size(tmp,3)
+        tmp1=tmp[:,:,kk]; tmp2=tmp1[findall((!isnan).(tmp1))]; 
+        tmp3=max(quantile(tmp2,0.05),1e-3)
+        tmp1[findall(tmp1.<tmp3)].=tmp3
+        tmp[:,:,kk].=tmp1
+    end
+    σT=σT.grid.read(tmp,σT.grid)
+
+    tmp=σS.grid.write(σS)
+    for kk in 1:size(tmp,3)
+        tmp1=tmp[:,:,kk]; tmp2=tmp1[findall((!isnan).(tmp1))]; 
+        tmp3=max(quantile(tmp2,0.05),1e-3)
+        tmp1[findall(tmp1.<tmp3)].=tmp3
+        tmp[:,:,kk].=tmp1
+    end
+    σS=σS.grid.read(tmp,σS.grid)
 
     (Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)
 end

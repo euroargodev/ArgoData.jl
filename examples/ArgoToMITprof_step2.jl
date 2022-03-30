@@ -113,6 +113,8 @@ prof_S2=[GriddedFields.Interpolate(gridded_fields.S[:,k,rec[2]],📚.f,📚.i,�
 
 prof_std.Sestim.=ArgoTools.interp1(-gridded_fields.Γ.RC,fac[1]*prof_S1+fac[2]*prof_S2,z_std)
 prof_std.Sestim[1:5]
+
+ArgoTools.prof_test_set2!(prof_std,meta)
 # ## MITprof File Creation
 
 # +
@@ -150,6 +152,6 @@ if do_plot
 end
 
 if do_plot
-    tmp=GriddedFields.Interpolate(gridded_fields.T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
-    contourf(🌐.lon,🌐.lat,tmp,clims=(-2.0,20.0),title="temperature in June at 300m")
+    tmp1=GriddedFields.Interpolate(gridded_fields.T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
+    contourf(🌐.lon,🌐.lat,tmp1,clims=(-2.0,20.0),title="temperature in June at 300m")
 end

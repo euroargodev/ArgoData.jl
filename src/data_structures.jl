@@ -21,14 +21,18 @@ struct ProfileStandard
     T
     Testim
     Tweight
+    Ttest
     T_ERR
     S
     Sestim
     Sweight
+    Stest
     S_ERR
 end
 
 ProfileStandard(nz::Int) = ProfileStandard(
+    Array{Union{Float64,Missing},1}(undef,nz),
+    Array{Union{Float64,Missing},1}(undef,nz),
     Array{Union{Float64,Missing},1}(undef,nz),
     Array{Union{Float64,Missing},1}(undef,nz),
     Array{Union{Float64,Missing},1}(undef,nz),

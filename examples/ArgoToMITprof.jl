@@ -11,12 +11,13 @@ output_file=joinpath(tempdir(),"$(wmo)_MITprof.nc")
 !isfile(input_file) ? fil=Downloads.download(input_url,input_file) : nothing
 isfile(output_file) ? rm(output_file) : nothing
 
+fil=joinpath(tempdir(),"ar_greylist.txt")
+isfile(fil) ? greylist=GDAC.greylist(fil) : greylist=""
+
 ##
 
 meta=ArgoTools.meta(input_file,output_file)
-
-fil=joinpath(tempdir(),"ar_greylist.txt")
-isfile(fil) ? meta["greylist"]=GDAC.greylist(fil) : nothing
+meta["greylist"]=greylist
 
 gridded_fields=GriddedFields.load()
 output_file=MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)

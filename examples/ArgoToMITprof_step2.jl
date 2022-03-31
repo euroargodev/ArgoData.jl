@@ -90,7 +90,7 @@ prof_std.Sweight[1:5]
 # +
 #4. spatio-temporal interpolation
 
-fac,rec=ArgoTools.monthly_climatology_factors(prof.date)
+fac,rec=ArgoTools.monthly_climatology_factors(prof.date[1])
 # -
 
 prof_T1=[GriddedFields.Interpolate(gridded_fields.T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]

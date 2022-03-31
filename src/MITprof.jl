@@ -5,6 +5,8 @@ using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack
 import ArgoData.ProfileNative
 import ArgoData.ProfileStandard
 import ArgoData.ArgoTools
+import ArgoData.GriddedFields
+import ArgoData.GDAC
 
 ## reading MITprof files in bulk
 
@@ -119,16 +121,19 @@ function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
     
     ##
     
-    [data1[i]=profiles[i].lon for i in 1:iPROF]
+    [data1[i]=profiles[i].lon[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_lon","Longitude (degree East)","degrees_east")
-    
-    [data1[i]=profiles[i].date for i in 1:iPROF]
+
+    [data1[i]=profiles[i].lat[1] for i in 1:iPROF]
+    ncwrite_1d(data1,fil,"prof_lat","Latitude (degree North)","degrees_north")
+
+    [data1[i]=profiles[i].date[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_date","Julian day since Jan-1-0000"," ") ##need units
     
-    [data1[i]=profiles[i].ymd for i in 1:iPROF]
+    [data1[i]=profiles[i].ymd[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_YYYYMMDD","year (4 digits), month (2 digits), day (2 digits)"," ") ##need units
 
-    [data1[i]=profiles[i].hms for i in 1:iPROF]
+    [data1[i]=profiles[i].hms[1] for i in 1:iPROF]
     ncwrite_1d(data1,fil,"prof_HHMMSS","hour (2 digits), minute (2 digits), second (2 digits)"," ") ##need units
 
 # 	double prof_basin(iPROF) ;
@@ -217,6 +222,11 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
     profiles=Array{ProfileNative,1}(undef,np)
     profiles_std=Array{ProfileStandard,1}(undef,np)
     
+    prof_σT=Array{Float64,1}(undef,50)
+    prof_σS=Array{Float64,1}(undef,50)
+    tmp1=Array{Float64,1}(undef,50)
+    tmp2=Array{Float64,1}(undef,50)
+
     for m in 1:np
         #println(m)
     
@@ -230,30 +240,41 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
 
         ##
     
-        (f,i,j,w)=InterpolationFactors(Γ,prof.lon,prof.lat)
+        if prof.lat[1]>-89.99
+
+        (f,i,j,w)=InterpolationFactors(Γ,prof.lon[1],prof.lat[1])
         📚=(f=f,i=i,j=j,w=w)
     
-        prof_σT=[Interpolate(σT[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-        prof_σS=[Interpolate(σS[:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+        GriddedFields.interp_h(σT,📚.f,📚.i,📚.j,📚.w,prof_σT)
+        GriddedFields.interp_h(σS,📚.f,📚.i,📚.j,📚.w,prof_σS)
     
-        prof_σT=ArgoTools.interp1(-Γ.RC,prof_σT,z_std)
-        prof_σS=ArgoTools.interp1(-Γ.RC,prof_σS,z_std)
-    
-        #3. combine instrumental and representation error
-        prof_std.Tweight.=1 ./(prof_σT.^2 .+ prof_std.T_ERR.^2)
-        prof_std.Sweight.=1 ./(prof_σS.^2 .+ prof_std.S_ERR.^2)
+        if sum( (!isnan).(prof_σT) )>0
+            tmp_σT=ArgoTools.interp_z(-Γ.RC,prof_σT,z_std)
+            tmp_σS=ArgoTools.interp_z(-Γ.RC,prof_σS,z_std)
+        
+            #3. combine instrumental and representation error
+            prof_std.Tweight.=1 ./(tmp_σT.^2 .+ prof_std.T_ERR.^2)
+            prof_std.Sweight.=1 ./(tmp_σS.^2 .+ prof_std.S_ERR.^2)
+        else
+            prof_std.Tweight.=0.0
+            prof_std.Sweight.=0.0
+        end
     
         ##
+        
+        if sum( (!isnan).(prof_σT) )>0
+            fac,rec=ArgoTools.monthly_climatology_factors(prof.date[1])
+
+            GriddedFields.interp_h(T[rec[1]],📚.f,📚.i,📚.j,📚.w,tmp1)
+            GriddedFields.interp_h(T[rec[2]],📚.f,📚.i,📚.j,📚.w,tmp2)
+            prof_std.Testim.=ArgoTools.interp_z(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
     
-        fac,rec=ArgoTools.monthly_climatology_factors(prof.date)
-    
-        tmp1=[Interpolate(T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-        tmp2=[Interpolate(T[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-        prof_std.Testim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
-    
-        tmp1=[Interpolate(S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-        tmp2=[Interpolate(S[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-        prof_std.Sestim.=ArgoTools.interp1(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+            GriddedFields.interp_h(S[rec[1]],📚.f,📚.i,📚.j,📚.w,tmp1)
+            GriddedFields.interp_h(S[rec[2]],📚.f,📚.i,📚.j,📚.w,tmp2)
+            prof_std.Sestim.=ArgoTools.interp_z(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+        end
+
+        end #if prof.lat[1]>-89.99
     
         #
 
@@ -270,4 +291,56 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
     output_file
 end
 
+"""
+    Mitprof_format_loop(II)
+
+Loop over files and call `MITprof_format`.
+
+```
+gridded_fields=GriddedFields.load()
+list_files=GDAC.Argo_float_files()
+MITprof.MITprof_format_loop(gridded_fields,list_files,1:10)
+```   
+"""
+function MITprof_format_loop(gridded_fields,list_files,II)
+
+    pth0=joinpath(tempdir(),"Argo_MITprof_files")
+    pth1=joinpath(pth0,"input")
+    pth2=joinpath(pth0,"MITprof")
+
+    fil=joinpath(pth1,"ar_greylist.txt")
+    isfile(fil) ? greylist=GDAC.greylist(fil) : greylist=""
+
+    for i in II
+        println(i)
+
+        wmo=string(list_files[i,:wmo])
+        input_file=joinpath(pth1,list_files[i,:folder],wmo,wmo*"_prof.nc")
+        output_file=joinpath(pth2,wmo*"_MITprof.nc")
+
+        meta=ArgoTools.meta(input_file,output_file)
+        meta["greylist"]=greylist
+
+        if isfile(input_file)
+            ds=Dataset(input_file)
+            if haskey(ds,"PSAL")*haskey(ds,"TEMP")
+                output_file=MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)
+                println("✔ $(wmo)")
+            else
+                io = open(output_file[1:end-3]*".txt", "w")
+                write(io, "Skipped file $(wmo) <- missing PSAL or TEMP\n")
+                close(io)
+
+                println("... skipping $(wmo)!")
+            end
+
+        else
+            io = open(output_file[1:end-3]*".txt", "w")
+            write(io, "Skipped file $(wmo) <- no input file\n")
+            close(io)
+
+            println("... skipping $(wmo)!")
+        end
+    end
+    end
 end

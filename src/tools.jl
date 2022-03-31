@@ -114,15 +114,21 @@ function GetOneProfile(ds,m)
 
     #
     t=ds["JULD"][m]
-    ymd=Dates.year(t)*1e4+Dates.month(t)*1e2+Dates.day(t)
-    hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
+    if !ismissing(t)
+        ymd=Dates.year(t)*1e4+Dates.month(t)*1e2+Dates.day(t)
+        hms=Dates.hour(t)*1e4+Dates.minute(t)*1e2+Dates.second(t)
 
-    prof_date=t-DateTime(0)
-    prof_date=prof_date.value/86400/1000+1 #+1 is to match Matlab's datenum
+        prof_date=t-DateTime(0)
+        prof_date=prof_date.value/86400/1000+1 #+1 is to match Matlab's datenum
+    else
+        ymd=0
+        hms=0
+        prof_date=0.0
+    end
 
     lat=ds["LATITUDE"][m]
     lon=ds["LONGITUDE"][m]
-    lon < 0.0 ? lon=lon+360.0 : nothing
+    (!ismissing(lon))&&(lon < 0.0) ? lon=lon+360.0 : nothing
 
     direction=ds["DIRECTION"][m]
     direc=0
@@ -215,21 +221,21 @@ function GetOneProfile(ds,m)
     end
 
     prof=ProfileNative(
-        convert(Union{Float64,Missing},lon),
-        convert(Union{Float64,Missing},lat),
+        convert(Array{Union{Float64,Missing}},[lon]),
+        convert(Array{Union{Float64,Missing}},[lat]),
         convert(Union{Float64,Missing},prof_date),
-        convert(Union{Int,Missing},ymd),
-        convert(Union{Int,Missing},hms),
+        convert(Array{Union{Int,Missing}},[ymd]),
+        convert(Array{Union{Int,Missing}},[hms]),
         convert(Array{Union{Float64,Missing}},t),
         convert(Array{Union{Float64,Missing}},s),
         convert(Array{Union{Float64,Missing}},p),
         convert(Array{Union{Float64,Missing}},p), #place holder for depth
         convert(Array{Union{Float64,Missing}},t_ERR),
         convert(Array{Union{Float64,Missing}},s_ERR),
-        pnum_txt,
-        convert(Union{Int,Missing},direc),
-        ds["DATA_MODE"][m],
-        isBAD
+        convert(Array{Union{String,Missing}},[pnum_txt]),
+        convert(Array{Union{Int,Missing}},[direc]),
+        convert(Array{Union{Char,Missing}},[ds["DATA_MODE"][m]]),
+        convert(Array{Union{Int,Missing}},[isBAD])
         )
     
     return prof
@@ -243,7 +249,7 @@ end
 Convert prof["p"] to prof["depth"]
 """
 function prof_PtoZ!(prof)
-    l=prof.lat
+    l=prof.lat[1]
     k=findall((!ismissing).(prof.pressure))
     prof.depth[k].=[sw_dpth(Float64(prof.pressure[kk]),Float64(l)) for kk in k]
 end
@@ -257,7 +263,7 @@ function prof_TtoΘ!(prof)
     T=prof.T
     P=0.981*1.027*prof.depth
     S=35.0*ones(size(T))
-    k=findall( (!ismissing).(T) )
+    k=findall( ((!ismissing).(T)).*((!ismissing).(P)) )
     T[k]=[sw_ptmp(Float64(S[kk]),Float64(T[kk]),Float64(P[kk])) for kk in k]
 end
 
@@ -311,10 +317,10 @@ function prof_interp!(prof,prof_std,meta)
                 e_std = []
             end
         end
-        if v=="T"
+        if v=="T"&&!isempty(t_std)
             prof_std.T .=t_std
             prof_std.T_ERR .=e_std
-        else
+        elseif v=="S"&&!isempty(t_std)
             prof_std.S .=t_std
             prof_std.S_ERR .=e_std
         end
@@ -332,6 +338,9 @@ function prof_test_set1!(prof,prof_std,meta)
     tmp1=1.0*(tmp1.<0.0)
     tmp2=1.0*(tmp2.>=0.0)
     tmp3=tmp1.*tmp2
+    if isa(tmp3,Matrix{Missing})
+        tmp3=convert(Array{Union{Float64,Missing}},tmp3)
+    end
     tmp3[findall(ismissing.(tmp3))].=0.0
     tmp3=sum(tmp3,dims=1)
 
@@ -347,22 +356,22 @@ function prof_test_set1!(prof,prof_std,meta)
     10*prof_std.Stest[findall( (prof_std.S[:].<15.0).&((!ismissing).(prof_std.S[:])) )] .+ 2
 
     #bad pressure flag:
-    if prof.isBAD>0
+    if prof.isBAD[1]>0
         prof_std.Ttest.=10*prof_std.Ttest .+ 6
         prof_std.Stest.=10*prof_std.Stest .+ 6
     end;
     
     #Argo grey list:
     if !isempty(meta["greylist"])
-        test1=!(prof.DATA_MODE.=='D') #true = real time profile ('R' or 'A')
-        test2=sum(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
+        test1=!(prof.DATA_MODE[1].=='D') #true = real time profile ('R' or 'A')
+        test2=sum(parse(Int,prof.pnum_txt[1]).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
         if test1&(test2>0)
-            II=findall(parse(Int,prof.pnum_txt).==meta["greylist"][:,"PLATFORM_CODE"])
+            II=findall(parse(Int,prof.pnum_txt[1]).==meta["greylist"][:,"PLATFORM_CODE"])
+            timeP=prof.ymd[1]
             for ii in II
                 time0=meta["greylist"][ii,"START_DATE"]
-                timeP=prof.ymd
                 time1=meta["greylist"][ii,"END_DATE"]
-                if (time0<timeP)&&(ismissing(time1)||(tmp1>timeP))
+                if (time0<timeP)&&(ismissing(time1)||(time1>timeP))
                     prof_std.Ttest.=10*prof_std.Ttest .+ 4
                     prof_std.Stest.=10*prof_std.Stest .+ 4
                 end
@@ -406,15 +415,15 @@ Appply conversions to variables (lon,lat,depth,temperature) in `prof` if specifi
 """
 function prof_convert!(prof,meta)
     lonlatISbad=false
-    (prof.lat<-90.0)|(prof.lat>90.0) ? lonlatISbad=true : nothing
-    (prof.lon<-180.0)|(prof.lon>360.0) ? lonlatISbad=true : nothing
+    ismissing(prof.lat[1])||(prof.lat[1]<-90.0)||(prof.lat[1]>90.0) ? lonlatISbad=true : nothing
+    ismissing(prof.lon[1])||(prof.lon[1]<-180.0)||(prof.lon[1]>360.0) ? lonlatISbad=true : nothing
 
     #if needed then reset lon,lat after issuing a warning
     lonlatISbad==true ? println("warning: out of range lon/lat was reset to 0.0,-89.99") : nothing 
-    lonlatISbad ? (prof.lon,prof.lat)=(0.0,-89.99) : nothing
+    lonlatISbad ? (prof.lon[1],prof.lat[1])=(0.0,-89.99) : nothing
 
     #if needed then fix longitude range to 0-360
-    (~lonlatISbad)&(prof.lon>180.0) ? prof.lon-=360.0 : nothing
+    (~lonlatISbad)&(prof.lon[1]>180.0) ? prof.lon[1]-=360.0 : nothing
     
     #if needed then convert pressure to depth
     (~meta["inclZ"])&(~lonlatISbad) ? ArgoTools.prof_PtoZ!(prof) : nothing
@@ -423,7 +432,7 @@ function prof_convert!(prof,meta)
     meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof) : nothing
 end
 
-function interp1(x,y,xi)
+function interp_z(x,y,xi)
     jj=findall(isfinite.(y))
     interp_linear_extrap = LinearInterpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
     return interp_linear_extrap(xi)
@@ -580,15 +589,12 @@ function monthly_climatology_factors(date)
     tim_fld=[tim_fld[12]-365.0;tim_fld...;tim_fld[1]+365.0]
     rec_fld=[12;1:12;1]
     
-#    year0=floor(profIn["ymd"]/1e4)    
     year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
     date0=DateTime(year0,1,1)-DateTime(0)
 
     date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
     tim_prof=date-date0
     tim_prof>365.0 ? tim_prof=365.0 : nothing
-
-    #tim_fld,rec_fld,tim_prof
 
     tt=maximum(findall(tim_fld.<=tim_prof))
     a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
@@ -617,9 +623,9 @@ function MonthlyClimatology(fil,msk)
     tmp = hton.(tmp)
     close(fid)
     
-    T=MeshArray(msk.grid,Float64,50,12)
+    T=Array{MeshArray,1}(undef,12)
     for tt=1:12
-        T[:,:,tt]=msk*MeshArrays.read(tmp[:,:,:,tt],T[:,:,tt])
+        T[tt]=msk*MeshArrays.read(tmp[:,:,:,tt],msk.grid)
     end
 
     return T
@@ -676,6 +682,18 @@ function load()
     σS=σS.grid.read(tmp,σS.grid)
 
     (Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)
+end
+
+function interp_h(z_in::MeshArray,f,i,j,w,z_out)
+    for k in 1:50
+        if !isnan(sum(w[1,:]))
+            x=[z_in[f[1,ii],k][i[1,ii],j[1,ii]] for ii=1:4]
+            kk=findall(isfinite.(x))
+            ~isempty(kk) ? z_out[k]=sum(w[1,kk].*x[kk])/sum(w[1,kk]) : nothing
+        else
+            z_out[k]=NaN
+        end
+    end
 end
 
 end #module GriddedFields

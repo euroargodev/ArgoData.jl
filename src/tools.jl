@@ -432,7 +432,7 @@ function prof_convert!(prof,meta)
     meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof) : nothing
 end
 
-function interp1(x,y,xi)
+function interp_z(x,y,xi)
     jj=findall(isfinite.(y))
     interp_linear_extrap = LinearInterpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
     return interp_linear_extrap(xi)
@@ -623,9 +623,9 @@ function MonthlyClimatology(fil,msk)
     tmp = hton.(tmp)
     close(fid)
     
-    T=MeshArray(msk.grid,Float64,50,12)
+    T=Array{MeshArray,1}(undef,12)
     for tt=1:12
-        T[:,:,tt]=msk*MeshArrays.read(tmp[:,:,:,tt],T[:,:,tt])
+        T[tt]=msk*MeshArrays.read(tmp[:,:,:,tt],msk.grid)
     end
 
     return T
@@ -682,6 +682,18 @@ function load()
     σS=σS.grid.read(tmp,σS.grid)
 
     (Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)
+end
+
+function interp_h(z_in::MeshArray,f,i,j,w,z_out)
+    for k in 1:50
+        if !isnan(sum(w[1,:]))
+            x=[z_in[f[1,ii],k][i[1,ii],j[1,ii]] for ii=1:4]
+            kk=findall(isfinite.(x))
+            ~isempty(kk) ? z_out[k]=sum(w[1,kk].*x[kk])/sum(w[1,kk]) : nothing
+        else
+            z_out[k]=NaN
+        end
+    end
 end
 
 end #module GriddedFields

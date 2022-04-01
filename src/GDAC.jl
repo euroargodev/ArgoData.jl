@@ -28,7 +28,7 @@ Get list of Argo float files from Ifremer GDAC server
 
 ```
 using ArgoData
-GDAC.Argo_files_list()
+files_list=GDAC.Argo_files_list()
 ```
 """
 function Argo_files_list()
@@ -53,8 +53,7 @@ Get list of Argo float files from csv file with columns two columns -- `folder` 
 
 ```
 using ArgoData
-fil="https://gaelforget.github.io/OceanRobots.jl/dev/examples/Argo_files_list.csv"
-GDAC.Argo_files_list(fil)
+files_list=GDAC.Argo_files_list(fil)
 ```
 """
 function Argo_files_list(fil::String)
@@ -66,14 +65,17 @@ function Argo_files_list(fil::String)
 end
 
 """
-    Argo_float_download(files_list,ii=1,suff="prof",ftp=missing)
+    Argo_float_download(file::DataFrameRow,suff="prof",ftp=missing)
 
-Download one Argo file for float ranked `ii` in `files_list` 
-from GDAC server (`ftp://ftp.ifremer.fr/ifremer/argo/dac/` by default)
-to a temporary folder (`joinpath(tempdir(),"Argo_DAC_files")`).
-By default `suff="prof"` means we'll download the file that contains 
-the profile data (e.g. `13857_prof.nc` for `ii=1` with `wmo=13857`). 
-Other possible choices for `suff`: "meta", "Rtraj", "tech".
+Download Argo file from the GDAC server (`<ftp://ftp.ifremer.fr/ifremer/argo/dac/>` by default)
+to a temporary folder (`joinpath(tempdir(),"Argo_DAC_files")`)
+
+The file name is given by `file.folder` and `file.wmo`.
+For example, `13857_prof.nc` for `wmo=13857` is from the `aoml` folder. 
+
+The default for `suff` is `"prof"` which means we'll download the file that contains the profile data. 
+Other possible choices are `"meta"`, `"Rtraj"`, `"tech"`. 
+
 If the `ftp` argument is omitted or `isa(ftp,String)` then `Downloads.download` is used. 
 If, alternatively, `isa(ftp,FTP)` then `FTPClient.download` is used.
 
@@ -82,17 +84,19 @@ Example :
 ```
 using ArgoData
 files_list=GDAC.Argo_files_list()
-GDAC.Argo_float_download(files_list,10000)
+GDAC.Argo_float_download(files_list[10000,:])
+
+#or:
 
 ftp="ftp://usgodae.org/pub/outgoing/argo/dac/"
-GDAC.Argo_float_download(files_list,10000,"meta",ftp)
+GDAC.Argo_float_download(files_list[10000,:],"meta",ftp)
 ```
 """
-function Argo_float_download(files_list,ii,suff="prof",ftp=missing)
+function Argo_float_download(file::DataFrameRow,suff="prof",ftp=missing)
     path=joinpath(tempdir(),"Argo_DAC_files")
     !isdir(path) ? mkdir(path) : nothing
-    folder=files_list[ii,:folder]
-    wmo=files_list[ii,:wmo]
+    folder=file.folder
+    wmo=file.wmo
     path=joinpath(path,folder)
     !isdir(path) ? mkdir(path) : nothing
     path=joinpath(path,string(wmo))
@@ -121,8 +125,8 @@ end
     wget_geo(b::String,y::Int,m::Int)
 
 Download, using wget, Argo data files for one regional domain (b), year (y), and
-month (m) from the `GDAC` FTP server (`ftp://ftp.ifremer.fr/ifremer/argo`
-or, equivalently, `ftp://usgodae.org/pub/outgoing/argo`).
+month (m) from the `GDAC` FTP server (<ftp://ftp.ifremer.fr/ifremer/argo>
+or, equivalently, <ftp://usgodae.org/pub/outgoing/argo>).
 
 ```
 b="atlantic"; yy=2009:2009; mm=8:12;

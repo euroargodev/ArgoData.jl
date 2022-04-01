@@ -7,12 +7,18 @@ Argo data processing and analysis.
 
 _This package is in early developement stage when breaking changes can be expected._
 
-```@index
-```
-
 ## Workflows
 
 Downloading and accessing an Argo file can simply be done like this.
+
+```
+using ArgoData, NCDatasets
+files_list=GDAC.Argo_files_list()
+file=GDAC.Argo_float_download(files_list[10000,:])
+Dataset(file)
+```
+
+Or alternatively, like this.
 
 ```
 using Downloads, NCDatasets
@@ -21,8 +27,9 @@ wmo=6900900
 url0="https://data-argo.ifremer.fr/dac/coriolis/"
 input_url=url0*"/$(wmo)/$(wmo)_prof.nc"
 input_file=joinpath(tempdir(),"$(wmo)_prof.nc")
-fil=Downloads.download(input_url,input_file)
-Dataset(fil)
+file=Downloads.download(input_url,input_file)
+
+Dataset(file)
 ```
 
 Formatting of an Argo file (`input_file`) into an MITprof file (`output_file`) proceeds as follows.
@@ -39,13 +46,16 @@ For additional detail, please refer to the [examples/ArgoToMITprof.jl](https://g
 
 ## Functions
 
-```@autodocs
-Modules = [MITprof,GDAC]
-Order   = [:type,:function]
+```@index
 ```
 
 ```@docs
 ProfileNative
 ProfileStandard
+```
+
+```@autodocs
+Modules = [GDAC,MITprof]
+Order   = [:type,:function]
 ```
 

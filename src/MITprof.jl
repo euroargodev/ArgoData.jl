@@ -50,11 +50,11 @@ function MITprof_read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
 end
 
 """
-    loop(pth::String="profiles/")
+    MITprof_read_loop(pth::String="profiles/")
 
 Standard Depth Argo Data Collection -- see `?MITprof.read` for detail.
 """
-function loop(pth::String="profiles/")
+function MITprof_read_loop(pth::String="profiles/")
     λ=("MITprof_mar2016_argo9506.nc","MITprof_mar2016_argo0708.nc",
     "MITprof_mar2016_argo0910.nc","MITprof_mar2016_argo1112.nc",
     "MITprof_mar2016_argo1314.nc","MITprof_mar2016_argo1515.nc")
@@ -298,24 +298,24 @@ Loop over files and call `MITprof_format`.
 
 ```
 gridded_fields=GriddedFields.load()
-list_files=GDAC.Argo_float_files()
-MITprof.MITprof_format_loop(gridded_fields,list_files,1:10)
+files_list=GDAC.Argo_files_list()
+MITprof.MITprof_format_loop(gridded_fields,files_list,1:10)
 ```   
 """
-function MITprof_format_loop(gridded_fields,list_files,II)
+function MITprof_format_loop(gridded_fields,files_list,II)
 
     pth0=joinpath(tempdir(),"Argo_MITprof_files")
     pth1=joinpath(pth0,"input")
     pth2=joinpath(pth0,"MITprof")
 
     fil=joinpath(pth1,"ar_greylist.txt")
-    isfile(fil) ? greylist=GDAC.greylist(fil) : greylist=""
+    isfile(fil) ? greylist=GDAC.grey_list(fil) : greylist=""
 
     for i in II
         println(i)
 
-        wmo=string(list_files[i,:wmo])
-        input_file=joinpath(pth1,list_files[i,:folder],wmo,wmo*"_prof.nc")
+        wmo=string(files_list[i,:wmo])
+        input_file=joinpath(pth1,files_list[i,:folder],wmo,wmo*"_prof.nc")
         output_file=joinpath(pth2,wmo*"_MITprof.nc")
 
         meta=ArgoTools.meta(input_file,output_file)

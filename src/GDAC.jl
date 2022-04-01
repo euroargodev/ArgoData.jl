@@ -4,60 +4,60 @@ module GDAC
 using NCDatasets, CSV, DataFrames, FTPClient, Downloads, Printf
 
 """
-    greylist(fil::String)
+    grey_list(fil::String)
 
 Read "ar_greylist.txt" file into a DataFrame.
 """
-greylist(fil::String) = DataFrame(CSV.File(fil))
+grey_list(fil::String) = DataFrame(CSV.File(fil))
 
 """
-    greylist()
+    grey_list()
 
 Download "ar_greylist.txt" from GDAC and read file into a DataFrame.
 """
-function greylist()
+function grey_list()
     Downloads.download("https://data-argo.ifremer.fr/ar_greylist.txt",joinpath(tempdir(),"ar_greylist.txt"))
-    greylist(joinpath(tempdir(),"ar_greylist.txt"))
+    grey_list(joinpath(tempdir(),"ar_greylist.txt"))
 end
 
 """
-    Argo_float_files()
+    Argo_files_list()
 
 Get list of Argo float files from Ifremer GDAC server     
 <ftp://ftp.ifremer.fr/ifremer/argo/dac/>
 
 ```
 using ArgoData
-GDAC.Argo_float_files()
+GDAC.Argo_files_list()
 ```
 """
-function Argo_float_files()
+function Argo_files_list()
     ftp=FTP("ftp://ftp.ifremer.fr/ifremer/argo/dac/")
 
-    list_files=DataFrame("folder" => [],"wmo" => [])
+    files_list=DataFrame("folder" => [],"wmo" => [])
     list_folders=readdir(ftp)
 
     for pth in list_folders
         cd(ftp,pth)
         tmp=readdir(ftp)
-        [append!(list_files,DataFrame("folder" => pth,"wmo" => parse(Int,x))) for x in tmp]
+        [append!(files_list,DataFrame("folder" => pth,"wmo" => parse(Int,x))) for x in tmp]
         cd(ftp,"..")
     end
-    list_files
+    files_list
 end
 
 """
-    Argo_float_files(fil::String)
+    Argo_files_list(fil::String)
 
 Get list of Argo float files from csv file with columns two columns -- `folder` and `wmo`.
 
 ```
 using ArgoData
-fil="https://gaelforget.github.io/OceanRobots.jl/dev/examples/Argo_float_files.csv"
-GDAC.Argo_float_files(fil)
+fil="https://gaelforget.github.io/OceanRobots.jl/dev/examples/Argo_files_list.csv"
+GDAC.Argo_files_list(fil)
 ```
 """
-function Argo_float_files(fil::String)
+function Argo_files_list(fil::String)
     if isfile(fil)
         DataFrame(CSV.File(fil))
     else
@@ -66,9 +66,9 @@ function Argo_float_files(fil::String)
 end
 
 """
-    Argo_float_download(list_files,ii=1,suff="prof",ftp=missing)
+    Argo_float_download(files_list,ii=1,suff="prof",ftp=missing)
 
-Download one Argo file for float ranked `ii` in `list_files` 
+Download one Argo file for float ranked `ii` in `files_list` 
 from GDAC server (`ftp://ftp.ifremer.fr/ifremer/argo/dac/` by default)
 to a temporary folder (`joinpath(tempdir(),"Argo_DAC_files")`).
 By default `suff="prof"` means we'll download the file that contains 
@@ -81,18 +81,18 @@ Example :
 
 ```
 using ArgoData
-list_files=GDAC.Argo_float_files()
-GDAC.Argo_float_download(list_files,10000)
+files_list=GDAC.Argo_files_list()
+GDAC.Argo_float_download(files_list,10000)
 
 ftp="ftp://usgodae.org/pub/outgoing/argo/dac/"
-GDAC.Argo_float_download(list_files,10000,"meta",ftp)
+GDAC.Argo_float_download(files_list,10000,"meta",ftp)
 ```
 """
-function Argo_float_download(list_files,ii,suff="prof",ftp=missing)
+function Argo_float_download(files_list,ii,suff="prof",ftp=missing)
     path=joinpath(tempdir(),"Argo_DAC_files")
     !isdir(path) ? mkdir(path) : nothing
-    folder=list_files[ii,:folder]
-    wmo=list_files[ii,:wmo]
+    folder=files_list[ii,:folder]
+    wmo=files_list[ii,:wmo]
     path=joinpath(path,folder)
     !isdir(path) ? mkdir(path) : nothing
     path=joinpath(path,string(wmo))

@@ -37,7 +37,7 @@ output_file=joinpath(tempdir(),"$(wmo)_MITprof.nc")
 meta=ArgoTools.meta(input_file,output_file)
 
 fil=joinpath(tempdir(),"ar_greylist.txt")
-isfile(fil) ? greylist=GDAC.greylist(fil) : greylist=""
+isfile(fil) ? greylist=GDAC.grey_list(fil) : greylist=""
 
 meta["greylist"]=greylist
 

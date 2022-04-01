@@ -164,8 +164,8 @@ function GetOneProfile(ds,m)
 
     #position and date
     isBAD=0
-    ~in(ds["POSITION_QC"][m],"1258") ? isBAD=1 : nothing
-    ~in(ds["JULD_QC"][m],"1258") ? isBAD=1 : nothing
+    ismissing(ds["POSITION_QC"][m])||~in(ds["POSITION_QC"][m],"1258") ? isBAD=1 : nothing
+    ismissing(ds["JULD_QC"][m])||~in(ds["JULD_QC"][m],"1258") ? isBAD=1 : nothing
 
     #pressure
     tmp1=findall( (!in).(p_QC,"1258") )

@@ -53,6 +53,7 @@ Get list of Argo float files from csv file with columns two columns -- `folder` 
 
 ```
 using ArgoData
+fil="https://raw.githubusercontent.com/JuliaOcean/ArgoData.jl/gh-pages/dev/Argo_float_files.csv"
 files_list=GDAC.Argo_files_list(fil)
 ```
 """

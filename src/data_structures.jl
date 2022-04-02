@@ -1,4 +1,3 @@
-
 using NCDatasets
 
 """
@@ -66,10 +65,12 @@ ProfileStandard(nz::Int) = ProfileStandard(
 
 Container for a MITprof format file data.
 
+- filename : file name
 - 1D arrays: lon,lat,date,depth,ID
 - 2D arrays: T,S,Te,Se,Tw,Sw
 """
 struct MITprofStandard
+    filename
     lon
     lat
     date
@@ -97,7 +98,7 @@ mp=MITprof.MITprofStandard(fil)
 function MITprofStandard(fil::String)
     ds=Dataset(fil)
     haskey(ds,"prof_descr") ? ID=ds["prof_descr"] : ID=split(basename(fil),"_")[1]
-    MITprofStandard(
+    MITprofStandard(fil,
         ds["prof_lon"],ds["prof_lat"],ds["prof_depth"],ds["prof_date"],
         fill(ID,size(ds["prof_lon"])),
         ds["prof_T"],ds["prof_Testim"],ds["prof_Tweight"],
@@ -106,30 +107,32 @@ function MITprofStandard(fil::String)
 end
 
 function Base.show(io::IO, mp::MITprofStandard) where {T}
+    printstyled(io, "File name is ",color=:normal)
+    printstyled(io, "$(basename(mp.filename)) \n",color=:blue)
     printstyled(io, "List of variables : \n",color=:normal)
     #
-    printstyled(io, "  lon   = ",color=:normal)
+    printstyled(io, "  lon   is ",color=:normal)
     printstyled(io, "$(size(mp.lon)) \n",color=:blue)
-    printstyled(io, "  lat   = ",color=:normal)
+    printstyled(io, "  lat   is ",color=:normal)
     printstyled(io, "$(size(mp.lat)) \n",color=:blue)
-    printstyled(io, "  date  = ",color=:normal)
+    printstyled(io, "  date  is ",color=:normal)
     printstyled(io, "$(size(mp.date)) \n",color=:blue)
-    printstyled(io, "  depth = ",color=:normal)
+    printstyled(io, "  depth is ",color=:normal)
     printstyled(io, "$(size(mp.depth)) \n",color=:blue)
-    printstyled(io, "  ID    = ",color=:normal)
+    printstyled(io, "  ID    is ",color=:normal)
     printstyled(io, "$(size(mp.ID)) \n",color=:blue)
     #
-    printstyled(io, "  T     = ",color=:normal)
+    printstyled(io, "  T     is ",color=:normal)
     printstyled(io, "$(size(mp.T)) \n",color=:blue)
-    printstyled(io, "  Te    = ",color=:normal)
+    printstyled(io, "  Te    is ",color=:normal)
     printstyled(io, "$(size(mp.Te)) \n",color=:blue)
-    printstyled(io, "  Tw    = ",color=:normal)
+    printstyled(io, "  Tw    is ",color=:normal)
     printstyled(io, "$(size(mp.Tw)) \n",color=:blue)
-    printstyled(io, "  S     = ",color=:normal)
+    printstyled(io, "  S     is ",color=:normal)
     printstyled(io, "$(size(mp.S)) \n",color=:blue)
-    printstyled(io, "  Se    = ",color=:normal)
+    printstyled(io, "  Se    is ",color=:normal)
     printstyled(io, "$(size(mp.Se)) \n",color=:blue)
-    printstyled(io, "  Sw    = ",color=:normal)
+    printstyled(io, "  Sw    is ",color=:normal)
     printstyled(io, "$(size(mp.Sw))",color=:blue)
     #
     return

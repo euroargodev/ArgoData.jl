@@ -52,6 +52,7 @@ For additional detail, please refer to the [examples/ArgoToMITprof.jl](https://g
 ```@docs
 ProfileNative
 ProfileStandard
+MITprofStandard
 ```
 
 ```@autodocs

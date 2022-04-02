@@ -18,4 +18,8 @@ using Test
     include(fil)
 
     @test isa(output_file,String)
+
+    mp=MITprofStandard(output_file)
+
+    @test isa(mp,MITprofStandard)
 end

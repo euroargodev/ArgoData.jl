@@ -7,6 +7,6 @@ include("GDAC.jl")
 include("MITprof.jl")
 
 export MITprof, GDAC, ArgoTools, GriddedFields
-export ProfileNative, ProfileStandard
+export ProfileNative, ProfileStandard, MITprofStandard
 
 end # module

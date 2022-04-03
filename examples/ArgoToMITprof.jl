@@ -20,7 +20,7 @@ meta=ArgoTools.meta(input_file,output_file)
 meta["greylist"]=greylist
 
 gridded_fields=GriddedFields.load()
-output_file=MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)
+output_file=MITprof.format(meta,gridded_fields,input_file,output_file)
 
 ##
 

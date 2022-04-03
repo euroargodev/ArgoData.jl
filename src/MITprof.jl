@@ -11,14 +11,8 @@ import ArgoData.GDAC
 
 ## reading MITprof files in bulk
 
-function ncread(f::String,v::String)
-    Dataset(f,"r") do ds
-        ds[v][:]
-    end
-end
-
 """
-    MITprof_read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
+    read_positions(f::String="MITprof/MITprof_mar2016_argo9506.nc")
 
 Standard Depth Argo Data Example.
 
@@ -31,7 +25,7 @@ The produced figure shows the number of profiles as function of time for a chose
 using ArgoData, Plots
 
 fi="MITprof/MITprof_mar2016_argo9506.nc"
-(lo,la,ye)=MITprof.MITprof_read(fi)
+(lo,la,ye)=MITprof.read_positions(fi)
 
 h = histogram(ye,bins=20,label=fi[end-10:end],title="Argo profiles")
 
@@ -40,7 +34,7 @@ kk=findall((ye.>ye0) .* (ye.<ye1))
 scatter(lo[kk],la[kk],label=fi[end-10:end],title="Argo profiles count")
 ```
 """
-function MITprof_read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
+function read_positions(f::String="MITprof/MITprof_mar2016_argo9506.nc")
     #i = ncinfo(f)
     lo = ncread(f, "prof_lon")
     la = ncread(f, "prof_lat")
@@ -50,11 +44,11 @@ function MITprof_read(f::String="MITprof/MITprof_mar2016_argo9506.nc")
 end
 
 """
-    MITprof_read_loop(pth::String="profiles/")
+    read_positions_loop(pth::String="profiles/")
 
 Standard Depth Argo Data Collection -- see `?MITprof.read` for detail.
 """
-function MITprof_read_loop(pth::String="profiles/")
+function read_positions_loop(pth::String="profiles/")
     λ=("MITprof_mar2016_argo9506.nc","MITprof_mar2016_argo0708.nc",
     "MITprof_mar2016_argo0910.nc","MITprof_mar2016_argo1112.nc",
     "MITprof_mar2016_argo1314.nc","MITprof_mar2016_argo1515.nc")
@@ -73,15 +67,15 @@ end
 ## writing MITprof files
 
 """
-    MITprof.MITprof_write(meta,profiles,profiles_std;path="")
+    MITprof.write(meta,profiles,profiles_std;path="")
 
-Write to file.
+Create an MITprof file from meta data + profiles during `MIRprof.format`.
 
 ```
-MITprof.MITprof_write(meta,profiles,profiles_std)
+MITprof.write(meta,profiles,profiles_std)
 ```
 """
-function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
+function write(meta::Dict,profiles::Array,profiles_std::Array;path="")
 
     isempty(path) ? p=tempdir() : p=path
     fil=joinpath(p,meta["fileOut"])
@@ -176,62 +170,11 @@ end
 ##
 
 """
-    write(fil::String,mps::Vector{MITprofStandard})
+    write(fil::String,mp::MITprofStandard)
 
 Create an MITprof file from an MITprofStandard input.  
 """
-function write(fil::String,mp::MITprofStandard)
-
-    iPROF = size(mp.T,1)
-    iDEPTH = size(mp.T,2)
-    iINTERP = 4
-    lTXT = 30
-
-    NCDataset(fil,"c") do ds
-        defDim(ds,"iPROF",iPROF)
-        defDim(ds,"iDEPTH",iDEPTH)
-        defDim(ds,"iINTERP",iINTERP)
-        defDim(ds,"lTXT",lTXT)
-        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
-    end
-
-    ##
-
-    NCDataset(fil,"a") do ds
-        defVar(ds,"prof_depth",mp.depth[:],("iDEPTH",),
-              attrib = OrderedDict(
-           "units" => "m",
-           "_FillValue" => -9999.,
-           "long_name" => "Depth"
-        ))
-    end
-
-    ncwrite_1d(mp.lon[:],fil,"prof_lon","Longitude (degree East)","degrees_east")
-    ncwrite_1d(mp.lat[:],fil,"prof_lat","Latitude (degree North)","degrees_north")
-    ncwrite_1d(mp.date[:],fil,"prof_date","Julian day since Jan-1-0000"," ") ##need units
-#    ncwrite_1d(mp.ymd[;],fil,"prof_YYYYMMDD","year (4 digits), month (2 digits), day (2 digits)"," ") ##need units
-#    ncwrite_1d(mp.hms[:],fil,"prof_HHMMSS","hour (2 digits), minute (2 digits), second (2 digits)"," ") ##need units
-
-    ncwrite_2d(mp.T[:,:],fil,"prof_T","Temperature","degree_Celsius")
-    ncwrite_2d(mp.Tw[:,:],fil,"prof_Tweight","Temperature least-square weight","(degree C)^-2")
-    ncwrite_2d(mp.Te[:,:],fil,"prof_Testim","Temperature atlas (monthly clim.)","degree_Celsius")
-  
-    ncwrite_2d(mp.S[:,:],fil,"prof_S","Salinity","psu")
-    ncwrite_2d(mp.Sw[:,:],fil,"prof_Sweight","Salinity least-square weight","(psu)^-2")
-    ncwrite_2d(mp.Se[:,:],fil,"prof_Sestim","Salinity atlas (monthly clim.)","psu")
-end
-
-function my_defVar(fil,var)
-    T=eltype(skipmissing(var))
-    NCDataset(fil,"a") do ds
-        defVar(ds,name(var),T,dimnames(var),
-            attrib = OrderedDict(
-            "units" => var.attrib["units"],
-            "_FillValue" => var.attrib["_FillValue"],
-            "long_name" => var.attrib["long_name"]
-        ))
-    end
-end
+write(fil::String,mp::MITprofStandard) = write(fil,[mp])
 
 """
     write(fil::String,mps::Vector{MITprofStandard})
@@ -259,7 +202,7 @@ function write(fil::String,mps::Vector{MITprofStandard})
 
     list_variables=(:lon,:lat,:date,:depth,:T,:Te,:Tw,:S,:Se,:Sw)
     #to be added : ID, ymd, hms, and maybe more
-    [my_defVar(fil,getfield(mps[1],var)) for var in list_variables]
+    [defVar_fromVar(fil,getfield(mps[1],var)) for var in list_variables]
 
     list_variables=(:lon,:lat,:date,:T,:Te,:Tw,:S,:Se,:Sw)
     ds=NCDataset(fil,"a")
@@ -279,6 +222,24 @@ function write(fil::String,mps::Vector{MITprofStandard})
 end
 
 ##
+
+function ncread(f::String,v::String)
+    Dataset(f,"r") do ds
+        ds[v][:]
+    end
+end
+
+function defVar_fromVar(fil,var)
+    T=eltype(skipmissing(var))
+    NCDataset(fil,"a") do ds
+        defVar(ds,name(var),T,dimnames(var),
+            attrib = OrderedDict(
+            "units" => var.attrib["units"],
+            "_FillValue" => var.attrib["_FillValue"],
+            "long_name" => var.attrib["long_name"]
+        ))
+    end
+end
 
 function ncwrite_2d(data,fil,name,long_name,units)
     NCDataset(fil,"a") do ds
@@ -305,15 +266,15 @@ end
 ##
 
 """
-    MITprof_format(meta,gridded_fields,input_file,output_file="")
+    format(meta,gridded_fields,input_file,output_file="")
 
 From Argo file name as input : read input file content, process into the MITprof format, and write to MITprof file.
 
 ```
-MITprof.MITprof_format(meta,gridded_fields,input_file)
+MITprof.format(meta,gridded_fields,input_file)
 ```
 """
-function MITprof_format(meta,gridded_fields,input_file,output_file="")
+function format(meta,gridded_fields,input_file,output_file="")
     @unpack Γ,msk,T,S,σT,σS = gridded_fields
     z_std = meta["z_std"]
 
@@ -391,23 +352,23 @@ function MITprof_format(meta,gridded_fields,input_file,output_file="")
         profiles_std[m]=prof_std
     end
 
-    MITprof.MITprof_write(meta,profiles,profiles_std)
+    MITprof.write(meta,profiles,profiles_std)
 
     output_file
 end
 
 """
-    Mitprof_format_loop(II)
+    format_loop(II)
 
-Loop over files and call `MITprof_format`.
+Loop over files and call `format`.
 
 ```
 gridded_fields=GriddedFields.load()
-files_list=GDAC.Argo_files_list()
-MITprof.MITprof_format_loop(gridded_fields,files_list,1:10)
+files_list=GDAC.files_list()
+MITprof.format_loop(gridded_fields,files_list,1:10)
 ```   
 """
-function MITprof_format_loop(gridded_fields,files_list,II)
+function format_loop(gridded_fields,files_list,II)
 
     pth0=joinpath(tempdir(),"Argo_MITprof_files")
     pth1=joinpath(pth0,"input")
@@ -429,7 +390,7 @@ function MITprof_format_loop(gridded_fields,files_list,II)
         if isfile(input_file)
             ds=Dataset(input_file)
             if haskey(ds,"PSAL")*haskey(ds,"TEMP")
-                output_file=MITprof.MITprof_format(meta,gridded_fields,input_file,output_file)
+                output_file=MITprof.format(meta,gridded_fields,input_file,output_file)
                 println("✔ $(wmo)")
             else
                 io = open(output_file[1:end-3]*".txt", "w")

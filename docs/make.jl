@@ -12,8 +12,8 @@ makedocs(;
     assets=String[],
 )
 
-list_files=GDAC.Argo_files_list()
-GDAC.CSV.write("Argo_float_files.csv",list_files)
+files_list=GDAC.files_list()
+GDAC.CSV.write("Argo_float_files.csv",files_list)
 mv("Argo_float_files.csv",joinpath(@__DIR__,"build", "Argo_float_files.csv"))
 
 deploydocs(;

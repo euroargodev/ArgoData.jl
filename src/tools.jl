@@ -6,7 +6,7 @@ import ArgoData.ProfileNative
 """
     mitprof_interp_setup(fil::String)
 
-Get parameters to call `MITprof_format` from yaml file (`fil`, e.g. "../examples/ArgoToMITprof.yml").
+Get parameters to call `MITprof.format` from yaml file (`fil`, e.g. "../examples/ArgoToMITprof.yml").
 """
 function mitprof_interp_setup(fil="")
 
@@ -94,7 +94,7 @@ end
 """
     meta(input_file,output_file)
 
-Get parameters to call `MITprof_format` which will read from `input_file` to create `output_file`.
+Get parameters to call `MITprof.format` which will read from `input_file` to create `output_file`.
 """
 function meta(input_file,output_file)
     meta=ArgoTools.mitprof_interp_setup()

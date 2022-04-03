@@ -121,7 +121,7 @@ ArgoTools.prof_test_set2!(prof_std,meta)
 meta["fileOut"]=joinpath(tempdir(),"MITprof_example.nc")
 isfile(meta["fileOut"]) ? rm(meta["fileOut"], force=true) : nothing
 
-MITprof.MITprof_write(meta,[prof],[prof_std])
+MITprof.write(meta,[prof],[prof_std])
 # -
 
 # ### Show Global Maps (via interpolation)

@@ -364,7 +364,7 @@ Loop over files and call `format`.
 
 ```
 gridded_fields=GriddedFields.load()
-files_list=GDAC.Argo_files_list()
+files_list=GDAC.files_list()
 MITprof.format_loop(gridded_fields,files_list,1:10)
 ```   
 """

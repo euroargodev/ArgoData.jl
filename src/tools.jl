@@ -4,11 +4,11 @@ using Dates, YAML, NCDatasets, CSV, DataFrames, Interpolations, Printf
 import ArgoData.ProfileNative
 
 """
-    mitprof_interp_setup(fil::String)
+    meta_init(fil::String)
 
 Get parameters to call `MITprof.format` from yaml file (`fil`, e.g. "../examples/ArgoToMITprof.yml").
 """
-function mitprof_interp_setup(fil="")
+function meta_init(fil="")
 
     if !isempty(fil)
         meta=YAML.load(open(fil))
@@ -97,7 +97,7 @@ end
 Get parameters to call `MITprof.format` which will read from `input_file` to create `output_file`.
 """
 function meta(input_file,output_file)
-    meta=ArgoTools.mitprof_interp_setup()
+    meta=ArgoTools.meta_init()
     #f=1
     #input_file=meta["dirIn"]*meta["fileInList"][f]
     meta["fileOut"]=output_file

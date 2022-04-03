@@ -21,17 +21,17 @@ function grey_list()
 end
 
 """
-    Argo_files_list()
+    files_list()
 
 Get list of Argo float files from Ifremer GDAC server     
 <ftp://ftp.ifremer.fr/ifremer/argo/dac/>
 
 ```
 using ArgoData
-files_list=GDAC.Argo_files_list()
+files_list=GDAC.files_list()
 ```
 """
-function Argo_files_list()
+function files_list()
     ftp=FTP("ftp://ftp.ifremer.fr/ifremer/argo/dac/")
 
     files_list=DataFrame("folder" => [],"wmo" => [])
@@ -47,17 +47,17 @@ function Argo_files_list()
 end
 
 """
-    Argo_files_list(fil::String)
+    files_list(fil::String)
 
 Get list of Argo float files from csv file with columns two columns -- `folder` and `wmo`.
 
 ```
 using ArgoData
 fil="https://raw.githubusercontent.com/JuliaOcean/ArgoData.jl/gh-pages/dev/Argo_float_files.csv"
-files_list=GDAC.Argo_files_list(fil)
+files_list=GDAC.files_list(fil)
 ```
 """
-function Argo_files_list(fil::String)
+function files_list(fil::String)
     if isfile(fil)
         DataFrame(CSV.File(fil))
     else
@@ -66,7 +66,7 @@ function Argo_files_list(fil::String)
 end
 
 """
-    Argo_float_download(file::DataFrameRow,suff="prof",ftp=missing)
+    download_file(file::DataFrameRow,suff="prof",ftp=missing)
 
 Download Argo file from the GDAC server (`<ftp://ftp.ifremer.fr/ifremer/argo/dac/>` by default)
 to a temporary folder (`joinpath(tempdir(),"Argo_DAC_files")`)
@@ -84,16 +84,16 @@ Example :
 
 ```
 using ArgoData
-files_list=GDAC.Argo_files_list()
-GDAC.Argo_float_download(files_list[10000,:])
+files_list=GDAC.files_list()
+GDAC.download_file(files_list[10000,:])
 
 #or:
 
 ftp="ftp://usgodae.org/pub/outgoing/argo/dac/"
-GDAC.Argo_float_download(files_list[10000,:],"meta",ftp)
+GDAC.download_file(files_list[10000,:],"meta",ftp)
 ```
 """
-function Argo_float_download(file::DataFrameRow,suff="prof",ftp=missing)
+function download_file(file::DataFrameRow,suff="prof",ftp=missing)
     path=joinpath(tempdir(),"Argo_DAC_files")
     !isdir(path) ? mkdir(path) : nothing
     folder=file.folder

@@ -99,7 +99,7 @@ function MITprofStandard(fil::String)
     ds=Dataset(fil)
     haskey(ds,"prof_descr") ? ID=ds["prof_descr"] : ID=split(basename(fil),"_")[1]
     MITprofStandard(fil,
-        ds["prof_lon"],ds["prof_lat"],ds["prof_depth"],ds["prof_date"],
+        ds["prof_lon"],ds["prof_lat"],ds["prof_date"],ds["prof_depth"],
         fill(ID,size(ds["prof_lon"])),
         ds["prof_T"],ds["prof_Testim"],ds["prof_Tweight"],
         ds["prof_S"],ds["prof_Sestim"],ds["prof_Sweight"]

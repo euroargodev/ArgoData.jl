@@ -4,6 +4,7 @@ using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack
 
 import ArgoData.ProfileNative
 import ArgoData.ProfileStandard
+import ArgoData.MITprofStandard
 import ArgoData.ArgoTools
 import ArgoData.GriddedFields
 import ArgoData.GDAC
@@ -169,6 +170,111 @@ function MITprof_write(meta::Dict,profiles::Array,profiles_std::Array;path="")
 
 # 	double prof_Serr(iPROF, iDEPTH) ;
 # 	double prof_Sflag(iPROF, iDEPTH) ;
+
+end
+
+##
+
+"""
+    write(fil::String,mps::Vector{MITprofStandard})
+
+Create an MITprof file from an MITprofStandard input.  
+"""
+function write(fil::String,mp::MITprofStandard)
+
+    iPROF = size(mp.T,1)
+    iDEPTH = size(mp.T,2)
+    iINTERP = 4
+    lTXT = 30
+
+    NCDataset(fil,"c") do ds
+        defDim(ds,"iPROF",iPROF)
+        defDim(ds,"iDEPTH",iDEPTH)
+        defDim(ds,"iINTERP",iINTERP)
+        defDim(ds,"lTXT",lTXT)
+        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
+    end
+
+    ##
+
+    NCDataset(fil,"a") do ds
+        defVar(ds,"prof_depth",mp.depth[:],("iDEPTH",),
+              attrib = OrderedDict(
+           "units" => "m",
+           "_FillValue" => -9999.,
+           "long_name" => "Depth"
+        ))
+    end
+
+    ncwrite_1d(mp.lon[:],fil,"prof_lon","Longitude (degree East)","degrees_east")
+    ncwrite_1d(mp.lat[:],fil,"prof_lat","Latitude (degree North)","degrees_north")
+    ncwrite_1d(mp.date[:],fil,"prof_date","Julian day since Jan-1-0000"," ") ##need units
+#    ncwrite_1d(mp.ymd[;],fil,"prof_YYYYMMDD","year (4 digits), month (2 digits), day (2 digits)"," ") ##need units
+#    ncwrite_1d(mp.hms[:],fil,"prof_HHMMSS","hour (2 digits), minute (2 digits), second (2 digits)"," ") ##need units
+
+    ncwrite_2d(mp.T[:,:],fil,"prof_T","Temperature","degree_Celsius")
+    ncwrite_2d(mp.Tw[:,:],fil,"prof_Tweight","Temperature least-square weight","(degree C)^-2")
+    ncwrite_2d(mp.Te[:,:],fil,"prof_Testim","Temperature atlas (monthly clim.)","degree_Celsius")
+  
+    ncwrite_2d(mp.S[:,:],fil,"prof_S","Salinity","psu")
+    ncwrite_2d(mp.Sw[:,:],fil,"prof_Sweight","Salinity least-square weight","(psu)^-2")
+    ncwrite_2d(mp.Se[:,:],fil,"prof_Sestim","Salinity atlas (monthly clim.)","psu")
+end
+
+function my_defVar(fil,var)
+    T=eltype(skipmissing(var))
+    NCDataset(fil,"a") do ds
+        defVar(ds,name(var),T,dimnames(var),
+            attrib = OrderedDict(
+            "units" => var.attrib["units"],
+            "_FillValue" => var.attrib["_FillValue"],
+            "long_name" => var.attrib["long_name"]
+        ))
+    end
+end
+
+"""
+    write(fil::String,mps::Vector{MITprofStandard})
+
+Create an MITprof file from a vector of MITprofStandard inputs.  
+"""
+function write(fil::String,mps::Vector{MITprofStandard})
+
+    nps=cumsum([size(mps[i].T,1) for i in 1:length(mps)])
+
+    iPROF = nps[end]
+    iDEPTH = size(mps[1].T,2)
+    iINTERP = 4
+    lTXT = 30
+
+    NCDataset(fil,"c") do ds
+        defDim(ds,"iPROF",iPROF)
+        defDim(ds,"iDEPTH",iDEPTH)
+        defDim(ds,"iINTERP",iINTERP)
+        defDim(ds,"lTXT",lTXT)
+        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
+    end
+
+    ##
+
+    list_variables=(:lon,:lat,:date,:depth,:T,:Te,:Tw,:S,:Se,:Sw)
+    #to be added : ID, ymd, hms, and maybe more
+    [my_defVar(fil,getfield(mps[1],var)) for var in list_variables]
+
+    list_variables=(:lon,:lat,:date,:T,:Te,:Tw,:S,:Se,:Sw)
+    ds=NCDataset(fil,"a")
+    for var in list_variables
+        for ii in 1:length(mps)
+            tmp=getfield(mps[ii],var)
+            ii==1 ? jj=collect(1:nps[1]) : jj=collect(nps[ii-1]+1:nps[ii])
+            if ndims(tmp)==1
+                ds[name(tmp)][jj]=tmp[:]
+            else
+                ds[name(tmp)][jj,:]=tmp[:,:]
+            end
+        end
+    end
+    close(ds)
 
 end
 

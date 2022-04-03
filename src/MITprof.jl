@@ -69,7 +69,7 @@ end
 """
     MITprof.write(meta,profiles,profiles_std;path="")
 
-Create an MITprof file from meta data + profiles during `MIRprof.format`.
+Create an MITprof file from meta data + profiles during `MITprof.format`.
 
 ```
 MITprof.write(meta,profiles,profiles_std)

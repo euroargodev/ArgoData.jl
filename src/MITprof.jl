@@ -222,7 +222,7 @@ function write(fil::String,mp::MITprofStandard)
 end
 
 function my_defVar(fil,var)
-    ndims(var)==1 ? T=typeof(var[1]) : T=typeof(var[1,1])
+    T=eltype(skipmissing(var))
     NCDataset(fil,"a") do ds
         defVar(ds,name(var),T,dimnames(var),
             attrib = OrderedDict(

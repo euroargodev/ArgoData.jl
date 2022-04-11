@@ -1,9 +1,10 @@
 # ArgoData.jl
 
-Argo data processing and analysis. 
+Argo data processing and analysis. Currently provides:
 
 - The `GDAC` module functions access and retrieve files from the Argo data servers. 
 - `MITprof` supports the format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for standard depth data sets like [this one](https://doi.org/10.7910/DVN/EE3C40).
+- The `MITprof_inspect` and `MITprof_stats` modules in `examples/`.
 
 _This package is in early developement stage when breaking changes can be expected._
 

@@ -3,7 +3,7 @@ module MITprof_inspect
 
 using Glob, NCDatasets, JLD2, Statistics
 
-import CairoMakie as Mkie
+import GLMakie as Mkie
 
 """
     check_stats_cost(vv="prof_T",JJ=[])

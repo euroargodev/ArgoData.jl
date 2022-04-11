@@ -32,7 +32,7 @@ file=Downloads.download(input_url,input_file)
 Dataset(file)
 ```
 
-A method to download files in bulk & parallel is presented in [examples/Argo_distributed_download.jl](https://github.com/JuliaOcean/ArgoData.jl/blob/master/examples/Argo_distributed_download.jl).
+A method to download files in bulk & parallel is presented in [examples/Argo\_distributed\_download.jl](https://github.com/JuliaOcean/ArgoData.jl/blob/master/examples/Argo_distributed_download.jl).
 
 Formatting of an Argo file (`input_file`) into an MITprof file (`output_file`) proceeds as follows.
 

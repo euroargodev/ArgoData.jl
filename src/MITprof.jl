@@ -1,6 +1,6 @@
 module MITprof
 
-using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack
+using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack, Glob, DataFrames
 
 import ArgoData.ProfileNative
 import ArgoData.ProfileStandard
@@ -409,5 +409,114 @@ function format_loop(gridded_fields,files_list,II)
         end
     end
 end
+
+"""
+    cost_functions(vv="prof_T",JJ=[])
+
+Loop through files and compute nb profiles, nb non-blank profiles, nb levels mean, cost mean.
+
+```
+pth="nc/"
+nt,np,nz,cost=cost_functions(pth,"prof_S")
+
+using JLD2
+jldsave(joinpath(pth,"prof_S_stats.jld2"); nt,np,nz,cost)
+```
+"""
+function cost_functions(pth,vv="prof_T",JJ=[])
+    list_nc=glob("*.nc",pth)
+    list_txt=glob("*.txt",pth)
+
+    nt=[]
+    np=[]
+    nz=[]
+    cost=[]
+
+    isempty(JJ) ? II=(1:length(list_nc)) : II=JJ
+    time0=time()
+    for ii in II
+        mod(ii,100)==0 ? println(time()-time0) : nothing
+        mod(ii,100)==0 ? println(ii) : nothing
+        ds=Dataset(list_nc[ii])
+        push!(nt,size(ds[vv],1))
+        tmp1=sum((!ismissing).(ds[vv]),dims=2)
+        tmp2=sum(tmp1.>0)
+        if tmp2>0
+            push!(np,tmp2)
+            push!(nz,sum(tmp1)/tmp2)
+            tmp1=(ds[vv]-ds[vv*"estim"]).^2 .*ds[vv*"weight"]
+            if ~isa(tmp1,Matrix{Missing})
+                tmp1[findall(ismissing.(tmp1))].=0.0
+                push!(cost,sum(tmp1[:])/sum((tmp1[:].>0.0)))
+            else
+                push!(cost,missing)
+            end
+        else
+            push!(np,0)
+            push!(nz,0)
+            push!(cost,0)
+        end
+        close(ds)
+    end
+
+    return nt,np,nz,cost
+end
+
+
+"""
+    profile_positions(path)
+
+Create table (`DataFrame`) of the positions and dates obtained by looping through files in `path`. 
+Additional information such as float `ID`, position on the ECCO grid `pos`, number of 
+valid data points for T and S (`nbT` ,`nbS`).
+
+```
+path="nc/"
+csv_file="profile_positions.csv"
+
+using MeshArrays
+γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
+Γ=GridLoad(γ)
+
+df=profile_positions(path,Γ)
+CSV.write(csv_file, df)
+```
+"""
+function profile_positions(path,Γ)
+    list=glob("*.nc",path)
+    nfiles=length(list)
+
+    y=fill(0.0,nfiles,2)
+    d=fill(DataFrame(),nfiles)
+
+    #println("starting step 1")
+
+    for ff in 1:nfiles
+        output_file=joinpath(path,list[ff])
+        mp=MITprofStandard(output_file)
+
+        da=Dates.julian2datetime.(Dates.datetime2julian(DateTime(0,1,1)) .+mp.date)
+        y[ff,1]=year(minimum(da))
+        y[ff,2]=year(maximum(da))
+
+        (f,i,j,c)=MeshArrays.knn(Γ.XC,Γ.YC,mp.lon[:],mp.lat[:])
+        pos=[[f[ii],i[ii],j[ii]] for ii in 1:length(c)]
+
+        nbT=sum((!ismissing).(mp.T[:,:]),dims=2)
+        nbS=sum((!ismissing).(mp.S[:,:]),dims=2)
+
+        d[ff]=DataFrame(ID=parse.(Int,mp.ID),lon=mp.lon,lat=mp.lat,
+            date=da,pos=c[:],nbT=nbT[:],nbS=nbS[:])
+    end
+
+    #println("starting step 2")
+
+    nd=length(findall((!isempty).(d)))
+    df=d[1]
+    [append!(df,d[ff]) for ff in 2:nd]
+
+    df
+end
+
 
 end

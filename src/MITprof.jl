@@ -1,6 +1,6 @@
 module MITprof
 
-using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack, Glob, DataFrames
+using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack, Glob, DataFrames, CSV
 
 import ArgoData.ProfileNative
 import ArgoData.ProfileStandard
@@ -431,7 +431,7 @@ valid data points for T and S (`nbT` ,`nbS`).
 
 ```
 path="nc/"
-csv_file="profile_positions.csv"
+csv_file="csv/profile_positions.csv"
 
 using MeshArrays
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
@@ -475,6 +475,70 @@ function profile_positions(path,Γ)
     [append!(df,d[ff]) for ff in 2:nd]
 
     df
+end
+
+"""
+    profile_variable(name::Symbol)
+
+Create Array of all values for one variable, obtained by looping through files in `path`. 
+
+```
+v=:S; w=string(v); 
+output_file="csv/profiles_"*w*".csv"
+
+tmp=MITprof.profile_variable(v)
+CSV.write(output_file,DataFrame(tmp,:auto))
+```
+"""
+function profile_variable(name::Symbol)
+    path="nc/"
+    csv_file="csv/profile_positions.csv"
+    df=CSV.read(csv_file,DataFrame)
+    
+    list=glob("*.nc",path)
+    nfiles=length(list)
+    x=Array{Union{Float64,Missing},2}(undef,size(df,1),55)
+    n0=[0]
+    for ff in 1:nfiles
+        mp=MITprofStandard(list[ff])
+        s=size(getfield(mp,name))
+        x[n0[1]+1:n0[1]+s[1],:].=getfield(mp,name)[:,:]
+        n0[1]+=s[1]
+    end
+
+    x
+end
+
+"""
+profile_variable(name::String)
+
+Create Array of all values for one variable, obtained by looping through files in `path`. 
+
+```
+v="prof_T"; output_file="csv/"*w*".csv"
+tmp=MITprof.profile_variable(v)
+CSV.write(output_file,DataFrame(tmp,:auto))
+```
+"""
+function profile_variable(name::String)
+    path="nc/"
+    csv_file="csv/profile_positions.csv"
+    df=CSV.read(csv_file,DataFrame)
+    
+    list=glob("*.nc",path)
+    nfiles= length(list)
+    x=Array{Union{Float64,Missing},2}(undef,size(df,1),55)
+    n0=[0]
+    for ff in 1:nfiles
+        tmp=Dataset(list[ff],"r") do ds
+            ds[name][:,:]
+        end # ds is closed
+        s=size(tmp)
+        x[n0[1]+1:n0[1]+s[1],:].=tmp
+        n0[1]+=s[1]
+    end
+
+    x
 end
 
 

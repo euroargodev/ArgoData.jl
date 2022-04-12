@@ -25,7 +25,6 @@ Formatting of an Argo file (`input_file`) into an MITprof file (`output_file`) p
 
 ```
 using ArgoData
-
 meta=ArgoTools.meta(input_file,output_file)
 gridded_fields=GriddedFields.load()
 MITprof.format(meta,gridded_fields,input_file,output_file)
@@ -39,6 +38,20 @@ mp=MITprofStandard(output_file)
 ```
 
 For additional detail, please refer to the [examples/ArgoToMITprof.jl](https://github.com/JuliaOcean/ArgoData.jl/blob/master/examples/ArgoToMITprof.jl) example.
+
+### Sample MITprof files
+
+The original collection of MITprof files from [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) is archived [here](https://doi.org/10.7910/DVN/EE3C40). These files can be retrieved as follows.
+
+```
+fil = "MITprof_mar2016_argo9506.nc"
+tmp = CSV.File("examples/dataverse_files.csv") |> DataFrame
+ii = findall(tmp[:,:name].==fil)
+
+run(`wget --content-disposition https://dataverse.harvard.edu/api/access/datafile/$(tmp[ii,:ID])`)
+
+run(`ls $(tmp[ii,:name])`)
+```
 
 ## Functions
 

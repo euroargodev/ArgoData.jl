@@ -362,7 +362,7 @@ function prof_test_set1!(prof,prof_std,meta)
     end;
     
     #Argo grey list:
-    if !isempty(meta["greylist"])
+    if haskey(meta,"greylist") && !isempty(meta["greylist"])
         test1=!(prof.DATA_MODE[1].=='D') #true = real time profile ('R' or 'A')
         test2=sum(parse(Int,prof.pnum_txt[1]).==meta["greylist"][:,"PLATFORM_CODE"]) #is in grey list
         if test1&(test2>0)

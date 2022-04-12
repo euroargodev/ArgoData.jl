@@ -110,6 +110,7 @@ function write(meta::Dict,profiles::Array,profiles_std::Array;path="")
 # 	double prof_Serr(iPROF, iDEPTH) ;
 # 	double prof_Sflag(iPROF, iDEPTH) ;
 
+    fil
 end
 
 ##
@@ -211,6 +212,21 @@ end
 ##
 
 """
+    format(gridded_fields,input_file)
+
+From Argo file name as input : read input file content, process into the MITprof format, and write to MITprof file.
+
+```
+MITprof.format(gridded_fields,input_file)
+```
+"""
+function format(gridded_fields,input_file)
+    output_file=input_file[1:end-8]*"_MITprof.nc"
+    meta=ArgoTools.meta(input_file,output_file)
+    format(meta,gridded_fields,input_file,output_file)    
+end
+
+"""
     format(meta,gridded_fields,input_file,output_file="")
 
 From Argo file name as input : read input file content, process into the MITprof format, and write to MITprof file.
@@ -298,8 +314,6 @@ function format(meta,gridded_fields,input_file,output_file="")
     end
 
     MITprof.write(meta,profiles,profiles_std)
-
-    output_file
 end
 
 """

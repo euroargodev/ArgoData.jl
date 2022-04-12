@@ -3,6 +3,7 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaOcean.github.io/ArgoData.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaOcean.github.io/ArgoData.jl/dev)
 [![CI](https://github.com/JuliaOcean/ArgoData.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/JuliaOcean/ArgoData.jl/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/JuliaOcean/ArgoData.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaOcean/ArgoData.jl)
 [![DOI](https://zenodo.org/badge/237021498.svg)](https://zenodo.org/badge/latestdoi/237021498)
 
 Argo data processing and analysis. 

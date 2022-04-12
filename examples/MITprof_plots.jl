@@ -1,13 +1,59 @@
 
-module MITprof_stats
+module MITprof_plots
 
-using ArgoData, DataFrames, CSV, Dates, GLMakie
+using ArgoData, DataFrames, CSV, Dates, GLMakie, JLD2, Statistics
+
+#trim_cost is used in plot_cost
+function trim_cost(cost)
+    ii=findall((!ismissing).(cost) .&& (isfinite).(cost) .&& (cost.>0.0))
+    med=round(median(cost[ii]), digits=3)
+    nb=length(ii)
+
+    (ncost,nii)=(length(cost),length(ii))
+    println("keeping $(ncost), leaving $(ncost-nii)")
+    println("median $(median(cost[ii]))")
+    
+    cost[ii],med,nb
+end
+
+"""
+    plot_cost()
+
+```
+f=MITprof_plots.plot_cost()
+save("cost_pdf.png", f)
+```
+"""
+function plot_cost()
+    #
+    costT=load("prof_T_stats.jld2","cost")
+    costT,medT,nbT=trim_cost(costT)
+    #
+    costS=load("prof_S_stats.jld2","cost")
+    costS,medS,nbS=trim_cost(costS)
+
+    f = Figure()
+    hist(f[1, 1], costT, bins = collect(0:0.1:8.0), 
+        axis = (title = "cost for T (median=$(medT), from $(nbT))",), 
+        color = :values, strokewidth = 1, strokecolor = :black)
+
+    hist(f[2, 1], costS, bins = collect(0:0.1:8.0), 
+        axis = (title = "cost for S (median=$(medS), from $(nbS))",),
+        color = :values, strokewidth = 1, strokecolor = :black)
+
+    f
+end
 
 """
     plot_stats()
 
 Read file `profile_positions.csv`, pre-process, and then compute 
 and display basic statistics of the Argo float array.
+
+```
+f=MITprof_plots.plot_stats()
+save("ArgoDistributions.png", f)
+```
 """
 function plot_stats()
     csv_file="profile_positions.csv"
@@ -72,55 +118,5 @@ function plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
 	f
 end
 
-"""
-    make_DataFrame(path)
 
-Create table (DataFrame) of the positions and dates obtained by looping through files. 
-Additional information such as float `ID`, position on the ECCO grid `pos`, number of 
-valid data points for T and S (`nbT` ,`nbS`).
-
-```
-path="nc/"
-csv_file="profile_positions.csv"
-
-df=make_DataFrame(path)
-CSV.write(csv_file, df)
-```
-"""
-function make_DataFrame(path)
-    list=readdir(path)
-    nfiles=length(list)
-
-    y=fill(0.0,nfiles,2)
-    d=fill(DataFrame(),nfiles)
-
-    println("starting step 1")
-
-    for ff in 1:nfiles
-        output_file=joinpath(path,list[ff])
-        mp=MITprofStandard(output_file)
-
-        da=Dates.julian2datetime.(Dates.datetime2julian(DateTime(0,1,1)) .+mp.date)
-        y[ff,1]=year(minimum(da))
-        y[ff,2]=year(maximum(da))
-
-        (f,i,j,c)=MeshArrays.knn(Γ.XC,Γ.YC,mp.lon[:],mp.lat[:])
-        pos=[[f[ii],i[ii],j[ii]] for ii in 1:length(c)]
-
-        nbT=sum((!ismissing).(mp.T[:,:]),dims=2)
-        nbS=sum((!ismissing).(mp.S[:,:]),dims=2)
-
-        d[ff]=DataFrame(ID=parse.(Int,mp.ID),lon=mp.lon,lat=mp.lat,
-            date=da,pos=c[:],nbT=nbT[:],nbS=nbS[:])
-    end
-
-    println("starting step 2")
-
-    nd=length(findall((!isempty).(d)))
-    df=d[1]
-    [append!(df,d[ff]) for ff in 2:nd]
-
-    df
 end
-
-end #module MITprof_stats

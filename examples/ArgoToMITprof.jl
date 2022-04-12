@@ -6,9 +6,10 @@ wmo=6900900
 url0="https://data-argo.ifremer.fr/dac/coriolis/"
 input_url=url0*"/$(wmo)/$(wmo)_prof.nc"
 input_file=joinpath(tempdir(),"$(wmo)_prof.nc")
-output_file=joinpath(tempdir(),"$(wmo)_MITprof.nc")
+output_file=joinpath(tempdir(),"ncdev","$(wmo)_MITprof.nc")
 
 !isfile(input_file) ? fil=Downloads.download(input_url,input_file) : nothing
+!isdir(dirname(output_file)) ? mkdir(dirname(output_file)) : nothing
 isfile(output_file) ? rm(output_file) : nothing
 
 fil=joinpath(tempdir(),"ar_greylist.txt")

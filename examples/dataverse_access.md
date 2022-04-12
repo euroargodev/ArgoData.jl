@@ -29,7 +29,7 @@ CSV.write("files.csv", df)
 
 ```
 fil="MITprof_mar2016_argo9506.nc"
-tmp = CSV.File("files.csv") |> DataFrame
+tmp = CSV.File("dataverse_files.csv") |> DataFrame
 ii=findall(tmp[:,:name].==fil)
 
 run(`wget --content-disposition https://dataverse.harvard.edu/api/access/datafile/$(tmp[ii,:ID])`)

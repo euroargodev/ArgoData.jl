@@ -68,10 +68,23 @@ end
 """
     download_file(file::DataFrameRow,suff="prof",ftp=missing)
 
+Get `folder` and `wmo` from data frame row and them call `download_file`.
+
+```
+using ArgoData
+files_list=GDAC.files_list()
+file=GDAC.download_file(files_list[10000,:])
+```    
+"""
+download_file(file::DataFrameRow,suff="prof",ftp=missing) = download_file(file.folder,file.wmo,suff,ftp)
+
+"""
+    download_file(folder::String,wmo::Int,suff="prof",ftp=missing)
+
 Download Argo file from the GDAC server (`<ftp://ftp.ifremer.fr/ifremer/argo/dac/>` by default)
 to a temporary folder (`joinpath(tempdir(),"Argo_DAC_files")`)
 
-The file name is given by `file.folder` and `file.wmo`.
+The file name is given by `folder` and `wmo`.
 For example, `13857_prof.nc` for `wmo=13857` is from the `aoml` folder. 
 
 The default for `suff` is `"prof"` which means we'll download the file that contains the profile data. 
@@ -84,20 +97,16 @@ Example :
 
 ```
 using ArgoData
-files_list=GDAC.files_list()
-GDAC.download_file(files_list[10000,:])
+GDAC.download_file("aoml",13857)
 
 #or:
-
 ftp="ftp://usgodae.org/pub/outgoing/argo/dac/"
-GDAC.download_file(files_list[10000,:],"meta",ftp)
+GDAC.download_file("aoml",13857,"meta",ftp)
 ```
 """
-function download_file(file::DataFrameRow,suff="prof",ftp=missing)
+function download_file(folder::String,wmo::Int,suff="prof",ftp=missing)
     path=joinpath(tempdir(),"Argo_DAC_files")
     !isdir(path) ? mkdir(path) : nothing
-    folder=file.folder
-    wmo=file.wmo
     path=joinpath(path,folder)
     !isdir(path) ? mkdir(path) : nothing
     path=joinpath(path,string(wmo))

@@ -8,6 +8,7 @@ import ArgoData.MITprofStandard
 import ArgoData.ArgoTools
 import ArgoData.GriddedFields
 import ArgoData.GDAC
+import ArgoData.thisversion
 
 ## writing MITprof files
 
@@ -30,17 +31,13 @@ function write(meta::Dict,profiles::Array,profiles_std::Array;path="")
 
     iPROF = length(profiles[:])
     iDEPTH = length(k)
-    iINTERP = 4
-    lTXT = 30
     
     ##
 
     NCDataset(fil,"c") do ds
         defDim(ds,"iPROF",iPROF)
         defDim(ds,"iDEPTH",iDEPTH)
-        defDim(ds,"iINTERP",iINTERP)
-        defDim(ds,"lTXT",lTXT)
-        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
+        ds.attrib["title"] = "MITprof file created by ArgoData.jl (v$(thisversion))"
     end
 
     ##
@@ -54,6 +51,16 @@ function write(meta::Dict,profiles::Array,profiles_std::Array;path="")
       ))
     end
     
+    ##
+
+    ID=parse(Int,split(basename(fil),'_')[1])
+    NCDataset(fil,"a") do ds
+        defVar(ds,"prof_ID",fill(ID,iPROF),("iPROF",),
+            attrib = OrderedDict(
+        "long_name" => "wmo number"
+        ))
+    end
+
     ##
     
     data1 = Array{Union{Missing, Float64}, 1}(undef, iPROF)
@@ -133,15 +140,11 @@ function write(fil::String,mps::Vector{MITprofStandard})
 
     iPROF = nps[end]
     iDEPTH = size(mps[1].T,2)
-    iINTERP = 4
-    lTXT = 30
 
     NCDataset(fil,"c") do ds
         defDim(ds,"iPROF",iPROF)
         defDim(ds,"iDEPTH",iDEPTH)
-        defDim(ds,"iINTERP",iINTERP)
-        defDim(ds,"lTXT",lTXT)
-        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
+        ds.attrib["title"] = "MITprof file created by ArgoData.jl (v$(thisversion))"
     end
 
     ##
@@ -331,7 +334,8 @@ Loop over files and call `format`.
 
 ```
 gridded_fields=GriddedFields.load()
-files_list=GDAC.files_list()
+fil=joinpath(tempdir(),"Argo_MITprof_files","input","Argo_float_files.csv")
+files_list=GDAC.files_list(fil)
 MITprof.format_loop(gridded_fields,files_list,1:10)
 ```   
 """
@@ -360,8 +364,9 @@ function format_loop(gridded_fields,files_list,II)
                 output_file=MITprof.format(meta,gridded_fields,input_file,output_file)
                 println("✔ $(wmo)")
             else
+                println(output_file[1:end-3])
                 io = open(output_file[1:end-3]*".txt", "w")
-                write(io, "Skipped file $(wmo) <- missing PSAL or TEMP\n")
+                Base.write(io, "Skipped file $(wmo) <- missing PSAL or TEMP\n")
                 close(io)
 
                 println("... skipping $(wmo)!")
@@ -369,7 +374,7 @@ function format_loop(gridded_fields,files_list,II)
 
         else
             io = open(output_file[1:end-3]*".txt", "w")
-            write(io, "Skipped file $(wmo) <- no input file\n")
+            Base.write(io, "Skipped file $(wmo) <- no input file\n")
             close(io)
 
             println("... skipping $(wmo)!")

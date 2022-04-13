@@ -48,7 +48,7 @@ data=Dataset(input_file)
 #
 # Let's read the first T/S profile from the input file (`prof`) and set up the data structure (`prof_std`) that will be used when interpolating to standard levels.
 
-m=51
+m=1
 prof=ArgoTools.GetOneProfile(data,m);
 
 nz=length(meta["z_std"])

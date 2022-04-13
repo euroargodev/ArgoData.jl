@@ -62,7 +62,7 @@ prof_σT[1:5]
 #2. vertical interpolation
 
 z_std=meta["z_std"]
-prof_σT=ArgoTools.interp1(-gridded_fields.Γ.RC,prof_σT,z_std)
+prof_σT=ArgoTools.interp_z(-gridded_fields.Γ.RC,prof_σT,z_std)
 prof_σT[1:5]
 # -
 
@@ -80,7 +80,7 @@ prof_std.Tweight[1:5]
 # +
 #4. salinity
 
-prof_σS=ArgoTools.interp1(-gridded_fields.Γ.RC,prof_σS,z_std)
+prof_σS=ArgoTools.interp_z(-gridded_fields.Γ.RC,prof_σS,z_std)
 prof_std.Sweight.=1 ./(prof_σS.^2 .+ prof_std.S_ERR.^2)
 prof_std.Sweight[1:5]
 # -
@@ -93,10 +93,10 @@ prof_std.Sweight[1:5]
 fac,rec=ArgoTools.monthly_climatology_factors(prof.date[1])
 # -
 
-prof_T1=[GriddedFields.Interpolate(gridded_fields.T[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-prof_T2=[GriddedFields.Interpolate(gridded_fields.T[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
+prof_T1=[GriddedFields.Interpolate(gridded_fields.T[rec[1]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_T2=[GriddedFields.Interpolate(gridded_fields.T[rec[2]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
 
-prof_std.Testim.=ArgoTools.interp1(-gridded_fields.Γ.RC,fac[1]*prof_T1+fac[2]*prof_T2,z_std)
+prof_std.Testim.=ArgoTools.interp_z(-gridded_fields.Γ.RC,fac[1]*prof_T1+fac[2]*prof_T2,z_std)
 prof_std.Testim[1:5]
 
 if do_plot
@@ -107,14 +107,15 @@ end
 # +
 #4. spatio-temporal interpolation
 
-prof_S1=[GriddedFields.Interpolate(gridded_fields.S[:,k,rec[1]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-prof_S2=[GriddedFields.Interpolate(gridded_fields.S[:,k,rec[2]],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
+prof_S1=[GriddedFields.Interpolate(gridded_fields.S[rec[1]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_S2=[GriddedFields.Interpolate(gridded_fields.S[rec[2]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
 # -
 
-prof_std.Sestim.=ArgoTools.interp1(-gridded_fields.Γ.RC,fac[1]*prof_S1+fac[2]*prof_S2,z_std)
+prof_std.Sestim.=ArgoTools.interp_z(-gridded_fields.Γ.RC,fac[1]*prof_S1+fac[2]*prof_S2,z_std)
 prof_std.Sestim[1:5]
 
-ArgoTools.prof_test_set2!(prof_std,meta)
+ArgoTools.prof_test_set2!(prof_std,meta);
+
 # ## MITprof File Creation
 
 # +
@@ -152,6 +153,8 @@ if do_plot
 end
 
 if do_plot
-    tmp1=GriddedFields.Interpolate(gridded_fields.T[:,20,6],🌐.f,🌐.i,🌐.j,🌐.w)
+    tmp1=GriddedFields.Interpolate(gridded_fields.T[6][:,20],🌐.f,🌐.i,🌐.j,🌐.w)
     contourf(🌐.lon,🌐.lat,tmp1,clims=(-2.0,20.0),title="temperature in June at 300m")
 end
+
+

@@ -56,22 +56,36 @@ save("ArgoDistributions.png", f)
 ```
 """
 function plot_stats()
-    csv_file="profile_positions.csv"
-    df=CSV.read(csv_file,DataFrame)
-
-    #time variable = year + (month-1/2)/12 :
-    df.ym=year.(df.date)+(month.(df.date) .-0.5)/12
-
-    #eliminate problematic data points:
-    l0=size(df,1)
-    df=df[df.lat .> -89.99,:]
-    df=df[df.date .> DateTime(1000,1,1),:]
-    l1=size(df,1)
-    df=df[df.date .< DateTime(2022,4,1),:]
-    l2=size(df,1)
+    df=read_profile_positions()
 
     #display basic statistics of the Argo float array:
     plot_stats(df)
+end
+
+"""
+    read_profile_positions(csv_file="csv/profile_positions.csv")
+
+Read "profile_positions.csv" file.
+
+```
+df=MITprof_plots.read_profile_positions("csv/profile_positions.csv")
+```
+"""
+function read_profile_positions(csv_file="csv/profile_positions.csv")
+df=CSV.read(csv_file,DataFrame)
+
+#time variable = year + (month-1/2)/12 :
+df.ym=year.(df.date)+(month.(df.date) .-0.5)/12
+
+#eliminate problematic data points:
+#l0=size(df,1)
+df=df[df.lat .> -89.99,:]
+df=df[df.date .> DateTime(1000,1,1),:]
+#l1=size(df,1)
+df=df[df.date .< DateTime(2022,4,1),:]
+#l2=size(df,1)
+
+df
 end
 
 """
@@ -91,6 +105,8 @@ function plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
     end
     sort!(df2, [:ym])
 
+    ##
+    
     f = Figure()
 
     ax1 = Axis(f[1,1], title="number of profiles per day")
@@ -118,5 +134,41 @@ function plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
 	f
 end
 
+"""
+    map_stats(df::DataFrame,G::NamedTuple)
+
+```
+G=GriddedFields.load()
+map_stats(df,G)
+```
+"""
+function map_stats(df::DataFrame,G::NamedTuple)
+    gdf=groupby(df,:pos)
+    df2=combine(gdf) do df
+        (m = log10(length(df.ID)), lon=mean(df.lon), lat=mean(df.lat))
+    end
+
+    tmp1=fill(0.0,(90,1170))
+    ii=fill(0,2)
+    for i in 1:size(df2,1)
+        ii.=parse.(Int,split(split(split(df2[i,:pos],"(")[2],")")[1],","))
+        tmp1[ii[1],ii[2]]=df2[i,:m]
+    end
+
+    #GriddedFields.MeshArrays.read(tmp1,G.msk.grid)
+    XC=GriddedFields.MeshArrays.write(G.Γ.XC)
+    YC=GriddedFields.MeshArrays.write(G.Γ.YC)
+    ii=findall((!).(tmp1.==0))
+
+    f = Figure()
+
+    ax1 = Axis(f[1,1], title="number of profiles per day")
+    scatter!(ax1,XC[ii],YC[ii],color=tmp1[ii])
+    xlims!(ax1, -180, 180)
+    ylims!(ax1, -90, 90)
+
+    #(XC,YC,tmp1,f)
+    f
+end
 
 end

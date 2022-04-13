@@ -1,6 +1,6 @@
 module MITprof
 
-using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack, Glob, DataFrames
+using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack, Glob, DataFrames, CSV
 
 import ArgoData.ProfileNative
 import ArgoData.ProfileStandard
@@ -8,6 +8,7 @@ import ArgoData.MITprofStandard
 import ArgoData.ArgoTools
 import ArgoData.GriddedFields
 import ArgoData.GDAC
+import ArgoData.thisversion
 
 ## writing MITprof files
 
@@ -30,17 +31,13 @@ function write(meta::Dict,profiles::Array,profiles_std::Array;path="")
 
     iPROF = length(profiles[:])
     iDEPTH = length(k)
-    iINTERP = 4
-    lTXT = 30
     
     ##
-    
+
     NCDataset(fil,"c") do ds
         defDim(ds,"iPROF",iPROF)
         defDim(ds,"iDEPTH",iDEPTH)
-        defDim(ds,"iINTERP",iINTERP)
-        defDim(ds,"lTXT",lTXT)
-        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
+        ds.attrib["title"] = "MITprof file created by ArgoData.jl (v$(thisversion))"
     end
 
     ##
@@ -54,6 +51,16 @@ function write(meta::Dict,profiles::Array,profiles_std::Array;path="")
       ))
     end
     
+    ##
+
+    ID=parse(Int,split(basename(fil),'_')[1])
+    NCDataset(fil,"a") do ds
+        defVar(ds,"prof_ID",fill(ID,iPROF),("iPROF",),
+            attrib = OrderedDict(
+        "long_name" => "wmo number"
+        ))
+    end
+
     ##
     
     data1 = Array{Union{Missing, Float64}, 1}(undef, iPROF)
@@ -133,15 +140,11 @@ function write(fil::String,mps::Vector{MITprofStandard})
 
     iPROF = nps[end]
     iDEPTH = size(mps[1].T,2)
-    iINTERP = 4
-    lTXT = 30
 
     NCDataset(fil,"c") do ds
         defDim(ds,"iPROF",iPROF)
         defDim(ds,"iDEPTH",iDEPTH)
-        defDim(ds,"iINTERP",iINTERP)
-        defDim(ds,"lTXT",lTXT)
-        ds.attrib["title"] = "MITprof file created by ArgoData.jl (WIP)"
+        ds.attrib["title"] = "MITprof file created by ArgoData.jl (v$(thisversion))"
     end
 
     ##
@@ -243,16 +246,16 @@ function format(meta,gridded_fields,input_file,output_file="")
 
     argo_data=Dataset(input_file)
     haskey(argo_data.dim,"N_PROF") ? np=argo_data.dim["N_PROF"] : np=NaN
-
+    
     nz=length(z_std)
 
     profiles=Array{ProfileNative,1}(undef,np)
     profiles_std=Array{ProfileStandard,1}(undef,np)
     
-    prof_σT=Array{Float64,1}(undef,50)
-    prof_σS=Array{Float64,1}(undef,50)
-    tmp1=Array{Float64,1}(undef,50)
-    tmp2=Array{Float64,1}(undef,50)
+    prof_σT=Array{Union{Missing, Float64},1}(missing,50)
+    prof_σS=Array{Union{Missing, Float64},1}(missing,50)
+    tmp1=Array{Union{Missing, Float64},1}(missing,50)
+    tmp2=Array{Union{Missing, Float64},1}(missing,50)
 
     for m in 1:np
         #println(m)
@@ -266,6 +269,11 @@ function format(meta,gridded_fields,input_file,output_file="")
         ArgoTools.prof_test_set1!(prof,prof_std,meta)
 
         ##
+
+        prof_σT.=missing
+        prof_σS.=missing
+        tmp1.=missing
+        tmp2.=missing    
     
         if prof.lat[1]>-89.99
 
@@ -299,6 +307,9 @@ function format(meta,gridded_fields,input_file,output_file="")
             GriddedFields.interp_h(S[rec[1]],📚.f,📚.i,📚.j,📚.w,tmp1)
             GriddedFields.interp_h(S[rec[2]],📚.f,📚.i,📚.j,📚.w,tmp2)
             prof_std.Sestim.=ArgoTools.interp_z(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+        else
+            prof_std.Testim.=missing
+            prof_std.Sestim.=missing
         end
 
         end #if prof.lat[1]>-89.99
@@ -323,7 +334,8 @@ Loop over files and call `format`.
 
 ```
 gridded_fields=GriddedFields.load()
-files_list=GDAC.files_list()
+fil=joinpath(tempdir(),"Argo_MITprof_files","input","Argo_float_files.csv")
+files_list=GDAC.files_list(fil)
 MITprof.format_loop(gridded_fields,files_list,1:10)
 ```   
 """
@@ -352,8 +364,9 @@ function format_loop(gridded_fields,files_list,II)
                 output_file=MITprof.format(meta,gridded_fields,input_file,output_file)
                 println("✔ $(wmo)")
             else
+                println(output_file[1:end-3])
                 io = open(output_file[1:end-3]*".txt", "w")
-                write(io, "Skipped file $(wmo) <- missing PSAL or TEMP\n")
+                Base.write(io, "Skipped file $(wmo) <- missing PSAL or TEMP\n")
                 close(io)
 
                 println("... skipping $(wmo)!")
@@ -361,7 +374,7 @@ function format_loop(gridded_fields,files_list,II)
 
         else
             io = open(output_file[1:end-3]*".txt", "w")
-            write(io, "Skipped file $(wmo) <- no input file\n")
+            Base.write(io, "Skipped file $(wmo) <- no input file\n")
             close(io)
 
             println("... skipping $(wmo)!")
@@ -376,7 +389,7 @@ Loop through files and compute nb profiles, nb non-blank profiles, nb levels mea
 
 ```
 pth="nc/"
-nt,np,nz,cost=cost_functions(pth,"prof_S")
+nt,np,nz,cost=MITprof.cost_functions(pth,"prof_S")
 
 using JLD2
 jldsave(joinpath(pth,"prof_S_stats.jld2"); nt,np,nz,cost)
@@ -431,13 +444,13 @@ valid data points for T and S (`nbT` ,`nbS`).
 
 ```
 path="nc/"
-csv_file="profile_positions.csv"
+csv_file="csv/profile_positions.csv"
 
 using MeshArrays
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
 Γ=GridLoad(γ)
 
-df=profile_positions(path,Γ)
+df=MITprof.profile_positions(path,Γ)
 CSV.write(csv_file, df)
 ```
 """
@@ -477,5 +490,119 @@ function profile_positions(path,Γ)
     df
 end
 
+"""
+    profile_variables(name::String)
+
+Create Array of all values for one variable, obtained by looping through files in `path`. 
+
+```
+list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
+
+for m in 1:length(list_v)
+    v=list_v[m]; output_file="csv/"*v*".csv"
+    tmp=MITprof.profile_variables(v)
+    CSV.write(output_file,DataFrame(tmp,:auto))
+end
+```
+"""
+function profile_variables(name::String)
+    path="nc/"
+    csv_file="csv/profile_positions.csv"
+    df=CSV.read(csv_file,DataFrame)
+    
+    list=glob("*.nc",path)
+    nfiles= length(list)
+    x=Array{Union{Float64,Missing},2}(undef,size(df,1),55)
+    n0=[0]
+    for ff in 1:nfiles
+        tmp=Dataset(list[ff],"r") do ds
+            ds[name][:,:]
+        end # ds is closed
+        s=size(tmp)
+        x[n0[1]+1:n0[1]+s[1],:].=tmp
+        n0[1]+=s[1]
+    end
+
+    x
+end
+
+"""
+    profile_levels()
+
+Create Array of all values for one level, obtained by looping through files in `csv/`. 
+"""
+function profile_levels(k=0)
+    k==0 ? kk=collect(1:55) : kk=[k]
+    list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
+    list_n=("T","Te","Tw","S","Se","Sw")
+
+    csv_file="csv/profile_positions.csv"
+    df0=CSV.read(csv_file,DataFrame)
+
+    path="csv/"
+    
+    nfiles= length(list_v)
+    for ff in 1:nfiles
+        println(list_v[ff])
+        df=CSV.read(path*list_v[ff]*".csv",DataFrame)
+        name=list_n[ff]
+        for k in kk
+            fil=path*"k$(k).csv"
+            if ff==1
+                df1=DataFrame(date=df0.date)
+            else
+                df1=CSV.read(fil,DataFrame)
+            end
+            println("x$(k)")
+            df1[:,name]=df[:,Symbol("x$(k)")]
+            CSV.write(fil,df1)
+        end
+    end
+
+end
+
+"""
+    profile_add_level!(df,k)
+
+```
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+MITprof.profile_add_level!(df,5)
+```
+"""
+function profile_add_level!(df,k)
+    df1=CSV.read("csv/k$(k).csv",DataFrame)
+    list_n=("T","Te","Tw","S","Se","Sw")
+    [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
+end
+
+"""
+    profile_subset(df,lons,lats,dates)
+    
+```
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+d0=DateTime("2012-06-11T18:50:04")
+d1=DateTime("2012-07-11T18:50:04")
+tmp=MITprof.profile_subset(df,(0,10),(-5,5),(d0,d1))
+```
+"""
+profile_subset(df,lons,lats,dates) = 
+    df[ (df.lon .> lons[1]) .& (df.lon .<= lons[2]) .&
+    (df.lat .> lats[1]) .& (df.lat .<= lats[2]) .&
+    (df.date .> dates[1]) .& (df.date .<= dates[2]) ,:]
+
+#profile_subset(df,lons,lats,dates) = 
+#    subset(df, [:lon, :lat, :date] => (lon, lat, date) -> 
+#    lon .> lons[1] .&& lon .<= lons[2] .&&
+#    lat .> lats[1] .&& lat .<= lats[2] .&& 
+#    date .> dates[1] .&& date .<= dates[2])
+
+"""
+    profile_trim(df)
+"""
+profile_trim(df) = df[
+    (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
+    (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
+    (df.date .> DateTime(1000,1,1)) .& (df.date .< DateTime(2022,4,1))
+    ,:]
 
 end

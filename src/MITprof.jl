@@ -478,49 +478,21 @@ function profile_positions(path,Γ)
 end
 
 """
-    profile_variable(name::Symbol)
+    profile_variables(name::String)
 
 Create Array of all values for one variable, obtained by looping through files in `path`. 
 
 ```
-v=:S; w=string(v); 
-output_file="csv/profiles_"*w*".csv"
+list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
 
-tmp=MITprof.profile_variable(v)
-CSV.write(output_file,DataFrame(tmp,:auto))
-```
-"""
-function profile_variable(name::Symbol)
-    path="nc/"
-    csv_file="csv/profile_positions.csv"
-    df=CSV.read(csv_file,DataFrame)
-    
-    list=glob("*.nc",path)
-    nfiles=length(list)
-    x=Array{Union{Float64,Missing},2}(undef,size(df,1),55)
-    n0=[0]
-    for ff in 1:nfiles
-        mp=MITprofStandard(list[ff])
-        s=size(getfield(mp,name))
-        x[n0[1]+1:n0[1]+s[1],:].=getfield(mp,name)[:,:]
-        n0[1]+=s[1]
-    end
-
-    x
+for m in 1:length(list_v)
+    v=list_v[m]; output_file="csv/"*v*".csv"
+    tmp=MITprof.profile_variables(v)
+    CSV.write(output_file,DataFrame(tmp,:auto))
 end
-
-"""
-profile_variable(name::String)
-
-Create Array of all values for one variable, obtained by looping through files in `path`. 
-
-```
-v="prof_T"; output_file="csv/"*w*".csv"
-tmp=MITprof.profile_variable(v)
-CSV.write(output_file,DataFrame(tmp,:auto))
 ```
 """
-function profile_variable(name::String)
+function profile_variables(name::String)
     path="nc/"
     csv_file="csv/profile_positions.csv"
     df=CSV.read(csv_file,DataFrame)
@@ -541,5 +513,72 @@ function profile_variable(name::String)
     x
 end
 
+"""
+    profile_levels()
+
+Create Array of all values for one level, obtained by looping through files in `csv/`. 
+"""
+function profile_levels(k=0)
+    k==0 ? kk=collect(1:55) : kk=[k]
+    list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
+    list_n=("T","Te","Tw","S","Se","Sw")
+
+    csv_file="csv/profile_positions.csv"
+    df0=CSV.read(csv_file,DataFrame)
+
+    path="csv/"
+    
+    nfiles= length(list_v)
+    for ff in 1:nfiles
+        println(list_v[ff])
+        df=CSV.read(path*list_v[ff]*".csv",DataFrame)
+        name=list_n[ff]
+        for k in kk
+            fil=path*"k$(k).csv"
+            if ff==1
+                df1=DataFrame(date=df0.date)
+            else
+                df1=CSV.read(fil,DataFrame)
+            end
+            println("x$(k)")
+            df1[:,name]=df[:,Symbol("x$(k)")]
+            CSV.write(fil,df1)
+        end
+    end
 
 end
+
+"""
+    profile_add_level!(df,k)
+
+```
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+profile_add_level!(df,5)
+```
+"""
+function profile_add_level!(df,k)
+    df1=CSV.read("csv/k$(k).csv",DataFrame)
+    list_n=("T","Te","Tw","S","Se","Sw")
+    [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
+end
+
+"""
+    profile_subset(df,lons,lats,dates)
+    
+```
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+d0=DateTime("2012-06-11T18:50:04")
+d1=DateTime("2012-07-11T18:50:04")
+tmp=profile_subset(df,(0,10),(-5,5),(d0,d1))
+```
+"""
+profile_subset(df,lons,lats,dates) = 
+    df[ (df.lon .> lons[1]) .& (df.lon .<= lons[2]) .&
+    (df.lat .> lats[1]) .& (df.lat .<= lats[2]) .&
+    (df.date .> dates[1]) .& (df.date .<= dates[2]) ,:]
+
+#profile_subset(df,lons,lats,dates) = 
+#    subset(df, [:lon, :lat, :date] => (lon, lat, date) -> 
+#    lon .> lons[1] .&& lon .<= lons[2] .&&
+#    lat .> lats[1] .&& lat .<= lats[2] .&& 
+#    date .> dates[1] .&& date .<= dates[2])

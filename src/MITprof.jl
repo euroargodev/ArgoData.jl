@@ -34,7 +34,7 @@ function write(meta::Dict,profiles::Array,profiles_std::Array;path="")
     lTXT = 30
     
     ##
-    
+
     NCDataset(fil,"c") do ds
         defDim(ds,"iPROF",iPROF)
         defDim(ds,"iDEPTH",iDEPTH)
@@ -243,16 +243,16 @@ function format(meta,gridded_fields,input_file,output_file="")
 
     argo_data=Dataset(input_file)
     haskey(argo_data.dim,"N_PROF") ? np=argo_data.dim["N_PROF"] : np=NaN
-
+    
     nz=length(z_std)
 
     profiles=Array{ProfileNative,1}(undef,np)
     profiles_std=Array{ProfileStandard,1}(undef,np)
     
-    prof_σT=Array{Float64,1}(undef,50)
-    prof_σS=Array{Float64,1}(undef,50)
-    tmp1=Array{Float64,1}(undef,50)
-    tmp2=Array{Float64,1}(undef,50)
+    prof_σT=Array{Union{Missing, Float64},1}(missing,50)
+    prof_σS=Array{Union{Missing, Float64},1}(missing,50)
+    tmp1=Array{Union{Missing, Float64},1}(missing,50)
+    tmp2=Array{Union{Missing, Float64},1}(missing,50)
 
     for m in 1:np
         #println(m)
@@ -266,6 +266,11 @@ function format(meta,gridded_fields,input_file,output_file="")
         ArgoTools.prof_test_set1!(prof,prof_std,meta)
 
         ##
+
+        prof_σT.=missing
+        prof_σS.=missing
+        tmp1.=missing
+        tmp2.=missing    
     
         if prof.lat[1]>-89.99
 
@@ -299,6 +304,9 @@ function format(meta,gridded_fields,input_file,output_file="")
             GriddedFields.interp_h(S[rec[1]],📚.f,📚.i,📚.j,📚.w,tmp1)
             GriddedFields.interp_h(S[rec[2]],📚.f,📚.i,📚.j,📚.w,tmp2)
             prof_std.Sestim.=ArgoTools.interp_z(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+        else
+            prof_std.Testim.=missing
+            prof_std.Sestim.=missing
         end
 
         end #if prof.lat[1]>-89.99
@@ -376,7 +384,7 @@ Loop through files and compute nb profiles, nb non-blank profiles, nb levels mea
 
 ```
 pth="nc/"
-nt,np,nz,cost=cost_functions(pth,"prof_S")
+nt,np,nz,cost=MITprof.cost_functions(pth,"prof_S")
 
 using JLD2
 jldsave(joinpath(pth,"prof_S_stats.jld2"); nt,np,nz,cost)
@@ -437,7 +445,7 @@ using MeshArrays
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
 Γ=GridLoad(γ)
 
-df=profile_positions(path,Γ)
+df=MITprof.profile_positions(path,Γ)
 CSV.write(csv_file, df)
 ```
 """
@@ -553,7 +561,7 @@ end
 
 ```
 df=CSV.read("csv/profile_positions.csv",DataFrame)
-profile_add_level!(df,5)
+MITprof.profile_add_level!(df,5)
 ```
 """
 function profile_add_level!(df,k)
@@ -569,7 +577,7 @@ end
 df=CSV.read("csv/profile_positions.csv",DataFrame)
 d0=DateTime("2012-06-11T18:50:04")
 d1=DateTime("2012-07-11T18:50:04")
-tmp=profile_subset(df,(0,10),(-5,5),(d0,d1))
+tmp=MITprof.profile_subset(df,(0,10),(-5,5),(d0,d1))
 ```
 """
 profile_subset(df,lons,lats,dates) = 
@@ -582,3 +590,14 @@ profile_subset(df,lons,lats,dates) =
 #    lon .> lons[1] .&& lon .<= lons[2] .&&
 #    lat .> lats[1] .&& lat .<= lats[2] .&& 
 #    date .> dates[1] .&& date .<= dates[2])
+
+"""
+    profile_trim(df)
+"""
+profile_trim(df) = df[
+    (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
+    (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
+    (df.date .> DateTime(1000,1,1)) .& (df.date .< DateTime(2022,4,1))
+    ,:]
+
+end

@@ -686,12 +686,11 @@ end
 
 function interp_h(z_in::MeshArray,f,i,j,w,z_out)
     for k in 1:50
+        z_out[k]=NaN
         if !isnan(sum(w[1,:]))
             x=[z_in[f[1,ii],k][i[1,ii],j[1,ii]] for ii=1:4]
             kk=findall(isfinite.(x))
             ~isempty(kk) ? z_out[k]=sum(w[1,kk].*x[kk])/sum(w[1,kk]) : nothing
-        else
-            z_out[k]=NaN
         end
     end
 end

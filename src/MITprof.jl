@@ -382,17 +382,23 @@ function format_loop(gridded_fields,files_list,II)
     end
 end
 
+end
+
+module AnalysisMethods
+
+using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV
+
 """
     cost_functions(vv="prof_T",JJ=[])
 
 Loop through files and compute nb profiles, nb non-blank profiles, nb levels mean, cost mean.
 
 ```
-pth="nc/"
+pth="MITprof/"
 nt,np,nz,cost=MITprof.cost_functions(pth,"prof_S")
 
 using JLD2
-jldsave(joinpath(pth,"prof_S_stats.jld2"); nt,np,nz,cost)
+jldsave(joinpath("csv","prof_S_stats.jld2"); nt,np,nz,cost)
 ```
 """
 function cost_functions(pth,vv="prof_T",JJ=[])

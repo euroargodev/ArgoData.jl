@@ -388,6 +388,8 @@ module AnalysisMethods
 
 using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV
 
+import ArgoData.MITprofStandard
+
 """
     cost_functions(vv="prof_T",JJ=[])
 

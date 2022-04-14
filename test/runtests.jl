@@ -26,12 +26,12 @@ using ArgoData, MeshArrays, Test
     @test isa(mp,MITprofStandard)
 
     pth=dirname(output_file)
-    nt,np,nz,cost=MITprof.cost_functions(pth,"prof_S")
+    nt,np,nz,cost=AnalysisMethods.cost_functions(pth,"prof_S")
     @test isapprox(cost[1],1.365848840650727)
 
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
     Γ=GridLoad(γ)
-    df=MITprof.profile_positions(pth,Γ)
+    df=AnalysisMethods.profile_positions(pth,Γ)
     @test isapprox(maximum(df.lat),-39.894)
 
 end

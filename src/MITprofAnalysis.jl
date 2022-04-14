@@ -213,6 +213,28 @@ function profile_add_level!(df,k)
 end
 
 """
+    profile_add_tile!(df,Γ,n)
+
+```
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+G=GriddedFields.load()
+MITprofAnalysis.profile_add_tile!(df,G.Γ,30)
+```
+"""
+function profile_add_tile!(df,Γ,n)
+    γ=Γ.XC.grid
+    τ=Tiles(γ,n,n)
+    𝑻=MeshArray(γ)
+    [𝑻[t.face][t.i,t.j].=t.tile for t in τ]
+    df[:,Symbol("id$n")]=γ.write(𝑻)[parse_pos.(df.pos)];
+end
+
+parse_pos(p) = begin
+    ii=parse.(Int,split(split(split(p,"(")[2],")")[1],","))
+    CartesianIndex(ii...)
+end
+
+"""
     profile_subset(df,lons,lats,dates)
 
 Subset of df that's within specified date and position ranges.    

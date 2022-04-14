@@ -10,8 +10,10 @@ function trim_cost(cost)
     nb=length(ii)
 
     (ncost,nii)=(length(cost),length(ii))
-    println("keeping $(ncost), leaving $(ncost-nii)")
+    println("keeping $(nii), leaving $(ncost-nii)")
     println("median $(median(cost[ii]))")
+    println("mean $(mean(cost[ii]))")
+    println("max $(maximum(cost[ii]))")
     
     cost[ii],med,nb
 end

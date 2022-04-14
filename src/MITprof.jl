@@ -443,7 +443,8 @@ Additional information such as float `ID`, position on the ECCO grid `pos`, numb
 valid data points for T and S (`nbT` ,`nbS`).
 
 ```
-path="nc/"
+using ArgoData
+path="MITprof/"
 csv_file="csv/profile_positions.csv"
 
 using MeshArrays
@@ -464,7 +465,9 @@ function profile_positions(path,Γ)
     #println("starting step 1")
 
     for ff in 1:nfiles
-        output_file=joinpath(path,list[ff])
+        output_file=list[ff]
+        mod(ff,100)==0 ? println("output_file $(ff) is "*output_file) : nothing
+
         mp=MITprofStandard(output_file)
 
         da=Dates.julian2datetime.(Dates.datetime2julian(DateTime(0,1,1)) .+mp.date)
@@ -496,17 +499,17 @@ end
 Create Array of all values for one variable, obtained by looping through files in `path`. 
 
 ```
-list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
-
-for m in 1:length(list_v)
-    v=list_v[m]; output_file="csv/"*v*".csv"
+@everywhere using ArgoData, CSV, DataFrames
+@everywhere list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
+@distributed for v in list_v
+    output_file="csv/"*v*".csv"
     tmp=MITprof.profile_variables(v)
     CSV.write(output_file,DataFrame(tmp,:auto))
 end
 ```
 """
 function profile_variables(name::String)
-    path="nc/"
+    path="MITprof/"
     csv_file="csv/profile_positions.csv"
     df=CSV.read(csv_file,DataFrame)
     

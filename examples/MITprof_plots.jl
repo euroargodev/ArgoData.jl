@@ -1,9 +1,9 @@
 
-module MITprof_plots
+module MITprofPlots
 
 using ArgoData, DataFrames, CSV, Dates, GLMakie, JLD2, Statistics
 
-#trim_cost is used in plot_cost
+#trim_cost is used in MITprofPlots.cost
 function trim_cost(cost)
     ii=findall((!ismissing).(cost) .&& (isfinite).(cost) .&& (cost.>0.0))
     med=round(median(cost[ii]), digits=3)
@@ -19,14 +19,14 @@ function trim_cost(cost)
 end
 
 """
-    plot_cost()
+    cost_functions()
 
 ```
-f=MITprof_plots.plot_cost()
+f=MITprofPlots.cost_functions()
 save("cost_pdf.png", f)
 ```
 """
-function plot_cost()
+function cost_functions()
     #
     costT=load("csv/prof_T_stats.jld2","cost")
     costT,medT,nbT=trim_cost(costT)
@@ -47,56 +47,40 @@ function plot_cost()
 end
 
 """
-    plot_stats()
+    array_status()
 
 Read file `profile_positions.csv`, pre-process, and then compute 
 and display basic statistics of the Argo float array.
 
 ```
-f=MITprof_plots.plot_stats()
+f=MITprofPlots.array_status()
 save("ArgoDistributions.png", f)
 ```
 """
-function plot_stats()
-    df=read_profile_positions()
+function array_status(csv_file="csv/profile_positions.csv")
+    #read csv file
+    csv_file="csv/profile_positions.csv"
+    df=CSV.read(csv_file,DataFrame)
 
+    #add ym time variable = year + (month-1/2)/12 :
+    df.ym=year.(df.date)+(month.(df.date) .-0.5)/12
+    
+    #eliminate problematic data points:
+    df=df[df.lat .> -89.99,:]
+    df=df[df.date .> DateTime(1000,1,1),:]
+    df=df[df.date .< DateTime(2022,4,1),:]
+        
     #display basic statistics of the Argo float array:
-    plot_stats(df)
+    array_status(df)
 end
 
 """
-    read_profile_positions(csv_file="csv/profile_positions.csv")
+    array_status(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
 
-Read "profile_positions.csv" file.
-
-```
-df=MITprof_plots.read_profile_positions("csv/profile_positions.csv")
-```
-"""
-function read_profile_positions(csv_file="csv/profile_positions.csv")
-df=CSV.read(csv_file,DataFrame)
-
-#time variable = year + (month-1/2)/12 :
-df.ym=year.(df.date)+(month.(df.date) .-0.5)/12
-
-#eliminate problematic data points:
-#l0=size(df,1)
-df=df[df.lat .> -89.99,:]
-df=df[df.date .> DateTime(1000,1,1),:]
-#l1=size(df,1)
-df=df[df.date .< DateTime(2022,4,1),:]
-#l2=size(df,1)
-
-df
-end
-
-"""
-    plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
-
-Call `plot_stats` with `df` already in memory. Please refer to the `plot_stats()` 
+Call `array_status` with `df` already in memory. Please refer to the `array_status()` 
 source code for documentation on how to load `df`.
 """
-function plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
+function array_status(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
     txt(ym) = string(Int(floor(ym)))*"/"*string(Int(round((ym-floor(ym))*12+0.5)))
     
     #ii=findall(peryear[:,:year].>1900)
@@ -137,14 +121,18 @@ function plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
 end
 
 """
-    map_stats(df::DataFrame,G::NamedTuple)
+    stat_map(df::DataFrame,G::NamedTuple)
 
 ```
 G=GriddedFields.load()
-MITprof_plots.map_stats(df,G)
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+#MITprofAnalysis.profile_add_level!(df,5)
+#df1=profile_trim(df)
+
+MITprofPlots.stat_map(df,G)
 ```
 """
-function map_stats(df::DataFrame,G::NamedTuple)
+function stat_map(df::DataFrame,G::NamedTuple)
     gdf=groupby(df,:pos)
     df2=combine(gdf) do df
         (m = log10(length(df.ID)), lon=mean(df.lon), lat=mean(df.lat))

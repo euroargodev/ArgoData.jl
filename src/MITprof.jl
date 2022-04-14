@@ -397,7 +397,7 @@ Loop through files and compute nb profiles, nb non-blank profiles, nb levels mea
 
 ```
 pth="MITprof/"
-nt,np,nz,cost=MITprof.cost_functions(pth,"prof_S")
+nt,np,nz,cost=AnalysisMethods.cost_functions(pth,"prof_S")
 
 using JLD2
 jldsave(joinpath("csv","prof_S_stats.jld2"); nt,np,nz,cost)
@@ -550,7 +550,7 @@ function profile_levels(k=0)
     csv_file="csv/profile_positions.csv"
     df0=CSV.read(csv_file,DataFrame)
 
-    path="csv/"
+    path="csv_levels/"
     
     nfiles= length(list_v)
     for ff in 1:nfiles
@@ -581,7 +581,7 @@ MITprof.profile_add_level!(df,5)
 ```
 """
 function profile_add_level!(df,k)
-    df1=CSV.read("csv/k$(k).csv",DataFrame)
+    df1=CSV.read("csv_levels/k$(k).csv",DataFrame)
     list_n=("T","Te","Tw","S","Se","Sw")
     [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
 end

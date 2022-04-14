@@ -125,39 +125,47 @@ end
 
 ```
 G=GriddedFields.load()
-df=CSV.read("csv/profile_positions.csv",DataFrame)
-#MITprofAnalysis.profile_add_level!(df,5)
-#df1=profile_trim(df)
 
-MITprofPlots.stat_map(df,G)
+level=1
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+df.pos=MITprofAnalysis.parse_pos.(df.pos)
+MITprofAnalysis.profile_add_level!(df,level)
+df=MITprofAnalysis.profile_trim(df)
+df.Td=df.T-df.Te
+
+MITprofPlots.stat_map(df,G.Γ,:Td,:var,rng=(0.0,3.0),func=sqrt,n0=3)
+
+#MITprofPlots.stat_map(df,G.Γ,:ID,:n)
+#MITprofPlots.stat_map(df,G.Γ,:Te,:var,rng=(0.0,3.0),func=sqrt)
 ```
 """
-function stat_map(df::DataFrame,G::NamedTuple)
-    gdf=groupby(df,:pos)
-    df2=combine(gdf) do df
-        (m = log10(length(df.ID)), lon=mean(df.lon), lat=mean(df.lat))
-    end
+function stat_map(df::DataFrame,Γ::NamedTuple,v::Symbol,s::Symbol; func=(x->x), rng=(), n0=0)
 
-    tmp1=fill(0.0,(90,1170))
-    ii=fill(0,2)
-    for i in 1:size(df2,1)
-        ii.=parse.(Int,split(split(split(df2[i,:pos],"(")[2],")")[1],","))
-        tmp1[ii[1],ii[2]]=df2[i,:m]
-    end
+    df2=MITprofAnalysis.profile_stat(df,:pos,v)
 
-    #GriddedFields.MeshArrays.read(tmp1,G.msk.grid)
-    XC=GriddedFields.MeshArrays.write(G.Γ.XC)
-    YC=GriddedFields.MeshArrays.write(G.Γ.YC)
-    ii=findall((!).(tmp1.==0))
+    n=fill(0.0,(90,1170))
+    n[df2.pos].=func.(df2.n)
+
+    mystat=fill(0.0,(90,1170))
+    mystat[df2.pos].=func.(df2[:,s])
+
+    #ii=findall((!).(mystat.==0))
+    #ii=findall((!isnan).(mystat))
+    ii=findall( (n .>n0) .& ((!isnan).(mystat)))
+    isempty(rng) ? colorrange=extrema(mystat[ii]) : colorrange=rng
+
+    XC=GriddedFields.MeshArrays.write(Γ.XC)
+    YC=GriddedFields.MeshArrays.write(Γ.YC)
 
     f = Figure()
 
-    ax1 = Axis(f[1,1], title="number of profiles per day")
-    scatter!(ax1,XC[ii],YC[ii],color=tmp1[ii])
+    ax1 = Axis(f[1,1], title="stat = "*string(v))
+    sc1 = scatter!(ax1,XC[ii],YC[ii],color=mystat[ii],colorrange=colorrange,markersize=3)
     xlims!(ax1, -180, 180)
     ylims!(ax1, -90, 90)
 
-    #(XC,YC,tmp1,f)
+    Colorbar(f[1,2],sc1)
+
     f
 end
 

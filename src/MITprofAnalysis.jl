@@ -1,6 +1,6 @@
 module MITprofAnalysis
 
-using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV
+using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics
 
 import ArgoData.MITprofStandard
 
@@ -264,13 +264,23 @@ Filter out data points that lack T, Te, etc.
 
 ```
 df=CSV.read("csv/profile_positions.csv",DataFrame)
-MITprofAnalysis.profile_add_level!(df,5)
-df1=profile_trim(df)
+MITprofAnalysis.profile_add_level!(df,1)
+df1=MITprofAnalysis.profile_trim(df)
 """
 profile_trim(df) = df[
     (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
     (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
     (df.date .> DateTime(1000,1,1)) .& (df.date .< DateTime(2022,4,1))
     ,:]
+
+
+function profile_stat(df::DataFrame,by::Symbol,v::Symbol)
+    gdf=groupby(df,by)
+    df2=combine(gdf) do df
+        (n = length(df.ID), mean=mean(df[:,v]) , median=mean(df[:,v]), var=var(df[:,v]))
+    end
+
+    df2
+end
 
 end #module MITprofAnalysis

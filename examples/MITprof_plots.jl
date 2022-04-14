@@ -26,10 +26,10 @@ save("cost_pdf.png", f)
 """
 function plot_cost()
     #
-    costT=load("prof_T_stats.jld2","cost")
+    costT=load("csv/prof_T_stats.jld2","cost")
     costT,medT,nbT=trim_cost(costT)
     #
-    costS=load("prof_S_stats.jld2","cost")
+    costS=load("csv/prof_S_stats.jld2","cost")
     costS,medS,nbS=trim_cost(costS)
 
     f = Figure()
@@ -139,7 +139,7 @@ end
 
 ```
 G=GriddedFields.load()
-map_stats(df,G)
+MITprof_plots.map_stats(df,G)
 ```
 """
 function map_stats(df::DataFrame,G::NamedTuple)

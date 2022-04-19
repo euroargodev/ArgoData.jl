@@ -7,9 +7,9 @@ import ArgoData.MITprofStandard
 ## 1. Tasks that operate on MITprof files, directly, in a loop.
 #
 # - cost_functions : compute cost functions for each file
-# - profile_positions : assemble table with all data point positions (-> csv/profile_positions.csv)
-# - profile_variables : assemble table with all data for one variable (-> csv/prof_T.csv , etc)
-# - profile_levels : date + slice of all variables (prof_T.csv, etc) at one level (-> csv_levels/k1.csv , etc)
+# - csv_of_positions : assemble table with all data point positions (-> csv/csv_of_positions.csv)
+# - csv_of_variables : assemble table with all data for one variable (-> csv/prof_T.csv , etc)
+# - csv_of_levels : date + slice of all variables (prof_T.csv, etc) at one level (-> csv_levels/k1.csv , etc)
 
 """
     cost_functions(vv="prof_T",JJ=[])
@@ -18,7 +18,7 @@ Loop through files and compute nb profiles, nb non-blank profiles, nb levels mea
 
 ```
 pth="MITprof/"
-nt,np,nz,cost=AnalysisMethods.cost_functions(pth,"prof_S")
+nt,np,nz,cost=MITprofAnalysis.cost_functions(pth,"prof_S")
 
 using JLD2
 jldsave(joinpath("csv","prof_S_stats.jld2"); nt,np,nz,cost)
@@ -64,7 +64,7 @@ function cost_functions(pth,vv="prof_T",JJ=[])
 end
 
 """
-    profile_positions(path)
+    csv_of_positions(path)
 
 Create table (`DataFrame`) of the positions and dates obtained by looping through files in `path`. 
 Additional information such as float `ID`, position on the ECCO grid `pos`, number of 
@@ -73,17 +73,17 @@ valid data points for T and S (`nbT` ,`nbS`).
 ```
 using ArgoData
 path="MITprof/"
-csv_file="csv/profile_positions.csv"
+csv_file="csv/csv_of_positions.csv"
 
 using MeshArrays
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
 Γ=GridLoad(γ)
 
-df=MITprofAnalysis.profile_positions(path,Γ)
+df=MITprofAnalysis.csv_of_positions(path,Γ)
 CSV.write(csv_file, df)
 ```
 """
-function profile_positions(path,Γ)
+function csv_of_positions(path,Γ)
     list=glob("*.nc",path)
     nfiles=length(list)
 
@@ -122,7 +122,7 @@ function profile_positions(path,Γ)
 end
 
 """
-    profile_variables(name::String)
+    csv_of_variables(name::String)
 
 Create Array of all values for one variable, obtained by looping through files in `path`. 
 
@@ -131,14 +131,14 @@ Create Array of all values for one variable, obtained by looping through files i
 @everywhere list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
 @distributed for v in list_v
     output_file="csv/"*v*".csv"
-    tmp=MITprofAnalysis.profile_variables(v)
+    tmp=MITprofAnalysis.csv_of_variables(v)
     CSV.write(output_file,DataFrame(tmp,:auto))
 end
 ```
 """
-function profile_variables(name::String)
+function csv_of_variables(name::String)
     path="MITprof/"
-    csv_file="csv/profile_positions.csv"
+    csv_file="csv/csv_of_positions.csv"
     df=CSV.read(csv_file,DataFrame)
     
     list=glob("*.nc",path)
@@ -158,16 +158,16 @@ function profile_variables(name::String)
 end
 
 """
-    profile_levels()
+    csv_of_levels()
 
 Create Array of all values for one level, obtained by looping through files in `csv/`. 
 """
-function profile_levels(k=0)
+function csv_of_levels(k=0)
     k==0 ? kk=collect(1:55) : kk=[k]
     list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
     list_n=("T","Te","Tw","S","Se","Sw")
 
-    csv_file="csv/profile_positions.csv"
+    csv_file="csv/csv_of_positions.csv"
     df0=CSV.read(csv_file,DataFrame)
 
     path="csv_levels/"
@@ -194,58 +194,59 @@ end
 
 ## 2. Functions that take csv as input
 #
-# - profile_add_level! : add e.g. "k1.csv" to DataFrame of "profile_positions.csv"
-# - profile_subset : Subset of df that's within specified date and position ranges.    
-# - profile_trim : Filter out data points that lack T, Te, etc.
+# - read_level : read "csv_of_positions.csv" and e.g. "k1.csv" into DataFrame
+# - add_level! : add e.g. "k1.csv" to DataFrame of "csv_of_positions.csv"
+# - subset : Subset of df that's within specified date and position ranges.    
+# - trim : Filter out data points that lack T, Te, etc.
 
 """
-    profile_read_level(k=1)
+    read_level(k=1)
 
-Read in from `csv/profile_positions.csv` and e.g. `csv_levels/k1.csv`,
+Read in from `csv/csv_of_positions.csv` and e.g. `csv_levels/k1.csv`,
 do a bit of preprocessing, and return a DataFrame.
 
 ```
-df=MITprofAnalysis.profile_read_level(5)
+df=MITprofAnalysis.read_level(5)
 ```    
 """
-function profile_read_level(k=1)
-    df=CSV.read("csv/profile_positions.csv",DataFrame)
+function read_level(k=1)
+    df=CSV.read("csv/csv_of_positions.csv",DataFrame)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
-    MITprofAnalysis.profile_add_level!(df,k)
-    df=MITprofAnalysis.profile_trim(df)
+    MITprofAnalysis.add_level!(df,k)
+    df=MITprofAnalysis.trim(df)
     df.Td=df.T-df.Te
     df.Sd=df.S-df.Se
     df
 end
 
 """
-    profile_add_level!(df,k)
+    add_level!(df,k)
 
 Read from e.g. `csv_levels/k1.csv` and add variables to `df`.    
 
 ```
-df=CSV.read("csv/profile_positions.csv",DataFrame)
-MITprofAnalysis.profile_add_level!(df,5)
+df=CSV.read("csv/csv_of_positions.csv",DataFrame)
+MITprofAnalysis.add_level!(df,5)
 ```
 """
-function profile_add_level!(df,k)
+function add_level!(df,k)
     df1=CSV.read("csv_levels/k$(k).csv",DataFrame)
     list_n=("T","Te","Tw","S","Se","Sw")
     [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
 end
 
 """
-    profile_add_tile!(df,Γ,n)
+    add_tile!(df,Γ,n)
 
 Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
 
 ```
-df=CSV.read("csv/profile_positions.csv",DataFrame)
+df=CSV.read("csv/csv_of_positions.csv",DataFrame)
 G=GriddedFields.load()
-MITprofAnalysis.profile_add_tile!(df,G.Γ,30)
+MITprofAnalysis.add_tile!(df,G.Γ,30)
 ```
 """
-function profile_add_tile!(df,Γ,n)
+function add_tile!(df,Γ,n)
     γ=Γ.XC.grid
     τ=Tiles(γ,n,n)
     𝑻=MeshArray(γ)
@@ -264,39 +265,39 @@ parse_pos(p) = begin
 end
 
 """
-    profile_subset(df,lons,lats,dates)
+    subset(df,lons,lats,dates)
 
 Subset of df that's within specified date and position ranges.    
 
 ```
-df=CSV.read("csv/profile_positions.csv",DataFrame)
+df=CSV.read("csv/csv_of_positions.csv",DataFrame)
 d0=DateTime("2012-06-11T18:50:04")
 d1=DateTime("2012-07-11T18:50:04")
-df1=MITprofAnalysis.profile_subset(df,(0,10),(-5,5),(d0,d1))
+df1=MITprofAnalysis.subset(df,(0,10),(-5,5),(d0,d1))
 ```
 """
-profile_subset(df,lons,lats,dates) = 
+subset(df,lons,lats,dates) = 
     df[ (df.lon .> lons[1]) .& (df.lon .<= lons[2]) .&
     (df.lat .> lats[1]) .& (df.lat .<= lats[2]) .&
     (df.date .> dates[1]) .& (df.date .<= dates[2]) ,:]
 
-#profile_subset(df,lons,lats,dates) = 
+#subset(df,lons,lats,dates) = 
 #    subset(df, [:lon, :lat, :date] => (lon, lat, date) -> 
 #    lon .> lons[1] .&& lon .<= lons[2] .&&
 #    lat .> lats[1] .&& lat .<= lats[2] .&& 
 #    date .> dates[1] .&& date .<= dates[2])
 
 """
-    profile_trim(df)
+    trim(df)
 
 Filter out data points that lack T, Te, etc.
 
 ```
-df=CSV.read("csv/profile_positions.csv",DataFrame)
-MITprofAnalysis.profile_add_level!(df,1)
-df1=MITprofAnalysis.profile_trim(df)
+df=CSV.read("csv/csv_of_positions.csv",DataFrame)
+MITprofAnalysis.add_level!(df,1)
+df1=MITprofAnalysis.trim(df)
 """
-profile_trim(df) = df[
+trim(df) = df[
     (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
     (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
     (df.date .> DateTime(1000,1,1)) .& (df.date .< DateTime(2022,4,1))

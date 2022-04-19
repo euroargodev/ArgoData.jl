@@ -49,7 +49,7 @@ end
 """
     array_status()
 
-Read file `profile_positions.csv`, pre-process, and then compute 
+Read file `csv/profile_positions.csv`, pre-process, and then compute 
 and display basic statistics of the Argo float array.
 
 ```
@@ -131,7 +131,7 @@ grid provided by `G`. Options : `func` = function to apply on the gridded statis
 using ArgoData
 #include("examples/MITprof_plots.jl")
 
-df=MITprofAnalysis.profile_read_level(10)
+df=MITprofAnalysis.read_level(10)
 G=GriddedFields.load()
 
 MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)

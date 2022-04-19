@@ -144,11 +144,11 @@ MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)
 """
 function stat_map(df::DataFrame,G::NamedTuple,va::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
 
-    sgr=Array{Union{Missing, Float64}}(missing, G.Γ.XC.grid.ioSize...)
+    sgr=G.array()
     MITprofAnalysis.stat_grid!(df,va,sta,sgr,func=func)
     sgr[ismissing.(sgr)].=NaN
 
-    n=Array{Union{Missing, Float64}}(missing, G.Γ.XC.grid.ioSize...)
+    n=G.array()
     MITprofAnalysis.stat_grid!(df,va,:n,n)
     n[ismissing.(n)].=0.0
 

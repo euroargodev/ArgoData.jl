@@ -268,7 +268,7 @@ parse_pos(p) = begin
 end
 
 """
-    subset(df,lons,lats,dates)
+    subset(df;lons=(-180.0,180.0),lats=(-90.0,90.0),dates=())
 
 Subset of df that's within specified date and position ranges.    
 
@@ -276,13 +276,20 @@ Subset of df that's within specified date and position ranges.
 df=CSV.read("csv/csv_of_positions.csv",DataFrame)
 d0=DateTime("2012-06-11T18:50:04")
 d1=DateTime("2012-07-11T18:50:04")
-df1=MITprofAnalysis.subset(df,(0,10),(-5,5),(d0,d1))
+df1=MITprofAnalysis.subset(df,dates=(d0,d1))
+df2=MITprofAnalysis.subset(df,lons=(0,10),lats=(-5,5),dates=(d0,d1))
 ```
 """
-subset(df,lons,lats,dates) = 
-    df[ (df.lon .> lons[1]) .& (df.lon .<= lons[2]) .&
-    (df.lat .> lats[1]) .& (df.lat .<= lats[2]) .&
-    (df.date .> dates[1]) .& (df.date .<= dates[2]) ,:]
+function subset(df::DataFrame;lons=(-180.0,180.0),lats=(-90.0,90.0),dates=())
+    if !isempty(dates)
+        df[ (df.lon .> lons[1]) .& (df.lon .<= lons[2]) .&
+        (df.lat .> lats[1]) .& (df.lat .<= lats[2]) .&
+        (df.date .> dates[1]) .& (df.date .<= dates[2]) ,:]
+    else
+        df[ (df.lon .> lons[1]) .& (df.lon .<= lons[2]) .&
+        (df.lat .> lats[1]) .& (df.lat .<= lats[2]) ,:]
+    end
+end
 
 #subset(df,lons,lats,dates) = 
 #    subset(df, [:lon, :lat, :date] => (lon, lat, date) -> 
@@ -329,6 +336,48 @@ assumes that `df.pos` are indices into Array `sgr` and should be used to groupby
 function stat_grid!(df::DataFrame,va::Symbol,sta::Symbol,sgr::Array; func=(x->x))
     sdf=stat_df(df,:pos,va)
     sgr[sdf.pos].=func.(sdf[:,sta])
+end
+
+"""
+    monthly_grid!(df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,sgr::Array; func=(x->x), window=1)
+
+Compute map `sgr` of statistic `sta` of variable `va` from DataFrame `df` for year `y` and month `m`.
+This assumes that `df.pos` are indices into Array `sgr` and should be used to groupby `df`.
+
+```
+using ArgoData
+G=GriddedFields.load()
+df=MITprofAnalysis.read_level(10)
+
+df1=MITprofAnalysis.trim(df)
+years=2010:2010; ny=length(years); 
+ar1=G.array()
+arr=G.array(12,ny)
+
+for m in 1:12, y in 1:ny
+    m==1 ? println("starting year "*string(years[y])) : nothing
+    MITprofAnalysis.stat_monthly!(df1,:Tnd,:median,years[y],m,ar1)
+    arr[:,:,m,y].=ar1
+    ar1.=missing
+end
+```
+"""
+function stat_monthly!(df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,sgr::Array; func=(x->x), window=1)
+    if window==1
+        d0=DateTime(y,m,1)
+        m==12 ? d1=DateTime(y+1,mod1(m+1,12),1) : d1=DateTime(y,m+1,1)
+    elseif window==3
+        m==1 ? d0=DateTime(y-1,12,1) : d0=DateTime(y,m-1,1)
+        m>=11 ? d1=DateTime(y+1,mod1(m+2,12),1) : d1=DateTime(y,m+2,1)
+    else
+        error("only window=1 or 3 is currently implemented")
+    end
+
+    df1=subset(df,dates=(d0,d1))
+    sdf1=stat_df(df1,:pos,va)
+    sgr[sdf1.pos].=func.(sdf1[:,sta])
+
+    println(extrema(skipmissing(sgr)))
 end
 
 end #module MITprofAnalysis

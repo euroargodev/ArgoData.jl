@@ -647,7 +647,10 @@ end
     load()
 
 Load gridded fields from files (and download the files if needed).
-Originally this function returned `(Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)`.
+Originally this function returned `Γ,msk,T,S,σT,σS,array`. 
+    
+The embeded `array()` function returns a 2D array initialized to `missing`. 
+And `array(1)`, `array(3,2)`, etc add dimensions to the resulting array.
 """
 function load()
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
@@ -681,7 +684,12 @@ function load()
     end
     σS=σS.grid.read(tmp,σS.grid)
 
-    (Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)
+    initialize_array() = Array{Union{Missing, Float64}}(missing, Γ.XC.grid.ioSize...)
+    initialize_array(n) = Array{Union{Missing, Float64}}(missing, (Γ.XC.grid.ioSize...,n...))
+    initialize_array(n1,n2) = initialize_array((n1,n2))
+    initialize_array(n1,n2,n3) = initialize_array((n1,n2,n3))
+
+    (Γ=Γ,msk=msk,T=T,S=S,σT=σT,σS=σS,array=initialize_array)
 end
 
 function interp_h(z_in::MeshArray,f,i,j,w,z_out)

@@ -199,7 +199,29 @@ end
 # - profile_trim : Filter out data points that lack T, Te, etc.
 
 """
+    profile_read_level(k=1)
+
+Read in from `csv/profile_positions.csv` and e.g. `csv_levels/k1.csv`,
+do a bit of preprocessing, and return a DataFrame.
+
+```
+df=MITprofAnalysis.profile_read_level(5)
+```    
+"""
+function profile_read_level(k=1)
+    df=CSV.read("csv/profile_positions.csv",DataFrame)
+    df.pos=MITprofAnalysis.parse_pos.(df.pos)
+    MITprofAnalysis.profile_add_level!(df,k)
+    df=MITprofAnalysis.profile_trim(df)
+    df.Td=df.T-df.Te
+    df.Sd=df.S-df.Se
+    df
+end
+
+"""
     profile_add_level!(df,k)
+
+Read from e.g. `csv_levels/k1.csv` and add variables to `df`.    
 
 ```
 df=CSV.read("csv/profile_positions.csv",DataFrame)
@@ -215,6 +237,8 @@ end
 """
     profile_add_tile!(df,Γ,n)
 
+Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
+
 ```
 df=CSV.read("csv/profile_positions.csv",DataFrame)
 G=GriddedFields.load()
@@ -229,6 +253,11 @@ function profile_add_tile!(df,Γ,n)
     df[:,Symbol("id$n")]=γ.write(𝑻)[parse_pos.(df.pos)];
 end
 
+"""
+    parse_pos(p)
+
+Parse `String` vector `p` into a vector of `CartesianIndex`.
+"""
 parse_pos(p) = begin
     ii=parse.(Int,split(split(split(p,"(")[2],")")[1],","))
     CartesianIndex(ii...)
@@ -273,14 +302,29 @@ profile_trim(df) = df[
     (df.date .> DateTime(1000,1,1)) .& (df.date .< DateTime(2022,4,1))
     ,:]
 
+"""
+    stat_df(df::DataFrame,by::Symbol,va::Symbol)
 
-function profile_stat(df::DataFrame,by::Symbol,v::Symbol)
+Compute statistics (mean, median, variance) of variable `va` from DataFrame `df` grouped by `by`.
+"""
+function stat_df(df::DataFrame,by::Symbol,va::Symbol)
     gdf=groupby(df,by)
-    df2=combine(gdf) do df
-        (n = length(df.ID), mean=mean(df[:,v]) , median=mean(df[:,v]), var=var(df[:,v]))
+    sdf=combine(gdf) do df
+        (n=size(df,1), mean=mean(df[:,va]) , median=median(df[:,va]), var=var(df[:,va]))
     end
 
-    df2
+    sdf
+end
+
+"""
+    stat_grid!(df::DataFrame,va::Symbol,sta::Symbol,sgr::Array; func=(x->x))
+
+Compute map `sgr` of statistic `sta` of variable `va` from DataFrame `df`. This 
+assumes that `df.pos` are indices into Array `sgr` and should be used to groupby `df`.
+"""
+function stat_grid!(df::DataFrame,va::Symbol,sta::Symbol,sgr::Array; func=(x->x))
+    sdf=stat_df(df,:pos,va)
+    sgr[sdf.pos].=func.(sdf[:,sta])
 end
 
 end #module MITprofAnalysis

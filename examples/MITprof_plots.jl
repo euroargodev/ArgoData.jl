@@ -1,7 +1,7 @@
 
 module MITprofPlots
 
-using ArgoData, DataFrames, CSV, Dates, GLMakie, JLD2, Statistics
+using ArgoData, DataFrames, CSV, Dates, CairoMakie, JLD2, Statistics
 
 #trim_cost is used in MITprofPlots.cost
 function trim_cost(cost)
@@ -121,46 +121,47 @@ function array_status(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
 end
 
 """
-    stat_map(df::DataFrame,G::NamedTuple)
+    stat_map(df::DataFrame,G::NamedTuple,var::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
+
+Compute and display map of statistic `sta` of variable `var` from DataFrame `df` on the 
+grid provided by `G`. Options : `func` = function to apply on the gridded statistic;
+`rng` = color range for plotting; `n0` = mask out statistic if observations are fewer than `n0`.
 
 ```
+using ArgoData
+#include("examples/MITprof_plots.jl")
+
+df=MITprofAnalysis.profile_read_level(10)
 G=GriddedFields.load()
 
-level=1
-df=CSV.read("csv/profile_positions.csv",DataFrame)
-df.pos=MITprofAnalysis.parse_pos.(df.pos)
-MITprofAnalysis.profile_add_level!(df,level)
-df=MITprofAnalysis.profile_trim(df)
-df.Td=df.T-df.Te
+MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)
 
-MITprofPlots.stat_map(df,G.Γ,:Td,:var,rng=(0.0,3.0),func=sqrt,n0=3)
-
-#MITprofPlots.stat_map(df,G.Γ,:ID,:n)
-#MITprofPlots.stat_map(df,G.Γ,:Te,:var,rng=(0.0,3.0),func=sqrt)
+#MITprofPlots.stat_map(df,G,:Td,:n)
+#MITprofPlots.stat_map(df,G,:Td,:var; rng=(0.0,3.0),func=sqrt)
+#MITprofPlots.stat_map(df,G,:Td,:var; rng=(0.0,3.0),func=sqrt,n0=3)
 ```
 """
-function stat_map(df::DataFrame,Γ::NamedTuple,v::Symbol,s::Symbol; func=(x->x), rng=(), n0=0)
+function stat_map(df::DataFrame,G::NamedTuple,va::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
 
-    df2=MITprofAnalysis.profile_stat(df,:pos,v)
+    sgr=fill(NaN,G.Γ.XC.grid.ioSize...)
+    MITprofAnalysis.stat_grid!(df,va,sta,sgr,func=func)
 
-    n=fill(0.0,(90,1170))
-    n[df2.pos].=func.(df2.n)
+    n=fill(NaN,G.Γ.XC.grid.ioSize...)
+    MITprofAnalysis.stat_grid!(df,va,:n,n)
 
-    mystat=fill(0.0,(90,1170))
-    mystat[df2.pos].=func.(df2[:,s])
+    #ii=findall((!).(sgr.==0))
+    #ii=findall((!isnan).(sgr))
+    ii=findall( (n .>n0) .& ((!isnan).(sgr)))
 
-    #ii=findall((!).(mystat.==0))
-    #ii=findall((!isnan).(mystat))
-    ii=findall( (n .>n0) .& ((!isnan).(mystat)))
-    isempty(rng) ? colorrange=extrema(mystat[ii]) : colorrange=rng
+    isempty(rng) ? colorrange=extrema(sgr[ii]) : colorrange=rng
 
-    XC=GriddedFields.MeshArrays.write(Γ.XC)
-    YC=GriddedFields.MeshArrays.write(Γ.YC)
+    XC=GriddedFields.MeshArrays.write(G.Γ.XC)
+    YC=GriddedFields.MeshArrays.write(G.Γ.YC)
 
     f = Figure()
 
-    ax1 = Axis(f[1,1], title="stat = "*string(v))
-    sc1 = scatter!(ax1,XC[ii],YC[ii],color=mystat[ii],colorrange=colorrange,markersize=3)
+    ax1 = Axis(f[1,1], title="variable, statistic = "*string(var)*","*string(sta))
+    sc1 = scatter!(ax1,XC[ii],YC[ii],color=sgr[ii],colorrange=colorrange,markersize=3)
     xlims!(ax1, -180, 180)
     ylims!(ax1, -90, 90)
 

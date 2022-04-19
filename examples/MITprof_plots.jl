@@ -132,6 +132,7 @@ using ArgoData
 #include("examples/MITprof_plots.jl")
 
 df=MITprofAnalysis.read_level(10)
+df=MITprofAnalysis.trim(df)
 G=GriddedFields.load()
 
 MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)
@@ -143,25 +144,27 @@ MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)
 """
 function stat_map(df::DataFrame,G::NamedTuple,va::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
 
-    sgr=fill(NaN,G.Γ.XC.grid.ioSize...)
+    sgr=Array{Union{Missing, Float64}}(missing, G.Γ.XC.grid.ioSize...)
     MITprofAnalysis.stat_grid!(df,va,sta,sgr,func=func)
+    sgr[ismissing.(sgr)].=NaN
 
-    n=fill(NaN,G.Γ.XC.grid.ioSize...)
+    n=Array{Union{Missing, Float64}}(missing, G.Γ.XC.grid.ioSize...)
     MITprofAnalysis.stat_grid!(df,va,:n,n)
+    n[ismissing.(n)].=0.0
 
     #ii=findall((!).(sgr.==0))
     #ii=findall((!isnan).(sgr))
     ii=findall( (n .>n0) .& ((!isnan).(sgr)))
 
-    isempty(rng) ? colorrange=extrema(sgr[ii]) : colorrange=rng
+    isempty(rng) ? colorrange=extrema(Float64.(sgr[ii])) : colorrange=rng
 
     XC=GriddedFields.MeshArrays.write(G.Γ.XC)
     YC=GriddedFields.MeshArrays.write(G.Γ.YC)
 
     f = Figure()
 
-    ax1 = Axis(f[1,1], title="variable, statistic = "*string(var)*","*string(sta))
-    sc1 = scatter!(ax1,XC[ii],YC[ii],color=sgr[ii],colorrange=colorrange,markersize=3)
+    ax1 = Axis(f[1,1], title="variable, statistic = "*string(va)*","*string(sta))
+    sc1 = scatter!(ax1,XC[ii],YC[ii],color=Float64.(sgr[ii]),colorrange=colorrange,markersize=3)
     xlims!(ax1, -180, 180)
     ylims!(ax1, -90, 90)
 

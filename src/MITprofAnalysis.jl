@@ -203,19 +203,16 @@ end
     read_level(k=1)
 
 Read in from `csv/csv_of_positions.csv` and e.g. `csv_levels/k1.csv`,
-do a bit of preprocessing, and return a DataFrame.
+parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
 
 ```
 df=MITprofAnalysis.read_level(5)
 ```    
 """
 function read_level(k=1)
-    df=CSV.read("csv/csv_of_positions.csv",DataFrame)
+    df=CSV.read("csv/profile_positions.csv",DataFrame)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
     MITprofAnalysis.add_level!(df,k)
-    df=MITprofAnalysis.trim(df)
-    df.Td=df.T-df.Te
-    df.Sd=df.S-df.Se
     df
 end
 
@@ -231,8 +228,14 @@ MITprofAnalysis.add_level!(df,5)
 """
 function add_level!(df,k)
     df1=CSV.read("csv_levels/k$(k).csv",DataFrame)
+    #
     list_n=("T","Te","Tw","S","Se","Sw")
     [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
+    #
+    df.Td=df.T-df.Te
+    df.Sd=df.S-df.Se
+    df.Tnd=df.Td.*sqrt.(df.Tw)
+    df.Snd=df.Sd.*sqrt.(df.Sw)
 end
 
 """

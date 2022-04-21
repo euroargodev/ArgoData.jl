@@ -328,21 +328,22 @@ function stat_df(df::DataFrame,by::Symbol,va::Symbol)
 end
 
 """
-    stat_grid!(df::DataFrame,va::Symbol,sta::Symbol,sgr::Array; func=(x->x))
+    stat_grid!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol; func=(x->x))
 
-Compute map `sgr` of statistic `sta` of variable `va` from DataFrame `df`. This 
-assumes that `df.pos` are indices into Array `sgr` and should be used to groupby `df`.
+Compute map `ar` of statistic `sta` of variable `va` from DataFrame `df`. This 
+assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`.
 """
-function stat_grid!(df::DataFrame,va::Symbol,sta::Symbol,sgr::Array; func=(x->x))
+function stat_grid!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol; func=(x->x))
     sdf=stat_df(df,:pos,va)
-    sgr[sdf.pos].=func.(sdf[:,sta])
+    ar.=missing
+    ar[sdf.pos].=func.(sdf[:,sta])
 end
 
 """
-    monthly_grid!(df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,sgr::Array; func=(x->x), window=1)
+    stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int; func=(x->x), window=1)
 
-Compute map `sgr` of statistic `sta` of variable `va` from DataFrame `df` for year `y` and month `m`.
-This assumes that `df.pos` are indices into Array `sgr` and should be used to groupby `df`.
+Compute map `ar` of statistic `sta` for variable `va` from DataFrame `df` for year `y` and month `m`.
+This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`.
 
 ```
 using ArgoData
@@ -351,18 +352,14 @@ df=MITprofAnalysis.read_level(10)
 
 df1=MITprofAnalysis.trim(df)
 years=2010:2010; ny=length(years); 
-ar1=G.array()
-arr=G.array(12,ny)
 
-for m in 1:12, y in 1:ny
-    m==1 ? println("starting year "*string(years[y])) : nothing
-    MITprofAnalysis.stat_monthly!(df1,:Tnd,:median,years[y],m,ar1)
-    arr[:,:,m,y].=ar1
-    ar1.=missing
-end
+ar1=G.array()
+MITprofAnalysis.stat_monthly!(ar1,df,:Td,:median,2010,1,window=3)
+
+MITprofPlots.stat_map(ar1,G)
 ```
 """
-function stat_monthly!(df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,sgr::Array; func=(x->x), window=1)
+function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int; func=(x->x), window=1)
     if window==1
         d0=DateTime(y,m,1)
         m==12 ? d1=DateTime(y+1,mod1(m+1,12),1) : d1=DateTime(y,m+1,1)
@@ -375,9 +372,42 @@ function stat_monthly!(df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,sgr::A
 
     df1=subset(df,dates=(d0,d1))
     sdf1=stat_df(df1,:pos,va)
-    sgr[sdf1.pos].=func.(sdf1[:,sta])
-
-    println(extrema(skipmissing(sgr)))
+    ar[sdf1.pos].=func.(sdf1[:,sta])
 end
+
+"""
+stat_monthly(G::NamedTuple,df::DataFrame,va::Symbol,sta::Symbol,years; func=(x->x), window=1)
+
+Compute maps of statistic `sta` for variable `va` from DataFrame `df` for years `years`. 
+This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`. 
+For each year in `years`, twelve fields are computed -- one per month.
+
+```
+using ArgoData
+G=GriddedFields.load()
+df=MITprofAnalysis.read_level(1)
+df1=MITprofAnalysis.trim(df)
+
+years=2004:2021
+arr=MITprofAnalysis.stat_monthly(G,df1,:Td,:median,years,window=3);
+```
+"""
+function stat_monthly(G::NamedTuple,df::DataFrame,va::Symbol,sta::Symbol,years; func=(x->x), window=1)
+    ny=length(years)
+    ar1=G.array()
+    arr=G.array(12,ny)
+    println(window)
+
+    for m in 1:12, y in 1:ny
+        m==1 ? println("starting year "*string(years[y])) : nothing
+        ar1.=missing
+        MITprofAnalysis.stat_monthly!(ar1,df,va,sta,years[y],m,window=window)
+        arr[:,:,m,y].=ar1
+    end
+
+    arr[ismissing.(arr)].=NaN
+    return Float64.(arr)
+end
+
 
 end #module MITprofAnalysis

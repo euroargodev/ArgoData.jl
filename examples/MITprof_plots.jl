@@ -144,27 +144,32 @@ MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)
 """
 function stat_map(df::DataFrame,G::NamedTuple,va::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
 
-    sgr=G.array()
-    MITprofAnalysis.stat_grid!(df,va,sta,sgr,func=func)
-    sgr[ismissing.(sgr)].=NaN
+    ar=G.array()
+    MITprofAnalysis.stat_grid!(ar,df,va,sta,func=func)
+    ar[ismissing.(ar)].=NaN
 
     n=G.array()
-    MITprofAnalysis.stat_grid!(df,va,:n,n)
+    MITprofAnalysis.stat_grid!(n,df,va,:n)
     n[ismissing.(n)].=0.0
 
-    #ii=findall((!).(sgr.==0))
-    #ii=findall((!isnan).(sgr))
-    ii=findall( (n .>n0) .& ((!isnan).(sgr)))
+    ar[n .<=n0].=NaN
+    ttl="variable, statistic = "*string(va)*","*string(sta)
 
-    isempty(rng) ? colorrange=extrema(Float64.(sgr[ii])) : colorrange=rng
+    stat_map(ar,G; rng=rng,ttl=ttl)    
+end
 
+function stat_map(ar::Array,G::NamedTuple; rng=(),ttl="")
+    ar[ismissing.(ar)].=NaN
+    ar1=Float64.(ar)
+
+    ii=findall( (!isnan).(ar1) )
+    isempty(rng) ? colorrange=extrema(ar1[ii]) : colorrange=rng
     XC=GriddedFields.MeshArrays.write(G.Γ.XC)
     YC=GriddedFields.MeshArrays.write(G.Γ.YC)
 
     f = Figure()
-
-    ax1 = Axis(f[1,1], title="variable, statistic = "*string(va)*","*string(sta))
-    sc1 = scatter!(ax1,XC[ii],YC[ii],color=Float64.(sgr[ii]),colorrange=colorrange,markersize=3)
+    ax1 = Axis(f[1,1], title=ttl)
+    sc1 = scatter!(ax1,XC[ii],YC[ii],color=ar1[ii],colorrange=colorrange,markersize=3)
     xlims!(ax1, -180, 180)
     ylims!(ax1, -90, 90)
 

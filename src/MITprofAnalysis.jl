@@ -376,7 +376,7 @@ function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::
 end
 
 """
-stat_monthly(G::NamedTuple,df::DataFrame,va::Symbol,sta::Symbol,years; func=(x->x), window=1)
+stat_monthly(arr:Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; func=(x->x), window=1)
 
 Compute maps of statistic `sta` for variable `va` from DataFrame `df` for years `years`. 
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`. 
@@ -389,16 +389,16 @@ df=MITprofAnalysis.read_level(1)
 df1=MITprofAnalysis.trim(df)
 
 years=2004:2021
-arr=MITprofAnalysis.stat_monthly(G,df1,:Td,:median,years,window=3);
+arr=G.array(12,length(years))
+MITprofAnalysis.stat_monthly!(arr,df1,:Td,:median,years,G,window=3);
 ```
 """
-function stat_monthly(G::NamedTuple,df::DataFrame,va::Symbol,sta::Symbol,years; func=(x->x), window=1)
+function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; func=(x->x), window=1)
     ny=length(years)
     ar1=G.array()
-    arr=G.array(12,ny)
     println(window)
 
-    for m in 1:12, y in 1:ny
+    for y in 1:ny, m in 1:12
         m==1 ? println("starting year "*string(years[y])) : nothing
         ar1.=missing
         MITprofAnalysis.stat_monthly!(ar1,df,va,sta,years[y],m,window=window)
@@ -406,7 +406,7 @@ function stat_monthly(G::NamedTuple,df::DataFrame,va::Symbol,sta::Symbol,years; 
     end
 
     arr[ismissing.(arr)].=NaN
-    return Float64.(arr)
+    arr.=Float64.(arr)
 end
 
 

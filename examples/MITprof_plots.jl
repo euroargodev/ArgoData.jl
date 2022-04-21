@@ -1,7 +1,9 @@
 
 module MITprofPlots
 
-using ArgoData, DataFrames, CSV, Dates, CairoMakie, JLD2, Statistics
+using ArgoData, DataFrames, Dates, Statistics
+using CairoMakie
+import CSV, JLD2
 
 #trim_cost is used in MITprofPlots.cost
 function trim_cost(cost)

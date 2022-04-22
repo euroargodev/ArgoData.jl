@@ -3,6 +3,7 @@ module MITprofAnalysis
 using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics
 
 import ArgoData.MITprofStandard
+import ArgoData.GriddedFields
 
 ## 1. Tasks that operate on MITprof files, directly, in a loop.
 #
@@ -194,22 +195,22 @@ end
 
 ## 2. Functions that take csv as input
 #
-# - read_level : read "csv_of_positions.csv" and e.g. "k1.csv" into DataFrame
+# - read_pos_level : read "csv_of_positions.csv" and e.g. "k1.csv" into DataFrame
 # - add_level! : add e.g. "k1.csv" to DataFrame of "csv_of_positions.csv"
 # - subset : Subset of df that's within specified date and position ranges.    
 # - trim : Filter out data points that lack T, Te, etc.
 
 """
-    read_level(k=1)
+    read_pos_level(k=1)
 
 Read in from `csv/csv_of_positions.csv` and e.g. `csv_levels/k1.csv`,
 parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
 
 ```
-df=MITprofAnalysis.read_level(5)
+df=MITprofAnalysis.read_pos_level(5)
 ```    
 """
-function read_level(k=1)
+function read_pos_level(k=1)
     df=CSV.read("csv/profile_positions.csv",DataFrame)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
     MITprofAnalysis.add_level!(df,k)
@@ -348,7 +349,7 @@ This assumes that `df.pos` are indices into Array `ar` and should be used to gro
 ```
 using ArgoData
 G=GriddedFields.load()
-df=MITprofAnalysis.read_level(10)
+df=MITprofAnalysis.read_pos_level(10)
 
 df1=MITprofAnalysis.trim(df)
 years=2010:2010; ny=length(years); 
@@ -376,7 +377,7 @@ function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::
 end
 
 """
-stat_monthly(arr:Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; func=(x->x), window=1)
+    stat_monthly!(arr:Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; func=(x->x), window=1)
 
 Compute maps of statistic `sta` for variable `va` from DataFrame `df` for years `years`. 
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`. 
@@ -385,7 +386,7 @@ For each year in `years`, twelve fields are computed -- one per month.
 ```
 using ArgoData
 G=GriddedFields.load()
-df=MITprofAnalysis.read_level(1)
+df=MITprofAnalysis.read_pos_level(1)
 df1=MITprofAnalysis.trim(df)
 
 years=2004:2021
@@ -409,5 +410,45 @@ function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::
     arr.=Float64.(arr)
 end
 
+"""
+    stat_write(file,arr)
+"""
+function stat_write(file,arr)
+    ny=size(arr,4)
+    nt=12*ny
+
+    isfile(file) ? rm(file) : nothing
+
+    ds = NCDataset(file,"c")
+    defDim(ds,"i",90)
+    defDim(ds,"j",1170)
+    defDim(ds,"t",nt)
+    ds.attrib["title"] = "this is a test file"
+    v = defVar(ds,"δT",Float32,("i","j","t"))
+    v[:,:,:] = reshape(arr,90,1170,nt)
+    v.attrib["units"] = "degree Celsius"
+    close(ds)
+end
+
+"""
+    stat_driver(;level=1,years=2004:2021,to_file=false)
+"""
+function stat_driver(;level=1,years=2004:2021,to_file=false)
+    G=GriddedFields.load()
+    df=read_pos_level(level)
+    df1=trim(df)
+
+    ny=length(years)
+    arr=G.array(12,ny)
+    stat_monthly!(arr,df1,:Td,:median,years,G,window=3)   
+    
+    ext=string(level)*".nc"
+    level<10 ? output_file="δT_0"*ext : output_file="δT_"*ext
+    pth=joinpath(tempdir(),"Argo_MITprof_files")
+    output_file=joinpath(pth,"stat_output",output_file)
+
+    to_file ? stat_write(output_file,arr) : nothing
+    return to_file ? output_file : arr
+end
 
 end #module MITprofAnalysis

@@ -133,7 +133,7 @@ grid provided by `G`. Options : `func` = function to apply on the gridded statis
 using ArgoData
 #include("examples/MITprof_plots.jl")
 
-df=MITprofAnalysis.read_level(10)
+df=MITprofAnalysis.read_pos_level(10)
 df=MITprofAnalysis.trim(df)
 G=GriddedFields.load()
 

@@ -63,7 +63,7 @@ MITprofStandard
 ```
 
 ```@autodocs
-Modules = [GDAC,MITprof,MITprofAnalysis]
+Modules = [GDAC,MITprof,MITprofAnalysis,MITprofStat]
 Order   = [:type,:function]
 ```
 

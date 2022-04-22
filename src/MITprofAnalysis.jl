@@ -3,7 +3,6 @@ module MITprofAnalysis
 using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics
 
 import ArgoData.MITprofStandard
-import ArgoData.GriddedFields
 
 ## 1. Tasks that operate on MITprof files, directly, in a loop.
 #
@@ -307,12 +306,21 @@ Filter out data points that lack T, Te, etc.
 df=CSV.read("csv/csv_of_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,1)
 df1=MITprofAnalysis.trim(df)
+```
 """
 trim(df) = df[
     (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
     (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
     (df.date .> DateTime(1000,1,1)) .& (df.date .< DateTime(2022,4,1))
     ,:]
+
+end #module MITprofAnalysis
+
+module MITprofStat
+
+using NCDatasets, DataFrames, CSV, Statistics, Dates
+import ArgoData.GriddedFields
+import ArgoData.MITprofAnalysis
 
 """
     stat_df(df::DataFrame,by::Symbol,va::Symbol)
@@ -371,7 +379,7 @@ function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::
         error("only window=1 or 3 is currently implemented")
     end
 
-    df1=subset(df,dates=(d0,d1))
+    df1=MITprofAnalysis.subset(df,dates=(d0,d1))
     sdf1=stat_df(df1,:pos,va)
     ar[sdf1.pos].=func.(sdf1[:,sta])
 end
@@ -402,7 +410,7 @@ function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::
     for y in 1:ny, m in 1:12
         m==1 ? println("starting year "*string(years[y])) : nothing
         ar1.=missing
-        MITprofAnalysis.stat_monthly!(ar1,df,va,sta,years[y],m,window=window)
+        stat_monthly!(ar1,df,va,sta,years[y],m,window=window)
         arr[:,:,m,y].=ar1
     end
 
@@ -435,8 +443,8 @@ end
 """
 function stat_driver(;level=1,years=2004:2021,to_file=false)
     G=GriddedFields.load()
-    df=read_pos_level(level)
-    df1=trim(df)
+    df=MITprofAnalysis.read_pos_level(level)
+    df1=MITprofAnalysis.trim(df)
 
     ny=length(years)
     arr=G.array(12,ny)
@@ -451,4 +459,4 @@ function stat_driver(;level=1,years=2004:2021,to_file=false)
     return to_file ? output_file : arr
 end
 
-end #module MITprofAnalysis
+end #module MITprofStat

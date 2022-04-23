@@ -378,8 +378,11 @@ function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::
     elseif window==3
         m==1 ? d0=DateTime(y-1,12,1) : d0=DateTime(y,m-1,1)
         m>=11 ? d1=DateTime(y+1,mod1(m+2,12),1) : d1=DateTime(y,m+2,1)
+    elseif window==5
+        m<=2 ? d0=DateTime(y-1,10+m,1) : d0=DateTime(y,m-2,1)
+        m>=10 ? d1=DateTime(y+1,mod1(m+3,12),1) : d1=DateTime(y,m+3,1)
     else
-        error("only window=1 or 3 is currently implemented")
+        error("only options are window=1, 3, or 5")
     end
 
     df1=MITprofAnalysis.subset(df,dates=(d0,d1))
@@ -389,16 +392,11 @@ function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::
         for i in 1:size(sdf1,1)
             sdf1[i,:n]>=nobs ? ar[sdf1[i,:pos]]=func(sdf1[i,sta]) : nothing
         end
-    else
-        γ=G.Γ.XC.grid
-        τ=Tiles(γ,npoint,npoint)
-        𝑻=MeshArray(γ)
-        [𝑻[t.face][t.i,t.j].=t.tile for t in τ]
-        𝑻=γ.write(𝑻)
-        df1[:,:tile]=𝑻[df1.pos]
+    else        
+        df1[:,:tile]=G.tile[df1.pos]
         sdf1=stat_df(df1,:tile,va)
         for i in 1:size(sdf1,1)
-            sdf1[i,:n]>=nobs ? ar[𝑻.==sdf1[i,:tile]].=func(sdf1[i,sta]) : nothing
+            sdf1[i,:n]>=nobs ? ar[G.tile.==sdf1[i,:tile]].=func(sdf1[i,sta]) : nothing
         end
     end
 end
@@ -463,17 +461,22 @@ end
 """
     stat_driver(;level=1,years=2004:2021,to_file=false)
 """
-function stat_driver(;level=1,years=2004:2021,to_file=false)
+function stat_driver(;level=1,years=2004:2021,to_file=false,
+    window=1, npoint=1, nobs=1)
+    
     G=GriddedFields.load()
     df=MITprofAnalysis.read_pos_level(level)
     df1=MITprofAnalysis.trim(df)
 
     ny=length(years)
-    np=1
     arr=G.array(12,ny)
-    stat_monthly!(arr,df1,:Td,:median,years,G,window=3,npoint=np, nobs=3)   
+    np=npoint
+    np>1 ? GriddedFields.update_tile!(G,np) : nothing
+    nw=window
+
+    stat_monthly!(arr,df1,:Td,:median,years,G,window=nw,npoint=np, nobs=3)   
     
-    ext=string(level)*"_np$(np).nc"
+    ext=string(level)*"_np$(np)nw$(nw).nc"
     level<10 ? output_file="δT_0"*ext : output_file="δT_"*ext
     pth=joinpath(tempdir(),"Argo_MITprof_files")
     output_file=joinpath(pth,"stat_output",output_file)

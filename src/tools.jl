@@ -689,7 +689,18 @@ function load()
     initialize_array(n1,n2) = initialize_array((n1,n2))
     initialize_array(n1,n2,n3) = initialize_array((n1,n2,n3))
 
-    (Γ=Γ,msk=msk,T=T,S=S,σT=σT,σS=σS,array=initialize_array)
+    γ=Γ.XC.grid
+    T=γ.write(MeshArray(γ))
+
+    (Γ=Γ,msk=msk,T=T,S=S,σT=σT,σS=σS,array=initialize_array,tile=T)
+end
+
+function update_tile!(G,npoint)
+    γ=G.Γ.XC.grid
+    τ=Tiles(γ,npoint,npoint)
+    T=MeshArray(γ)
+    [T[t.face][t.i,t.j].=t.tile for t in τ]
+    G.tile.=γ.write(T)
 end
 
 function interp_h(z_in::MeshArray,f,i,j,w,z_out)

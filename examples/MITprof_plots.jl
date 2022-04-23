@@ -180,4 +180,25 @@ function stat_map(ar::Array,G::NamedTuple; rng=(),ttl="")
     f
 end
 
+
+using NCDatasets
+
+function stat_map_combine(G,level=5)
+    ar2=G.array(); ar2.=NaN
+    level<10 ? lev="0"*string(level) : lev=string(level)
+
+    list=(  "np30nw5","np18nw5","np10nw5","np5nw5","np3nw5",
+            "np3nw3","np3nw1","np1nw3","np1nw1")
+    for i in list
+        ds = NCDataset("stat_output/δT_$(lev)_$(i).nc")
+        ar3=ds["δT"][:,:,120]; ii=findall((!isnan).(ar3))
+        ar2[ii].=ar3[ii]
+        close(ds)
+    end
+
+    γ=G.Γ.XC.grid
+    ar1=ar2.*γ.write(G.msk[:,1])
+    MITprofPlots.stat_map(ar1,G,rng=(-1.0,1.0))
+end
+
 end

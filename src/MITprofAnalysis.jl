@@ -351,7 +351,7 @@ end
 
 """
     stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,G::NamedTuple;
-                    func=(x->x), window=1, npoint=1, nobs=1)
+                    func=(x->x), nmon=1, npoint=1, nobs=1)
 
 Compute map `ar` of statistic `sta` for variable `va` from DataFrame `df` for year `y` and month `m`.
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`.
@@ -365,24 +365,24 @@ df1=MITprofAnalysis.trim(df)
 years=2010:2010; ny=length(years); 
 
 ar1=G.array()
-MITprofAnalysis.stat_monthly!(ar1,df,:Td,:median,2010,1,G,window=3)
+MITprofAnalysis.stat_monthly!(ar1,df,:Td,:median,2010,1,G,nmon=3)
 
 MITprofPlots.stat_map(ar1,G)
 ```
 """
 function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,G::NamedTuple; 
-    func=(x->x), window=1, npoint=1, nobs=1)
-    if window==1
+    func=(x->x), nmon=1, npoint=1, nobs=1)
+    if nmon==1
         d0=DateTime(y,m,1)
         m==12 ? d1=DateTime(y+1,mod1(m+1,12),1) : d1=DateTime(y,m+1,1)
-    elseif window==3
+    elseif nmon==3
         m==1 ? d0=DateTime(y-1,12,1) : d0=DateTime(y,m-1,1)
         m>=11 ? d1=DateTime(y+1,mod1(m+2,12),1) : d1=DateTime(y,m+2,1)
-    elseif window==5
+    elseif nmon==5
         m<=2 ? d0=DateTime(y-1,10+m,1) : d0=DateTime(y,m-2,1)
         m>=10 ? d1=DateTime(y+1,mod1(m+3,12),1) : d1=DateTime(y,m+3,1)
     else
-        error("only options are window=1, 3, or 5")
+        error("only options are nmon=1, 3, or 5")
     end
 
     df1=MITprofAnalysis.subset(df,dates=(d0,d1))
@@ -403,7 +403,7 @@ end
 
 """
     stat_monthly!(arr:Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple;
-                    func=(x->x), window=1, npoint=1, nobs=1)
+                    func=(x->x), nmon=1, npoint=1, nobs=1)
 
 Compute maps of statistic `sta` for variable `va` from DataFrame `df` for years `years`. 
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`. 
@@ -417,20 +417,20 @@ df1=MITprofAnalysis.trim(df)
 
 years=2004:2021
 arr=G.array(12,length(years))
-MITprofAnalysis.stat_monthly!(arr,df1,:Td,:median,years,G,window=3);
+MITprofAnalysis.stat_monthly!(arr,df1,:Td,:median,years,G,nmon=3);
 ```
 """
 function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; 
-                        func=(x->x), window=1, npoint=1, nobs=1)
+                        func=(x->x), nmon=1, npoint=1, nobs=1)
     ny=length(years)
     ar1=G.array()
-    println(window)
+    println(nmon)
 
     for y in 1:ny, m in 1:12
         m==1 ? println("starting year "*string(years[y])) : nothing
         ar1.=missing
         stat_monthly!(ar1,df,va,sta,years[y],m,G;
-            func=func, window=window, npoint=npoint, nobs=npoint)
+            func=func, nmon=nmon, npoint=npoint, nobs=nobs)
         arr[:,:,m,y].=ar1
     end
 
@@ -462,7 +462,7 @@ end
     stat_driver(;level=1,years=2004:2021,to_file=false)
 """
 function stat_driver(;level=1,years=2004:2021,to_file=false,
-    window=1, npoint=1, nobs=1)
+    nmon=1, npoint=1, nobs=1)
     
     G=GriddedFields.load()
     df=MITprofAnalysis.read_pos_level(level)
@@ -470,13 +470,12 @@ function stat_driver(;level=1,years=2004:2021,to_file=false,
 
     ny=length(years)
     arr=G.array(12,ny)
-    np=npoint
-    np>1 ? GriddedFields.update_tile!(G,np) : nothing
-    nw=window
 
-    stat_monthly!(arr,df1,:Td,:median,years,G,window=nw,npoint=np, nobs=3)   
+    npoint>1 ? GriddedFields.update_tile!(G,npoint) : nothing
+
+    stat_monthly!(arr,df1,:Td,:median,years,G,nmon=nmon,npoint=npoint,nobs=nobs)   
     
-    ext=string(level)*"_np$(np)nw$(nw).nc"
+    ext=string(level)*"_np$(npoint)nm$(nmon)no$(nobs).nc"
     level<10 ? output_file="δT_0"*ext : output_file="δT_"*ext
     pth=joinpath(tempdir(),"Argo_MITprof_files")
     output_file=joinpath(pth,"stat_output",output_file)

@@ -254,7 +254,8 @@ function add_tile!(df,Γ,n)
     τ=Tiles(γ,n,n)
     𝑻=MeshArray(γ)
     [𝑻[t.face][t.i,t.j].=t.tile for t in τ]
-    df[:,Symbol("id$n")]=γ.write(𝑻)[parse_pos.(df.pos)];
+    isa(df.pos,Vector{CartesianIndex{2}}) ? pos=df.pos : pos=parse_pos.(df.pos)
+    df[:,Symbol("id$n")]=γ.write(𝑻)[pos];
 end
 
 """
@@ -318,7 +319,7 @@ end #module MITprofAnalysis
 
 module MITprofStat
 
-using NCDatasets, DataFrames, CSV, Statistics, Dates
+using NCDatasets, DataFrames, CSV, Statistics, Dates, MeshArrays
 import ArgoData.GriddedFields
 import ArgoData.MITprofAnalysis
 
@@ -349,7 +350,8 @@ function stat_grid!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol; func=(x->x))
 end
 
 """
-    stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int; func=(x->x), window=1)
+    stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,G::NamedTuple;
+                    func=(x->x), window=1, npoint=1, nobs=1)
 
 Compute map `ar` of statistic `sta` for variable `va` from DataFrame `df` for year `y` and month `m`.
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`.
@@ -363,12 +365,13 @@ df1=MITprofAnalysis.trim(df)
 years=2010:2010; ny=length(years); 
 
 ar1=G.array()
-MITprofAnalysis.stat_monthly!(ar1,df,:Td,:median,2010,1,window=3)
+MITprofAnalysis.stat_monthly!(ar1,df,:Td,:median,2010,1,G,window=3)
 
 MITprofPlots.stat_map(ar1,G)
 ```
 """
-function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int; func=(x->x), window=1)
+function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,G::NamedTuple; 
+    func=(x->x), window=1, npoint=1, nobs=1)
     if window==1
         d0=DateTime(y,m,1)
         m==12 ? d1=DateTime(y+1,mod1(m+1,12),1) : d1=DateTime(y,m+1,1)
@@ -380,12 +383,29 @@ function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::
     end
 
     df1=MITprofAnalysis.subset(df,dates=(d0,d1))
-    sdf1=stat_df(df1,:pos,va)
-    ar[sdf1.pos].=func.(sdf1[:,sta])
+
+    if npoint==1
+        sdf1=stat_df(df1,:pos,va)
+        for i in 1:size(sdf1,1)
+            sdf1[i,:n]>=nobs ? ar[sdf1[i,:pos]]=func(sdf1[i,sta]) : nothing
+        end
+    else
+        γ=G.Γ.XC.grid
+        τ=Tiles(γ,npoint,npoint)
+        𝑻=MeshArray(γ)
+        [𝑻[t.face][t.i,t.j].=t.tile for t in τ]
+        𝑻=γ.write(𝑻)
+        df1[:,:tile]=𝑻[df1.pos]
+        sdf1=stat_df(df1,:tile,va)
+        for i in 1:size(sdf1,1)
+            sdf1[i,:n]>=nobs ? ar[𝑻.==sdf1[i,:tile]].=func(sdf1[i,sta]) : nothing
+        end
+    end
 end
 
 """
-    stat_monthly!(arr:Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; func=(x->x), window=1)
+    stat_monthly!(arr:Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple;
+                    func=(x->x), window=1, npoint=1, nobs=1)
 
 Compute maps of statistic `sta` for variable `va` from DataFrame `df` for years `years`. 
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`. 
@@ -402,7 +422,8 @@ arr=G.array(12,length(years))
 MITprofAnalysis.stat_monthly!(arr,df1,:Td,:median,years,G,window=3);
 ```
 """
-function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; func=(x->x), window=1)
+function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; 
+                        func=(x->x), window=1, npoint=1, nobs=1)
     ny=length(years)
     ar1=G.array()
     println(window)
@@ -410,7 +431,8 @@ function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::
     for y in 1:ny, m in 1:12
         m==1 ? println("starting year "*string(years[y])) : nothing
         ar1.=missing
-        stat_monthly!(ar1,df,va,sta,years[y],m,window=window)
+        stat_monthly!(ar1,df,va,sta,years[y],m,G;
+            func=func, window=window, npoint=npoint, nobs=npoint)
         arr[:,:,m,y].=ar1
     end
 
@@ -447,10 +469,11 @@ function stat_driver(;level=1,years=2004:2021,to_file=false)
     df1=MITprofAnalysis.trim(df)
 
     ny=length(years)
+    np=1
     arr=G.array(12,ny)
-    stat_monthly!(arr,df1,:Td,:median,years,G,window=3)   
+    stat_monthly!(arr,df1,:Td,:median,years,G,window=3,npoint=np, nobs=3)   
     
-    ext=string(level)*".nc"
+    ext=string(level)*"_np$(np).nc"
     level<10 ? output_file="δT_0"*ext : output_file="δT_"*ext
     pth=joinpath(tempdir(),"Argo_MITprof_files")
     output_file=joinpath(pth,"stat_output",output_file)

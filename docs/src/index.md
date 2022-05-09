@@ -9,7 +9,7 @@ Argo data processing and analysis. Currently provides:
 
 _This package is in early developement stage when breaking changes can be expected._
 
-## Workflows
+## Argo Format
 
 Downloading and accessing an Argo file (`wmo=13857` from `folder="aoml"`) is done like this.
 
@@ -23,7 +23,7 @@ Dataset(input_file)
 
 A list of all `folder,wmo` pairs can be obtained using `files_list=GDAC.files_list()`. And a method to download files in bulk & parallel is presented in [examples/Argo\_distributed\_download.jl](https://github.com/JuliaOcean/ArgoData.jl/blob/master/examples/Argo_distributed_download.jl).
 
-### MITprof Format
+## MITprof Format
 
 Formatting an Argo file (`input_file`) into an MITprof file (`output_file`) proceeds as follows.
 
@@ -40,7 +40,7 @@ mp=MITprofStandard(output_file)
 
 For additional detail, please refer to the [examples/ArgoToMITprof.jl](https://github.com/JuliaOcean/ArgoData.jl/blob/master/examples/ArgoToMITprof.jl) example.
 
-### Download MITprof files
+## Download Files
 
 The original collection of MITprof files from [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) is archived [here](https://doi.org/10.7910/DVN/EE3C40). These files can be retrieved as follows.
 
@@ -50,20 +50,3 @@ tmp = CSV.File("examples/dataverse_files.csv") |> DataFrame
 url0="https://dataverse.harvard.edu/api/access/datafile/"
 run(`wget --content-disposition $(url0)$(tmp[1,:ID])`)
 ```
-
-## Functions
-
-```@index
-```
-
-```@docs
-ProfileNative
-ProfileStandard
-MITprofStandard
-```
-
-```@autodocs
-Modules = [GDAC,MITprof,MITprofAnalysis,MITprofStat]
-Order   = [:type,:function]
-```
-

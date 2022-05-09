@@ -609,6 +609,9 @@ module GriddedFields
 
 using MeshArrays, OceanStateEstimation, Statistics
 
+import ArgoData.MITprofStandard
+import ArgoData.ArgoTools
+
 function NaN_mask(Γ)
     msk=write(Γ.hFacC)
     msk[findall(msk.>0.0)].=1.0
@@ -715,9 +718,6 @@ function interp_h(z_in::MeshArray,f::Vector,i,j,w,z_out)
         end
     end
 end
-
-import ArgoData.MITprofStandard
-import ArgoData.ArgoTools
 
 """
     interp(T_in::MeshArray,Γ,mp::MITprofStandard)

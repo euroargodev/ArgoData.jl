@@ -5,6 +5,7 @@ makedocs(;
     format=Documenter.HTML(),
     pages=[
         "Home" => "index.md",
+        "Modules" => "Functionalities.md",
     ],
     repo="https://github.com/JuliaOcean/ArgoData.jl/blob/{commit}{path}#L{line}",
     sitename="ArgoData.jl",

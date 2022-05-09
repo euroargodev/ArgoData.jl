@@ -147,11 +147,11 @@ MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)
 function stat_map(df::DataFrame,G::NamedTuple,va::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
 
     ar=G.array()
-    MITprofAnalysis.stat_grid!(ar,df,va,sta,func=func)
+    MITprofStat.stat_grid!(ar,df,va,sta,func=func)
     ar[ismissing.(ar)].=NaN
 
     n=G.array()
-    MITprofAnalysis.stat_grid!(n,df,va,:n)
+    MITprofStat.stat_grid!(n,df,va,:n)
     n[ismissing.(n)].=0.0
 
     ar[n .<=n0].=NaN

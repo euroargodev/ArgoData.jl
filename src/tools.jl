@@ -690,9 +690,9 @@ function load()
     initialize_array(n1,n2,n3) = initialize_array((n1,n2,n3))
 
     γ=Γ.XC.grid
-    T=γ.write(MeshArray(γ))
+    til=γ.write(MeshArray(γ))
 
-    (Γ=Γ,msk=msk,T=T,S=S,σT=σT,σS=σS,array=initialize_array,tile=T)
+    (Γ=Γ,msk=msk,T=T,S=S,σT=σT,σS=σS,array=initialize_array,tile=til)
 end
 
 function update_tile!(G,npoint)
@@ -703,13 +703,86 @@ function update_tile!(G,npoint)
     G.tile.=γ.write(T)
 end
 
-function interp_h(z_in::MeshArray,f,i,j,w,z_out)
+interp_h(z_in::MeshArray,f::Matrix,i,j,w,z_out) = interp_h(z_in,f[1,:],i[1,:],j[1,:],w[1,:],z_out)
+
+function interp_h(z_in::MeshArray,f::Vector,i,j,w,z_out)
     for k in 1:50
         z_out[k]=NaN
         if !isnan(sum(w[1,:]))
-            x=[z_in[f[1,ii],k][i[1,ii],j[1,ii]] for ii=1:4]
+            x=[z_in[f[ii],k][i[ii],j[ii]] for ii=1:4]
             kk=findall(isfinite.(x))
-            ~isempty(kk) ? z_out[k]=sum(w[1,kk].*x[kk])/sum(w[1,kk]) : nothing
+            ~isempty(kk) ? z_out[k]=sum(w[kk].*x[kk])/sum(w[kk]) : nothing
+        end
+    end
+end
+
+import ArgoData.MITprofStandard
+import ArgoData.ArgoTools
+
+"""
+    interp(T_in::MeshArray,Γ,mp::MITprofStandard)
+
+Interpolate `T_in`, defined on grid `Γ`, to locations speficied in `mp`. 
+
+For a more efficient, in place, option see `interp!`.
+
+```
+fil="MITprof/1901238_MITprof.nc"
+mp=MITprofStandard(fil)
+
+interp(G.T[1],G.Γ,mp)
+```
+"""
+function interp(T_in,Γ,mp::MITprofStandard)
+    T_out=similar(mp.T)
+    interp!(T_in,Γ,mp,T_out)
+    return T_out
+end    
+
+"""
+    interp!(T_in::MeshArray,Γ,mp::MITprofStandard,📚,T_out)
+    interp!(T_in::MeshArray,Γ,mp::MITprofStandard,T_out)
+
+Interpolate `T_in`, defined on grid `Γ`, to locations speficied in `mp` and store the result in array `T_out`.
+
+Providing interpolation coefficients `📚` computed beforehand speeds up repeated calls.
+
+Example:
+
+```
+fil=glob("*_MITprof.nc","MITprof")[1000]
+mp=MITprofStandard(fil)
+
+(f,i,j,w)=InterpolationFactors(G.Γ,mp.lon[:],mp.lat[:]);
+📚=(f=f,i=i,j=j,w=w)
+
+T=[similar(mp.T) for i in 1:12]
+[interp!(G.T[i],G.Γ,mp,📚,T[i]) for i in 1:12]
+```
+
+In the above example, `[interp!(G.T[i],G.Γ,mp,T[i]) for i in 1:12]` would be **much slower**.
+"""
+function interp!(T_in::MeshArray,Γ,mp::MITprofStandard,📚::NamedTuple,T_out)
+    z_in=-Γ.RC
+    z_out=mp.depth[:]
+    interp_backend!(mp,📚,z_in,T_in,z_out,T_out)
+end    
+
+function interp!(T_in::MeshArray,Γ,mp::MITprofStandard,T_out)
+    z_in=-Γ.RC
+    z_out=mp.depth[:]
+    (f,i,j,w)=InterpolationFactors(Γ,mp.lon[:],mp.lat[:]);
+    📚=(f=f,i=i,j=j,w=w)
+    interp_backend!(mp,📚,z_in,T_in,z_out,T_out)
+end    
+
+function interp_backend!(mp::MITprofStandard,📚::NamedTuple,z_in,T_in,z_out,T_out)
+    tmp=Array{Union{Missing, Float64},1}(missing,50)
+    for m in 1:length(mp.lon)
+        tmp.=missing
+        if mp.lat[m]>-89.99
+            GriddedFields.interp_h(T_in,📚.f[m,:],📚.i[m,:],📚.j[m,:],📚.w[m,:],tmp)
+            T_out[m,:].=ArgoTools.interp_z(z_in,tmp,z_out)
         end
     end
 end

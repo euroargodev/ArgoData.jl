@@ -186,10 +186,14 @@ using NCDatasets
 function stat_map_combine(G,level=5)
     ar2=G.array(); ar2.=NaN
     level<10 ? lev="0"*string(level) : lev=string(level)
+ 
+    list=MITprofStats.list_stat_configurations()
+    for i in 1:size(list,1)
+        stat_driver(;level=1,years=2004:2021,to_file=true,
+        nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs])
+    end
 
-    list=(  "np30nw5","np18nw5","np10nw5","np5nw5","np3nw5",
-            "np3nw3","np3nw1","np1nw3","np1nw1")
-    for i in list
+    for i in 1:size(list,1)
         ds = NCDataset("stat_output/δT_$(lev)_$(i).nc")
         ar3=ds["δT"][:,:,120]; ii=findall((!isnan).(ar3))
         ar2[ii].=ar3[ii]

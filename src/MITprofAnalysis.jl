@@ -439,9 +439,9 @@ function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::
 end
 
 """
-    stat_write(file,arr)
+    stat_write(file,arr,varia)
 """
-function stat_write(file,arr)
+function stat_write(file,arr,varia)
     ny=size(arr,4)
     nt=12*ny
 
@@ -451,17 +451,24 @@ function stat_write(file,arr)
     defDim(ds,"i",90)
     defDim(ds,"j",1170)
     defDim(ds,"t",nt)
-    ds.attrib["title"] = "this is a test file"
-    v = defVar(ds,"δT",Float32,("i","j","t"))
+    v = defVar(ds,"δ",Float32,("i","j","t"))
     v[:,:,:] = reshape(arr,90,1170,nt)
-    v.attrib["units"] = "degree Celsius"
+    if varia==:Td
+        ds.attrib["title"] = "Temperature Anomaly"
+        v.attrib["units"] = "degree Celsius"
+    elseif varia==:Sd
+        ds.attrib["title"] = "Salinity Anomaly"
+        v.attrib["units"] = "psu"
+    else
+        error("unknown variable")
+    end
     close(ds)
 end
 
 """
-    stat_driver(;level=1,years=2004:2021,to_file=false)
+    stat_driver(;varia=:Td,level=1,years=2004:2021,to_file=false)
 """
-function stat_driver(;level=1,years=2004:2021,to_file=false,
+function stat_driver(;varia=:Td,level=1,years=2004:2021,to_file=false,
     nmon=1, npoint=1, nobs=1)
     
     G=GriddedFields.load()
@@ -473,15 +480,37 @@ function stat_driver(;level=1,years=2004:2021,to_file=false,
 
     npoint>1 ? GriddedFields.update_tile!(G,npoint) : nothing
 
-    stat_monthly!(arr,df1,:Td,:median,years,G,nmon=nmon,npoint=npoint,nobs=nobs)   
+    stat_monthly!(arr,df1,varia,:median,years,G,nmon=nmon,npoint=npoint,nobs=nobs)   
     
+    suf=string(varia)
     ext=string(level)*"_np$(npoint)nm$(nmon)no$(nobs).nc"
-    level<10 ? output_file="δT_0"*ext : output_file="δT_"*ext
+    level<10 ? output_file=suf*"_k0"*ext : output_file=suf*"_k"*ext
     pth=joinpath(tempdir(),"Argo_MITprof_files")
     output_file=joinpath(pth,"stat_output",output_file)
 
-    to_file ? stat_write(output_file,arr) : nothing
+    to_file ? stat_write(output_file,arr,varia) : nothing
     return to_file ? output_file : arr
+end
+
+function list_stat_configurations()
+    list=DataFrame(:nmon => [],:npoint => [],:nobs => [])
+    #
+    push!(list,[5 30 100])
+    push!(list,[5 18 30])
+    push!(list,[5 10 10])
+    push!(list,[5 5 10])
+    push!(list,[5 3 10])
+    #
+    push!(list,[3 5 5])
+    push!(list,[3 3 5])
+    push!(list,[3 2 5])
+    push!(list,[3 1 5])
+    #
+    push!(list,[1 3 2])
+    push!(list,[1 2 2])
+    push!(list,[1 1 2])
+    #
+    list
 end
 
 end #module MITprofStat

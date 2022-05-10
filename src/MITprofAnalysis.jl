@@ -1,13 +1,13 @@
 module MITprofAnalysis
 
-using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics
+using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics, JLD2
 
 import ArgoData.MITprofStandard
 
 ## 1. Tasks that operate on MITprof files, directly, in a loop.
 #
 # - cost_functions : compute cost functions for each file
-# - csv_of_positions : assemble table with all data point positions (-> csv/csv_of_positions.csv)
+# - csv_of_positions : assemble table with all data point positions (-> csv/profile_positions.csv)
 # - csv_of_variables : assemble table with all data for one variable (-> csv/prof_T.csv , etc)
 # - csv_of_levels : date + slice of all variables (prof_T.csv, etc) at one level (-> csv_levels/k1.csv , etc)
 
@@ -73,7 +73,7 @@ valid data points for T and S (`nbT` ,`nbS`).
 ```
 using ArgoData
 path="MITprof/"
-csv_file="csv/csv_of_positions.csv"
+csv_file="csv/profile_positions.csv"
 
 using MeshArrays
 γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
@@ -138,7 +138,7 @@ end
 """
 function csv_of_variables(name::String)
     path="MITprof/"
-    csv_file="csv/csv_of_positions.csv"
+    csv_file="csv/profile_positions.csv"
     df=CSV.read(csv_file,DataFrame)
     
     list=glob("*.nc",path)
@@ -156,6 +156,46 @@ function csv_of_variables(name::String)
 
     x
 end
+                            
+"""
+    get_coeff(Γ,lon,lat) 
+    
+Alias for `InterpolationFactors(Γ,lon,lat)`. 
+
+Loop below creates interpolation coefficients for all data points. 
+
+```
+using SharedArrays, distributed
+
+@everywhere begin
+    using ArgoData
+    G=GriddedFields.load()
+    df=MITprofAnalysis.read_pos_level(5)
+
+    np=size(df,1)
+    n0=10000
+    nq=Int(ceil(np/n0))
+end
+
+(f,i,j,w)=( SharedArray{Int64}(np,4), SharedArray{Int64}(np,4),
+            SharedArray{Int64}(np,4), SharedArray{Float64}(np,4) )
+
+@sync @distributed for m in 1:nq
+    ii=n0*(m-1) .+collect(1:n0)
+    ii[end]>np ? ii=n0*(m-1) .+collect(1:n0+np-ii[end]) : nothing
+    tmp=MITprofAnalysis.get_coeff(G.Γ,df.lon[ii],df.lat[ii])
+    f[ii,:].=tmp[1]
+    i[ii,:].=tmp[2]
+    j[ii,:].=tmp[3]
+    w[ii,:].=tmp[4]
+end
+
+fil=joinpath("csv","profile_coeffs.jld2")
+co=[(f=f[ii,:],i=i[ii,:],j=j[ii,:],w=w[ii,:]) for ii in 1:np]
+save_object(fil,co)
+```
+"""
+get_coeff(Γ,lon,lat) = InterpolationFactors(Γ,lon,lat)
 
 """
     csv_of_levels()
@@ -167,7 +207,7 @@ function csv_of_levels(k=0)
     list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
     list_n=("T","Te","Tw","S","Se","Sw")
 
-    csv_file="csv/csv_of_positions.csv"
+    csv_file="csv/profile_positions.csv"
     df0=CSV.read(csv_file,DataFrame)
 
     path="csv_levels/"
@@ -202,7 +242,7 @@ end
 """
     read_pos_level(k=1)
 
-Read in from `csv/csv_of_positions.csv` and e.g. `csv_levels/k1.csv`,
+Read in from `csv/profile_positions.csv` and e.g. `csv_levels/k1.csv`,
 parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
 
 ```
@@ -217,12 +257,26 @@ function read_pos_level(k=1)
 end
 
 """
+    add_coeffs!(df)
+
+Read `profile_coeffs.jld2` and add to `df`.    
+
+```
+df=MITprofAnalysis.read_pos_level(5)
+MITprofAnalysis.add_coeffs!(df)
+```
+"""
+function add_coeffs!(df)
+    df.📚=load_object(joinpath("csv","profile_coeffs.jld2"))
+end
+
+"""
     add_level!(df,k)
 
 Read from e.g. `csv_levels/k1.csv` and add variables to `df`.    
 
 ```
-df=CSV.read("csv/csv_of_positions.csv",DataFrame)
+df=CSV.read("csv/profile_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,5)
 ```
 """
@@ -244,7 +298,7 @@ end
 Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
 
 ```
-df=CSV.read("csv/csv_of_positions.csv",DataFrame)
+df=CSV.read("csv/profile_positions.csv",DataFrame)
 G=GriddedFields.load()
 MITprofAnalysis.add_tile!(df,G.Γ,30)
 ```
@@ -274,7 +328,7 @@ end
 Subset of df that's within specified date and position ranges.    
 
 ```
-df=CSV.read("csv/csv_of_positions.csv",DataFrame)
+df=CSV.read("csv/profile_positions.csv",DataFrame)
 d0=DateTime("2012-06-11T18:50:04")
 d1=DateTime("2012-07-11T18:50:04")
 df1=MITprofAnalysis.subset(df,dates=(d0,d1))
@@ -304,7 +358,7 @@ end
 Filter out data points that lack T, Te, etc.
 
 ```
-df=CSV.read("csv/csv_of_positions.csv",DataFrame)
+df=CSV.read("csv/profile_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,1)
 df1=MITprofAnalysis.trim(df)
 ```

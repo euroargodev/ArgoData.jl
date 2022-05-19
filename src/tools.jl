@@ -571,10 +571,10 @@ For example :
 
 ```
 ff(x)=sin((x-0.5)/12*2pi)
-fac,rec=monthly_climatology_factors(prof["date"])
+(fac0,fac1,rec0,rec1)=monthly_climatology_factors(ArgoTools.DateTime(2011,1,10))
 
-gg=fac[1]*ff(rec[1])+fac[2]*ff(rec[2])
-(ff(rec[1]),gg,ff(rec[2]))
+gg=fac0*ff(rec0)+fac1*ff(rec1)
+(ff(rec0),gg,ff(rec1))
 ```
 """
 function monthly_climatology_factors(date)
@@ -611,7 +611,7 @@ function monthly_climatology_factors(date)
     if isa(date,Number)||isa(date,DateTime)
         tt=maximum(findall(tim_fld.<=tim_prof))
         a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
-        (1-a0,a0),(rec_fld[tt],rec_fld[tt+1])
+        (1-a0,a0,rec_fld[tt],rec_fld[tt+1])
     else
         fac0=fill(0.0,size(date))
         fac1=fill(0.0,size(date))

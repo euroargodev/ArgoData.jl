@@ -254,8 +254,8 @@ function format(meta,gridded_fields,input_file,output_file="")
     
     prof_σT=Array{Union{Missing, Float64},1}(missing,50)
     prof_σS=Array{Union{Missing, Float64},1}(missing,50)
+    tmp0=Array{Union{Missing, Float64},1}(missing,50)
     tmp1=Array{Union{Missing, Float64},1}(missing,50)
-    tmp2=Array{Union{Missing, Float64},1}(missing,50)
 
     for m in 1:np
         #println(m)
@@ -272,8 +272,8 @@ function format(meta,gridded_fields,input_file,output_file="")
 
         prof_σT.=missing
         prof_σS.=missing
-        tmp1.=missing
-        tmp2.=missing    
+        tmp0.=missing
+        tmp1.=missing    
     
         if prof.lat[1]>-89.99
 
@@ -298,15 +298,15 @@ function format(meta,gridded_fields,input_file,output_file="")
         ##
         
         if sum( (!isnan).(prof_σT) )>0
-            fac,rec=ArgoTools.monthly_climatology_factors(prof.date[1])
+            (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(prof.date[1])
 
-            GriddedFields.interp_h(T[rec[1]],📚.f,📚.i,📚.j,📚.w,tmp1)
-            GriddedFields.interp_h(T[rec[2]],📚.f,📚.i,📚.j,📚.w,tmp2)
-            prof_std.Testim.=ArgoTools.interp_z(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+            GriddedFields.interp_h(T[rec0],📚.f,📚.i,📚.j,📚.w,tmp0)
+            GriddedFields.interp_h(T[rec1],📚.f,📚.i,📚.j,📚.w,tmp1)
+            prof_std.Testim.=ArgoTools.interp_z(-Γ.RC,fac0*tmp0+fac1*tmp1,z_std)
     
-            GriddedFields.interp_h(S[rec[1]],📚.f,📚.i,📚.j,📚.w,tmp1)
-            GriddedFields.interp_h(S[rec[2]],📚.f,📚.i,📚.j,📚.w,tmp2)
-            prof_std.Sestim.=ArgoTools.interp_z(-Γ.RC,fac[1]*tmp1+fac[2]*tmp2,z_std)
+            GriddedFields.interp_h(S[rec0],📚.f,📚.i,📚.j,📚.w,tmp0)
+            GriddedFields.interp_h(S[rec1],📚.f,📚.i,📚.j,📚.w,tmp1)
+            prof_std.Sestim.=ArgoTools.interp_z(-Γ.RC,fac0*tmp0+fac1*tmp1,z_std)
         else
             prof_std.Testim.=missing
             prof_std.Sestim.=missing

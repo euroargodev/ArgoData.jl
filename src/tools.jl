@@ -561,11 +561,9 @@ end
 """
     monthly_climatology_factors(date)
 
-if `date` is a date in `days since DateTime(0)`
-
-and `ff(rec)` returns a value for month `rec` in `1:12`
-
-then compute the factors to interpolate from `rec[1],rec[2]` to `date`.
+If `date` is a DateTime, a vector of DateTime, or a date in `days since DateTime(0)`
+then compute the corresponding climatological months (1 to 12) and interpolation 
+factors (0.0 to 1.0) and return result as `fac0,fac1,rec0,rec1`.
 
 For example :
 

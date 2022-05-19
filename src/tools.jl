@@ -593,23 +593,40 @@ function monthly_climatology_factors(date)
         tmp=date-DateTime(year(date))
         tim_prof=tmp.value/86400/1000
         tim_prof>365.0 ? tim_prof=365.0 : nothing
-#    elseif isa(df.date[1],DateTime)
-#        tmp=[d-DateTime(year(d)) for d in date]
-#        tim_prof=[i.value/86400/1000 for i in tmp]
-#        [tim_prof[i]>365.0 ? tim_prof[i]=365.0 : nothing for i in 1:length(tim_prof)]
-    else
+    elseif isa(date,Number)
         year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
         date0=DateTime(year0,1,1)-DateTime(0)
 
         date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
         tim_prof=date-date0
         tim_prof>365.0 ? tim_prof=365.0 : nothing
+    elseif isa(date[1],DateTime)
+        tmp=[d-DateTime(year(d)) for d in date]
+        tim_prof=[i.value/86400/1000 for i in tmp]
+        [tim_prof[i]>365.0 ? tim_prof[i]=365.0 : nothing for i in 1:length(tim_prof)]
+    else 
+        error("unimplemented case")
     end
 
-    tt=maximum(findall(tim_fld.<=tim_prof))
-    a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
-    
-    return (1-a0,a0),(rec_fld[tt],rec_fld[tt+1])
+    if isa(date,Number)||isa(date,DateTime)
+        tt=maximum(findall(tim_fld.<=tim_prof))
+        a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
+        (1-a0,a0),(rec_fld[tt],rec_fld[tt+1])
+    else
+        fac0=fill(0.0,size(date))
+        fac1=fill(0.0,size(date))
+        rec0=fill(0,size(date))
+        rec1=fill(0,size(date))
+        for ii in eachindex(date)
+            tt=maximum(findall(tim_fld.<=tim_prof[ii]))
+            a0=(tim_prof[ii]-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
+            fac0[ii]=1.0 -a0
+            fac1[ii]=a0
+            rec0[ii]=rec_fld[tt]
+            rec1[ii]=rec_fld[tt+1]
+        end
+        (fac0,fac1,rec0,rec1)
+    end
 end
 
 end #module ArgoTools

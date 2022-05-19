@@ -306,11 +306,7 @@ MITprofAnalysis.add_climatology_factors!(df)
 ```
 """
 function add_climatology_factors!(df)
-    tmp=[monthly_climatology_factors(d) for d in df.date]
-    df.fac0=[i[1][1] for i in tmp]
-    df.fac1=[i[1][2] for i in tmp]
-    df.rec0=[i[2][1] for i in tmp]
-    df.rec1=[i[2][2] for i in tmp]
+    (df.fac0,df.fac1,df.rec0,df.rec1)=monthly_climatology_factors(df.date)
 end
 
 """

@@ -3,6 +3,7 @@ module MITprofAnalysis
 using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics, JLD2
 
 import ArgoData.MITprofStandard
+import ArgoData.ArgoTools: monthly_climatology_factors
 
 ## 1. Tasks that operate on MITprof files, directly, in a loop.
 #
@@ -158,11 +159,13 @@ function csv_of_variables(name::String)
 end
                             
 """
-    get_coeff(Γ,lon,lat) 
+    prepare_interpolation(Γ,lon,lat) 
     
 Alias for `InterpolationFactors(Γ,lon,lat)`. 
 
-Loop below creates interpolation coefficients for all data points. 
+The loop below creates interpolation coefficients for all data points. 
+
+The results are stored in a file called `csv/profile_coeffs.jld2` at the end.
 
 ```
 using SharedArrays, distributed
@@ -183,7 +186,7 @@ end
 @sync @distributed for m in 1:nq
     ii=n0*(m-1) .+collect(1:n0)
     ii[end]>np ? ii=n0*(m-1) .+collect(1:n0+np-ii[end]) : nothing
-    tmp=MITprofAnalysis.get_coeff(G.Γ,df.lon[ii],df.lat[ii])
+    tmp=MITprofAnalysis.prepare_interpolation(G.Γ,df.lon[ii],df.lat[ii])
     f[ii,:].=tmp[1]
     i[ii,:].=tmp[2]
     j[ii,:].=tmp[3]
@@ -195,7 +198,7 @@ co=[(f=f[ii,:],i=i[ii,:],j=j[ii,:],w=w[ii,:]) for ii in 1:np]
 save_object(fil,co)
 ```
 """
-get_coeff(Γ,lon,lat) = InterpolationFactors(Γ,lon,lat)
+prepare_interpolation(Γ,lon,lat) = InterpolationFactors(Γ,lon,lat)
 
 """
     csv_of_levels()
@@ -290,6 +293,24 @@ function add_level!(df,k)
     df.Sd=df.S-df.Se
     df.Tnd=df.Td.*sqrt.(df.Tw)
     df.Snd=df.Sd.*sqrt.(df.Sw)
+end
+
+"""
+    add_climatology_factors!(df)
+
+Add temporal interpolation factors (`rec0,rec1,fac0,fac1`) to DataFrame. 
+
+```
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+MITprofAnalysis.add_climatology_factors!(df)
+```
+"""
+function add_climatology_factors!(df)
+    tmp=[monthly_climatology_factors(d) for d in df.date]
+    df.fac0=[i[1][1] for i in tmp]
+    df.fac1=[i[1][2] for i in tmp]
+    df.rec0=[i[2][1] for i in tmp]
+    df.rec1=[i[2][2] for i in tmp]
 end
 
 """

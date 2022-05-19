@@ -589,12 +589,22 @@ function monthly_climatology_factors(date)
     tim_fld=[tim_fld[12]-365.0;tim_fld...;tim_fld[1]+365.0]
     rec_fld=[12;1:12;1]
     
-    year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
-    date0=DateTime(year0,1,1)-DateTime(0)
+    if isa(date,DateTime)
+        tmp=date-DateTime(year(date))
+        tim_prof=tmp.value/86400/1000
+        tim_prof>365.0 ? tim_prof=365.0 : nothing
+#    elseif isa(df.date[1],DateTime)
+#        tmp=[d-DateTime(year(d)) for d in date]
+#        tim_prof=[i.value/86400/1000 for i in tmp]
+#        [tim_prof[i]>365.0 ? tim_prof[i]=365.0 : nothing for i in 1:length(tim_prof)]
+    else
+        year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
+        date0=DateTime(year0,1,1)-DateTime(0)
 
-    date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
-    tim_prof=date-date0
-    tim_prof>365.0 ? tim_prof=365.0 : nothing
+        date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
+        tim_prof=date-date0
+        tim_prof>365.0 ? tim_prof=365.0 : nothing
+    end
 
     tt=maximum(findall(tim_fld.<=tim_prof))
     a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])

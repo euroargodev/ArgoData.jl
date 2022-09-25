@@ -686,13 +686,13 @@ function load()
     
     msk=NaN_mask(Γ)
 
-    pth=MITPROFclim_path
     OceanStateEstimation.MITPROFclim_download()
 
-    T=MonthlyClimatology(pth*"T_OWPv1_M_eccollc_90x50.bin",msk)
-    S=MonthlyClimatology(pth*"S_OWPv1_M_eccollc_90x50.bin",msk)
-    σT=AnnualClimatology(pth*"sigma_T_nov2015.bin",msk)
-    σS=AnnualClimatology(pth*"sigma_S_nov2015.bin",msk)
+    pth=joinpath(ScratchSpaces.MITprof,"gcmfaces_climatologies")
+    T=MonthlyClimatology(joinpath(pth,"T_OWPv1_M_eccollc_90x50.bin"),msk)
+    S=MonthlyClimatology(joinpath(pth,"S_OWPv1_M_eccollc_90x50.bin"),msk)
+    σT=AnnualClimatology(joinpath(pth,"sigma_T_nov2015.bin"),msk)
+    σS=AnnualClimatology(joinpath(pth,"sigma_S_nov2015.bin"),msk)
 
     tmp=σT.grid.write(σT)
     for kk in 1:size(tmp,3)

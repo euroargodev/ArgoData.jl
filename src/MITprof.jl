@@ -1,6 +1,6 @@
 module MITprof
 
-using Dates, MeshArrays, NCDatasets, OrderedCollections, UnPack, Glob, DataFrames, CSV
+using Dates, MeshArrays, NCDatasets, OrderedCollections, Glob, DataFrames, CSV
 
 import ArgoData.ProfileNative
 import ArgoData.ProfileStandard
@@ -239,7 +239,7 @@ MITprof.format(meta,gridded_fields,input_file)
 ```
 """
 function format(meta,gridded_fields,input_file,output_file="")
-    @unpack Γ,msk,T,S,σT,σS = gridded_fields
+    (; Γ, msk, T, S, σT, σS) = gridded_fields
     z_std = meta["z_std"]
 
     isempty(output_file) ? output_file=joinpath(tempdir(),"MITprof_"*input_file) : nothing

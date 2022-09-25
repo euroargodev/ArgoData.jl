@@ -657,7 +657,7 @@ function load()
 
     OceanStateEstimation.MITPROFclim_download()
 
-    pth=ScratchSpaces.MITprof
+    pth=joinpath(ScratchSpaces.MITprof,"gcmfaces_climatologies")
     T=MonthlyClimatology(joinpath(pth,"T_OWPv1_M_eccollc_90x50.bin"),msk)
     S=MonthlyClimatology(joinpath(pth,"S_OWPv1_M_eccollc_90x50.bin"),msk)
     σT=AnnualClimatology(joinpath(pth,"sigma_T_nov2015.bin"),msk)

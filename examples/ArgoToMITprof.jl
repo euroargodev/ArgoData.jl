@@ -5,7 +5,21 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 67a5c3f5-5cd5-46e7-8b2a-83299387c18a
-using ArgoData, Downloads, NCDatasets, Statistics
+using ArgoData, Downloads, NCDatasets, Statistics, PlutoUI
+
+# ╔═╡ 52f89eed-0ab3-4082-b58f-45c90eaec205
+md"""# MITprof format
+
+The `MITprof` format for [standard depth data](https://doi.org/10.7910/DVN/EE3C40) is defined in [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015).
+
+Formatting native [Argo](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo) files into the MITprof format is done via `MITprof.format`
+"""
+
+# ╔═╡ 21062d00-f859-4d58-afed-d9748ca7f4f6
+md"""## Cost Function Example"""
+
+# ╔═╡ f094f531-57d9-4b8e-aa23-02b2c443bdf3
+md"""## Julia packages"""
 
 # ╔═╡ 39d1da64-217a-41b4-b2dc-07df1cfd3220
 begin
@@ -21,20 +35,24 @@ begin
 	
 	fil=joinpath(tempdir(),"ar_greylist.txt")
 	isfile(fil) ? greylist=GDAC.grey_list(fil) : greylist=""
+
+	"Done with Files Names"
 end
 
 # ╔═╡ ac23620a-b772-4bbb-95d2-d06ab497709c
 begin
 	meta=ArgoTools.meta(input_file,output_file)
-	meta["greylist"]=greylist
-	
+	meta["greylist"]=greylist	
 	gridded_fields=GriddedFields.load()
-	output_file2=MITprof.format(meta,gridded_fields,input_file,output_file)
+	"Done with initialization"
 end
+
+# ╔═╡ 48088d9f-3766-4b07-89dd-f57a9d8c7bd0
+output_file2=MITprof.format(meta,gridded_fields,input_file,output_file)
 
 # ╔═╡ 268c7d77-e2c2-48fa-a5c8-9c59e8fbc7f2
 begin
-	ds=Dataset(output_file)
+	ds=Dataset(output_file2)
 	
 	tmp_cost=ds["prof_Sweight"].* ((ds["prof_S"]-ds["prof_Sestim"]).^2)
 	ii=findall( ((!ismissing).(tmp_cost)).+(ds["prof_Sweight"].>0).>1 );
@@ -55,11 +73,13 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 ArgoData = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 ArgoData = "~0.1.14"
 NCDatasets = "~0.12.9"
+PlutoUI = "~0.7.49"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -68,7 +88,13 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.1"
 manifest_format = "2.0"
-project_hash = "e2701e9f7004d5befc6e244b1778d15cab882c60"
+project_hash = "ddb51a18af045c9908a87772312e179fe12df290"
+
+[[deps.AbstractPlutoDingetjes]]
+deps = ["Pkg"]
+git-tree-sha1 = "8eaf9f1b4921132a4cff3f36a1d9ba923b14a481"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.1.4"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra"]
@@ -133,6 +159,12 @@ deps = ["TranscodingStreams", "Zlib_jll"]
 git-tree-sha1 = "ded953804d019afa9a3f98981d99b33e3db7b6da"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.7.0"
+
+[[deps.ColorTypes]]
+deps = ["FixedPointNumbers", "Random"]
+git-tree-sha1 = "eb7f0f8307f71fac7c606984ea5fb2817275d6e4"
+uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
+version = "0.11.4"
 
 [[deps.Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
@@ -230,6 +262,12 @@ version = "0.9.20"
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
+[[deps.FixedPointNumbers]]
+deps = ["Statistics"]
+git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
+uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
+version = "0.8.4"
+
 [[deps.Formatting]]
 deps = ["Printf"]
 git-tree-sha1 = "8339d61043228fdd3eb658d86c926cb282ae72a8"
@@ -274,6 +312,24 @@ git-tree-sha1 = "4cc2bb72df6ff40b055295fdef6d92955f9dede8"
 uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
 version = "1.12.2+2"
 
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "8d511d5b81240fc8e6802386302675bdf47737b9"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.4"
+
+[[deps.HypertextLiteral]]
+deps = ["Tricks"]
+git-tree-sha1 = "c47c5fa4c5308f27ccaac35504858d8914e102f9"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.4"
+
+[[deps.IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "f7be53659ab06ddc986428d3a9dcc95f6fa6705a"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "0.2.2"
+
 [[deps.InlineStrings]]
 deps = ["Parsers"]
 git-tree-sha1 = "0cf92ec945125946352f3d46c96976ab972bde6f"
@@ -311,6 +367,12 @@ deps = ["Preferences"]
 git-tree-sha1 = "abc9885a7ca2052a736a600f7fa66209f96506e1"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 version = "1.4.1"
+
+[[deps.JSON]]
+deps = ["Dates", "Mmap", "Parsers", "Unicode"]
+git-tree-sha1 = "3c837543ddb02250ef42f4738347454f95079d4e"
+uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+version = "0.21.3"
 
 [[deps.LaTeXStrings]]
 git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
@@ -355,6 +417,11 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[deps.MIMEs]]
+git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
+uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
+version = "0.1.4"
 
 [[deps.MITgcmTools]]
 deps = ["ClimateModels", "CodecZlib", "DataFrames", "Dates", "Downloads", "MeshArrays", "OrderedCollections", "Printf", "Scratch", "SparseArrays", "Suppressor", "Tar", "UUIDs"]
@@ -467,6 +534,12 @@ version = "2.5.1"
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.8.0"
+
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
+git-tree-sha1 = "eadad7b14cf046de6eb41f13c9275e5aa2711ab6"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.49"
 
 [[deps.PooledArrays]]
 deps = ["DataAPI", "Future"]
@@ -625,11 +698,21 @@ git-tree-sha1 = "e4bdc63f5c6d62e80eb1c0043fcc0360d5950ff7"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.9.10"
 
+[[deps.Tricks]]
+git-tree-sha1 = "6bac775f2d42a611cdfcd1fb217ee719630c4175"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.6"
+
 [[deps.URIParser]]
 deps = ["Unicode"]
 git-tree-sha1 = "53a9f49546b8d2dd2e688d216421d050c9a31d0d"
 uuid = "30578b45-9adc-5946-b283-645ec420af67"
 version = "0.4.1"
+
+[[deps.URIs]]
+git-tree-sha1 = "ac00576f90d8a259f2c9d823e91d1de3fd44d348"
+uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
+version = "1.4.1"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
@@ -690,9 +773,13 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═67a5c3f5-5cd5-46e7-8b2a-83299387c18a
-# ╠═39d1da64-217a-41b4-b2dc-07df1cfd3220
-# ╠═ac23620a-b772-4bbb-95d2-d06ab497709c
+# ╟─52f89eed-0ab3-4082-b58f-45c90eaec205
+# ╠═48088d9f-3766-4b07-89dd-f57a9d8c7bd0
+# ╟─21062d00-f859-4d58-afed-d9748ca7f4f6
 # ╠═268c7d77-e2c2-48fa-a5c8-9c59e8fbc7f2
+# ╟─f094f531-57d9-4b8e-aa23-02b2c443bdf3
+# ╠═67a5c3f5-5cd5-46e7-8b2a-83299387c18a
+# ╟─39d1da64-217a-41b4-b2dc-07df1cfd3220
+# ╟─ac23620a-b772-4bbb-95d2-d06ab497709c
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

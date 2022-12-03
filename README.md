@@ -8,10 +8,16 @@
 
 Argo data processing and analysis. 
 
-- The `GDAC` module functions access and retrieve files from the Argo data servers. 
-- `MITprof` supports the format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for standard depth data sets like [this one](https://doi.org/10.7910/DVN/EE3C40).
-- `AnalysisMethods` compute e.g. cost functions and geospatial statistics.
-- The `MITprof_plots` module in `examples/` is to plot results.
+Analysis and Processing of 
+[Argo](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo) ocean data sets.
+
+## Contents
+
+- `GDAC` module to access and retrieve files from Argo server. 
+- `MITprof` format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for [standard depth data](https://doi.org/10.7910/DVN/EE3C40).
+- `MITprof_plots` module (in `examples/`) for `MITprof`.
+- `AnalysisMethods` for cost functions and geospatial statistics.
+- notebooks : [argopy interface](Argo_argopy.html), and more.
 
 _This package is in early developement stage when breaking changes can be expected._
 

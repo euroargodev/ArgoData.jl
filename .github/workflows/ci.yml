@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - master
+      - notebooks_dev1
     tags: '*'
 jobs:
   test:

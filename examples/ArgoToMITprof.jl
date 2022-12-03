@@ -10,13 +10,17 @@ using ArgoData, Downloads, NCDatasets, Statistics, PlutoUI
 # ╔═╡ 52f89eed-0ab3-4082-b58f-45c90eaec205
 md"""# MITprof format
 
-The `MITprof` format for [standard depth data](https://doi.org/10.7910/DVN/EE3C40) is defined in [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015).
+The `MITprof` format and cost function for [standard depth data](https://doi.org/10.7910/DVN/EE3C40) is defined in [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015).
 
 Formatting native [Argo](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo) files into the MITprof format is done via `MITprof.format`
 """
 
 # ╔═╡ 21062d00-f859-4d58-afed-d9748ca7f4f6
-md"""## Cost Function Example"""
+md"""## Cost Function Example
+
+!!! note
+    Cost functions are normalized distances between estimate and data. See [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for detail.
+"""
 
 # ╔═╡ f094f531-57d9-4b8e-aa23-02b2c443bdf3
 md"""## Julia packages"""
@@ -56,15 +60,13 @@ begin
 	
 	tmp_cost=ds["prof_Sweight"].* ((ds["prof_S"]-ds["prof_Sestim"]).^2)
 	ii=findall( ((!ismissing).(tmp_cost)).+(ds["prof_Sweight"].>0).>1 );
-	println(mean(tmp_cost[ii]))
-	#1.365848840650727
-	#1.3658547749903598
+	println("mean S cost = $(mean(tmp_cost[ii])) ")
+	println("  reference = 1.365848840650727")
 	
 	tmp_cost=ds["prof_Tweight"].* ((ds["prof_T"]-ds["prof_Testim"]).^2);
 	ii=findall( ((!ismissing).(tmp_cost)).+(ds["prof_Tweight"].>0).>1 );
-	println(mean(tmp_cost[ii]))
-	#1.4125672446566286
-	#1.41256622801185
+	println("mean T cost = $(mean(tmp_cost[ii])) ")
+	println("  reference = 1.4125672446566286")
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -88,7 +90,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.1"
 manifest_format = "2.0"
-project_hash = "ddb51a18af045c9908a87772312e179fe12df290"
+project_hash = "6566a54015a7a0bd7535085836e764f24c713fdd"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]

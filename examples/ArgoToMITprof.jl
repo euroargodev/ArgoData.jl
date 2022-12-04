@@ -4,27 +4,79 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ 67a5c3f5-5cd5-46e7-8b2a-83299387c18a
-using ArgoData, Downloads, NCDatasets, Statistics, PlutoUI
+begin
+	using ArgoData, Downloads, NCDatasets, Statistics
+	using PrettyTables, PlutoUI
+end
+
+# ╔═╡ 708c3f0f-a8d4-45dd-85f2-c8bb934d2576
+TableOfContents()
 
 # ╔═╡ 52f89eed-0ab3-4082-b58f-45c90eaec205
-md"""# MITprof format
+md"""# MITprof Format & Cost Function
 
-The `MITprof` format for [standard depth data](https://doi.org/10.7910/DVN/EE3C40) is defined in [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015).
+The `MITprof` format and cost function for [standard depth data](https://doi.org/10.7910/DVN/EE3C40) is defined in [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015).
 
 Formatting native [Argo](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo) files into the MITprof format is done via `MITprof.format`
 """
 
 # ╔═╡ 21062d00-f859-4d58-afed-d9748ca7f4f6
-md"""## Cost Function Example"""
+md"""## Cost Function
+
+!!! note
+    Cost functions are normalized distances between estimate and data. See [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for detail.
+"""
+
+# ╔═╡ f7950381-9ea8-4160-861b-dc0bf4b5bfe4
+begin
+	mywmo_bind = @bind wmo_txt confirm(TextField(default="6900900"))
+	
+	md"""## Select a Float
+	\
+	$(mywmo_bind)
+
+	(default here is 6900900)
+	
+	## Alternate Floats (subset)	
+	"""
+end
+
+# ╔═╡ 847f8175-0e8d-4fa7-8712-c6b47adbeab8
+begin
+	files_list=GDAC.files_list()
+	nf=size(files_list,1)
+	md"""Total number of identified floats is $(nf)"""
+end
+
+# ╔═╡ 89efaaca-e499-4367-bc23-c97a86f02d4b
+begin
+	pretty_table(files_list[1:2000:nf,:],
+		header = names(files_list),
+		header_crayon = crayon"blue bg:white bold",
+		highlighters  = ( hl_col(1, crayon"white"),hl_col(2, crayon"white") ),
+	)
+end
 
 # ╔═╡ f094f531-57d9-4b8e-aa23-02b2c443bdf3
 md"""## Julia packages"""
 
 # ╔═╡ 39d1da64-217a-41b4-b2dc-07df1cfd3220
 begin
-	wmo=6900900
-	url0="https://data-argo.ifremer.fr/dac/coriolis/"
+	wmo=parse(Int,wmo_txt)
+	folder=files_list[files_list.wmo.==wmo,"folder"][1]
+
+	url0="https://data-argo.ifremer.fr/dac/$(folder)/"
 	input_url=url0*"/$(wmo)/$(wmo)_prof.nc"
 	input_file=joinpath(tempdir(),"$(wmo)_prof.nc")
 	output_file=joinpath(tempdir(),"ncdev","$(wmo)_MITprof.nc")
@@ -54,17 +106,23 @@ output_file2=MITprof.format(meta,gridded_fields,input_file,output_file)
 begin
 	ds=Dataset(output_file2)
 	
-	tmp_cost=ds["prof_Sweight"].* ((ds["prof_S"]-ds["prof_Sestim"]).^2)
-	ii=findall( ((!ismissing).(tmp_cost)).+(ds["prof_Sweight"].>0).>1 );
-	println(mean(tmp_cost[ii]))
-	#1.365848840650727
-	#1.3658547749903598
+	println("Cost function values for float $(wmo) :")
 	
-	tmp_cost=ds["prof_Tweight"].* ((ds["prof_T"]-ds["prof_Testim"]).^2);
-	ii=findall( ((!ismissing).(tmp_cost)).+(ds["prof_Tweight"].>0).>1 );
-	println(mean(tmp_cost[ii]))
-	#1.4125672446566286
-	#1.41256622801185
+	costT=ds["prof_Tweight"].* ((ds["prof_T"]-ds["prof_Testim"]).^2);
+	ii=findall( ((!ismissing).(costT)).+(ds["prof_Tweight"].>0).>1 );
+
+	costS=ds["prof_Sweight"].* ((ds["prof_S"]-ds["prof_Sestim"]).^2)
+	ii=findall( ((!ismissing).(costS)).+(ds["prof_Sweight"].>0).>1 );
+	
+	println("mean T cost = $(mean(costT[ii])) ")
+	println("mean S cost = $(mean(costS[ii])) ")
+
+	if wmo==6900900
+		println("")
+		println("Reference values for default float (6900900) :")
+		println("mean T cost = 1.4125672446566286")
+		println("mean S cost = 1.365848840650727")
+	end
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -74,12 +132,14 @@ ArgoData = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 ArgoData = "~0.1.14"
 NCDatasets = "~0.12.9"
 PlutoUI = "~0.7.49"
+PrettyTables = "~2.2.2"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -88,7 +148,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.1"
 manifest_format = "2.0"
-project_hash = "ddb51a18af045c9908a87772312e179fe12df290"
+project_hash = "d01f6b373b42a4af75f226efe5f09081b8783fe3"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -773,10 +833,14 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
+# ╟─708c3f0f-a8d4-45dd-85f2-c8bb934d2576
 # ╟─52f89eed-0ab3-4082-b58f-45c90eaec205
-# ╠═48088d9f-3766-4b07-89dd-f57a9d8c7bd0
+# ╟─48088d9f-3766-4b07-89dd-f57a9d8c7bd0
 # ╟─21062d00-f859-4d58-afed-d9748ca7f4f6
-# ╠═268c7d77-e2c2-48fa-a5c8-9c59e8fbc7f2
+# ╟─268c7d77-e2c2-48fa-a5c8-9c59e8fbc7f2
+# ╟─f7950381-9ea8-4160-861b-dc0bf4b5bfe4
+# ╟─89efaaca-e499-4367-bc23-c97a86f02d4b
+# ╟─847f8175-0e8d-4fa7-8712-c6b47adbeab8
 # ╟─f094f531-57d9-4b8e-aa23-02b2c443bdf3
 # ╠═67a5c3f5-5cd5-46e7-8b2a-83299387c18a
 # ╟─39d1da64-217a-41b4-b2dc-07df1cfd3220

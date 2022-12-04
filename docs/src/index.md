@@ -9,7 +9,7 @@ Analysis and Processing of
 - `MITprof` format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for [standard depth data](https://doi.org/10.7910/DVN/EE3C40).
 - `MITprof_plots` module (in `examples/`) for `MITprof`.
 - `AnalysisMethods` for cost functions and geospatial statistics.
-- notebooks : [argopy interface](Argo_argopy.html), and more.
+- notebooks : [argopy interface](http://gaelforget.net/notebooks/Argo_argopy.html), and more.
 
 _This package is in early developement stage when breaking changes can be expected._
 

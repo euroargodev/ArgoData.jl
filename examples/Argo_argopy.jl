@@ -6,12 +6,7 @@ using InteractiveUtils
 
 # ╔═╡ 8073dbb4-7292-11ed-1c5c-2d272632f926
 begin
-	using PlutoUI, CairoMakie
-	import Pkg, PyCall, Conda
-	ENV["PYTHON"]=""
-	Pkg.build("PyCall")
-	Conda.add("argopy")
-	argopy=PyCall.pyimport("argopy")
+	using PlutoUI, CairoMakie, PyCall, Pkg
 end
 
 # ╔═╡ 0877b3e0-86c0-4143-848b-ecf87f4741f3
@@ -31,24 +26,11 @@ md"""## Fetch Data
 Here we fetch data from a few selected Argo floats.
 """
 
-# ╔═╡ 68fc22ed-c8a0-498a-aca7-fc930b430fc8
-begin
-	ds_fetcher=argopy.DataFetcher().float([6902746, 6902747, 6902757, 6902766])
-	ds_points = ds_fetcher.to_xarray()
-	ds_profiles = ds_points.argo.point2profile()
-end
-
 # ╔═╡ aace82bb-82f0-4699-8d0e-97d27fa00b17
 md"""## Extract Data
 
 Extract the array of `TEMP` values from the fetched data set.
 """
-
-# ╔═╡ 545b7114-ccaf-4267-b9b5-f2531c5476d2
-begin
-	TEMP=ds_profiles["TEMP"]
-	TEMP_values=Array(TEMP.values)
-end
 
 # ╔═╡ ffa4f145-1ade-46c0-88fa-d0ea62c8177e
 md"""## Plot Data"""
@@ -97,24 +79,68 @@ function plot_samples(ds_profiles)
 	fig1
 end
 
+# ╔═╡ db2f5431-493a-4cb3-8fd8-6af4e923da02
+md"""## Software Packages"""
+
+# ╔═╡ f6d5abcf-0498-4cfe-a5f1-21ba920576ef
+begin
+	ENV["PYTHON"]=""
+	Pkg.build("PyCall")
+	argopy=PyCall.pyimport("argopy")	
+end
+
+# ╔═╡ 68fc22ed-c8a0-498a-aca7-fc930b430fc8
+begin
+	ds_fetcher=argopy.DataFetcher().float([6902746, 6902747, 6902757, 6902766])
+	ds_points = ds_fetcher.to_xarray()
+	ds_profiles = ds_points.argo.point2profile()
+end
+
+# ╔═╡ 545b7114-ccaf-4267-b9b5-f2531c5476d2
+begin
+	TEMP=ds_profiles["TEMP"]
+	TEMP_values=Array(TEMP.values)
+end
+
 # ╔═╡ 30fd48cf-1f82-4b7b-bd99-23ba47e4d32a
 plot_samples(ds_profiles)
 
-# ╔═╡ db2f5431-493a-4cb3-8fd8-6af4e923da02
-md"""## Software Packages"""
+# ╔═╡ 03011bd0-7f02-4a68-b612-371006858c77
+md"""## Installing argopy
+
+Running this notebook requires that `argopy` is installed. 
+
+This may involve using `Conda.jl` and depend on python configuration for `PyCall.jl`.
+
+```
+import Pkg, PyCall, Conda
+
+method="external"
+if method=="external"
+	tmpfile=joinpath(tempdir(),"pythonpath.txt")
+	run(pipeline(`which python`,tmpfile))
+	ENV["PYTHON"]=readline(tmpfile)
+else
+	ENV["PYTHON"]=""
+end
+Pkg.build("PyCall")
+
+Conda.add("argopy")
+
+argopy=PyCall.pyimport("argopy")
+```
+"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 
 [compat]
 CairoMakie = "~0.9.4"
-Conda = "~1.7.0"
 PlutoUI = "~0.7.49"
 PyCall = "~1.94.1"
 """
@@ -125,7 +151,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.1"
 manifest_format = "2.0"
-project_hash = "b87af122ff334147cc44537c0045d3ad72a19c9f"
+project_hash = "2059b39b481c98c09a2c28a75693399eb8eabc60"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -1415,5 +1441,7 @@ version = "3.5.0+0"
 # ╟─cfffd375-bf1b-4317-8dba-9dc6284c3257
 # ╟─db2f5431-493a-4cb3-8fd8-6af4e923da02
 # ╠═8073dbb4-7292-11ed-1c5c-2d272632f926
+# ╠═f6d5abcf-0498-4cfe-a5f1-21ba920576ef
+# ╟─03011bd0-7f02-4a68-b612-371006858c77
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

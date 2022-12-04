@@ -1,9 +1,15 @@
 using Documenter, ArgoData, PlutoSliderServer
 
+#python dependencies
 import Pkg, PyCall, Conda
-ENV["PYTHON"]=""
+
+tmpfile=joinpath(tempdir(),"pythonpath.txt")
+run(pipeline(`which python`,tmpfile)) #external python path
+ENV["PYTHON"]=readline(tmpfile)
+#ENV["PYTHON"]=""
 Pkg.build("PyCall")
 Conda.add("argopy")
+
 argopy=PyCall.pyimport("argopy")
 
 #make docs

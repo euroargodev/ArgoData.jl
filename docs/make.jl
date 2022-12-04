@@ -1,6 +1,7 @@
 using Documenter, ArgoData, PlutoSliderServer
 
 #python dependencies
+if false
 import Pkg, PyCall, Conda
 
 tmpfile=joinpath(tempdir(),"pythonpath.txt")
@@ -11,6 +12,7 @@ Pkg.build("PyCall")
 Conda.add("argopy")
 
 argopy=PyCall.pyimport("argopy")
+end
 
 #make docs
 makedocs(;
@@ -33,7 +35,7 @@ GDAC.CSV.write("Argo_float_files.csv",files_list)
 mv("Argo_float_files.csv",joinpath(@__DIR__,"build", "Argo_float_files.csv"))
 
 #run notebooks
-lst=("Argo_argopy.jl","ArgoToMITprof.jl")
+lst=("ArgoToMITprof.jl",)
 for i in lst
     fil_in=joinpath(@__DIR__,"..", "examples",i)
     fil_out=joinpath(@__DIR__,"build", i[1:end-2]*"html")

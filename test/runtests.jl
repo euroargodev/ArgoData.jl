@@ -13,13 +13,18 @@ using ArgoData, MeshArrays, Test
     tmp=GDAC.grey_list()
     @test isa(tmp,GDAC.DataFrame)
 
-    fil=joinpath(dirname(pathof(ArgoData)),"..","examples","ArgoToMITprof.jl")
-    include(fil)
-
-    @test isa(output_file,String)
-
+ ##
+    wmo=6900900
+    url0="https://data-argo.ifremer.fr/dac/coriolis/"
+	input_url=url0*"/$(wmo)/$(wmo)_prof.nc"
+	input_file=joinpath(tempdir(),"$(wmo)_prof.nc")
+	output_file=joinpath(tempdir(),"ncdev","$(wmo)_MITprof.nc")
+	
+	!isfile(input_file) ? fil=Downloads.download(input_url,input_file) : nothing
+	!isdir(dirname(output_file)) ? mkdir(dirname(output_file)) : nothing
+	isfile(output_file) ? rm(output_file) : nothing
+	
     mp=MITprofStandard(output_file)
-
     MITprof.write(output_file*".tmp1",mp);
     MITprof.write(output_file*".tmp2",[mp,mp]);
 

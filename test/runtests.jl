@@ -32,7 +32,7 @@ using ArgoData, MeshArrays, Test, Downloads
 
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
     Γ=GridLoad(γ)
-    df=AnalysisMethods.profile_positions(pth,Γ)
+    df=AnalysisMethods.profile_positions(pth,Γ,fil)
     @test isapprox(maximum(df.lat),-39.894)
 
 end

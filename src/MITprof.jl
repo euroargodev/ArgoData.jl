@@ -465,9 +465,14 @@ df=MITprof.profile_positions(path,Γ)
 CSV.write(csv_file, df)
 ```
 """
-function profile_positions(path,Γ)
-    list=glob("*.nc",path)
-    nfiles=length(list)
+function profile_positions(path,Γ,file="")
+    if isempty(file)
+        list=glob("*.nc",path)
+        nfiles=length(list)
+    else
+        list=[joinpath(path,file)]
+        nfiles=1
+    end
 
     y=fill(0.0,nfiles,2)
     d=fill(DataFrame(),nfiles)

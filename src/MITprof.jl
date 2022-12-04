@@ -413,6 +413,8 @@ function cost_functions(pth,vv="prof_T",JJ=[])
     cost=[]
 
     isempty(JJ) ? II=(1:length(list_nc)) : II=JJ
+    isa(II,String) ? II=findall(basename.(list_nc).==JJ)[1] : nothing 
+
     time0=time()
     for ii in II
         mod(ii,100)==0 ? println(time()-time0) : nothing

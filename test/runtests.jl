@@ -14,11 +14,10 @@ using ArgoData, MeshArrays, Test, Downloads
     @test isa(tmp,GDAC.DataFrame)
 
     gridded_fields=GriddedFields.load()
-    
     input_file=GDAC.download_file("aoml",13857)    
     output_file=MITprof.format(gridded_fields,input_file)
 
-    @test isfile(fil)
+    @test isfile(output_file)
 	
     mp=MITprofStandard(output_file)
     MITprof.write(output_file*".tmp1",mp);
@@ -27,8 +26,9 @@ using ArgoData, MeshArrays, Test, Downloads
     @test isa(mp,MITprofStandard)
 
     pth=dirname(output_file)
-    nt,np,nz,cost=AnalysisMethods.cost_functions(pth,"prof_S")
-    @test isapprox(cost[1],1.365848840650727)
+    fil=basename(output_file)
+    nt,np,nz,cost=AnalysisMethods.cost_functions(pth,"prof_T",fil)
+    @test isapprox(cost[1],1.495831407933)
 
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
     Γ=GridLoad(γ)

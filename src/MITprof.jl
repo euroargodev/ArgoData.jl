@@ -413,6 +413,8 @@ function cost_functions(pth,vv="prof_T",JJ=[])
     cost=[]
 
     isempty(JJ) ? II=(1:length(list_nc)) : II=JJ
+    isa(II,String) ? II=findall(basename.(list_nc).==JJ)[1] : nothing 
+
     time0=time()
     for ii in II
         mod(ii,100)==0 ? println(time()-time0) : nothing
@@ -463,9 +465,14 @@ df=MITprof.profile_positions(path,Γ)
 CSV.write(csv_file, df)
 ```
 """
-function profile_positions(path,Γ)
-    list=glob("*.nc",path)
-    nfiles=length(list)
+function profile_positions(path,Γ,file="")
+    if isempty(file)
+        list=glob("*.nc",path)
+        nfiles=length(list)
+    else
+        list=[joinpath(path,file)]
+        nfiles=1
+    end
 
     y=fill(0.0,nfiles,2)
     d=fill(DataFrame(),nfiles)

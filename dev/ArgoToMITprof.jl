@@ -63,7 +63,7 @@ end
 begin
 	pretty_table(files_list[1:2000:nf,:],
 		header = names(files_list),
-		header_crayon = crayon"blue bg:white bold",
+		header_crayon = crayon"yellow bold",
 		highlighters  = ( hl_col(1, crayon"white"),hl_col(2, crayon"white") ),
 	)
 end

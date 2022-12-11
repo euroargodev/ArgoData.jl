@@ -19,7 +19,7 @@ A list of all `folder,wmo` pairs can be obtained using `files_list=GDAC.files_li
 
 👉 [Notebook 1](https://juliaocean.github.io/OceanRobots.jl/dev/Float_Argo.html) 👈 [(code)](https://raw.githubusercontent.com/juliaocean/OceanRobots.jl/master/examples/Float_Argo.jl)
 
-👉 [Notebook 2](ArgoToMITprof.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/ArgoToMITprof.jl)
+👉 [Notebook 2](../ArgoToMITprof.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/ArgoToMITprof.jl)
 
 The MITprof format is a simple to use version of Argo where profiles have been converted to potential temperature and interpolated to [standard depth levels](https://juliaocean.github.io/OceanRobots.jl/dev/Float_Argo.html).
 

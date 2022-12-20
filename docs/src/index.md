@@ -10,7 +10,7 @@ Analysis and Processing of
 - `MITprof_plots` module (in `examples/`) for `MITprof`
 - `AnalysisMethods` for cost functions and geospatial statistics
 - `Notebooks` 
-  - [ArgoData](https://juliaocean.github.io/OceanRobots.jl/dev/Float_Argo.html) 🚀 interactive vizualisation
+  - [ArgoData](https://juliaocean.github.io/OceanRobots.jl/dev/examples/Float_Argo.html) 🚀 interactive vizualisation
   - [MITprof](https://euroargodev.github.io/ArgoData.jl/dev/ArgoToMITprof.html) 🚀 simplified format
   - [argopy](http://gaelforget.net/notebooks/Argo_argopy.html) 🚀 python API via Julia
 

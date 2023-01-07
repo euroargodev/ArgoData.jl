@@ -5,11 +5,14 @@ Analysis and Processing of
 
 ## Contents
 
-- `GDAC` module to access and retrieve files from Argo server. 
-- `MITprof` format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for [standard depth data](https://doi.org/10.7910/DVN/EE3C40).
-- `MITprof_plots` module (in `examples/`) for `MITprof`.
-- `AnalysisMethods` for cost functions and geospatial statistics.
-- notebooks : [MITprof](https://euroargodev.github.io/ArgoData.jl/dev/ArgoToMITprof.html) simplified format, [argopy](Argo_argopy.html) API from Julia.
+- `GDAC` module to access and retrieve files from Argo server
+- `MITprof` format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for [standard depth data](https://doi.org/10.7910/DVN/EE3C40)
+- `MITprof_plots` module (in `examples/`) for `MITprof`
+- `AnalysisMethods` for cost functions and geospatial statistics
+- `Notebooks` 
+  - [ArgoData](https://juliaocean.github.io/OceanRobots.jl/dev/examples/Float_Argo.html) 🚀 interactive vizualisation
+  - [MITprof](https://euroargodev.github.io/ArgoData.jl/dev/ArgoToMITprof.html) 🚀 simplified format
+  - [argopy](http://gaelforget.net/notebooks/Argo_argopy.html) 🚀 python API via Julia
 
 _This package is in early developement stage when breaking changes can be expected._
 

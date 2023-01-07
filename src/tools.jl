@@ -301,13 +301,13 @@ function prof_interp!(prof,prof_std,meta)
             #avoid duplicates:
             msk2=findall( ([false;(z_in[1:end-1]-z_in[2:end]).==0.0]).==true )
             if length(kk)>5
-                interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(t_in), extrapolation_bc=Line()) 
+                interp_linear_extrap = linear_interpolation(Float64.(z_in), Float64.(t_in), extrapolation_bc=Line()) 
                 t_std[:] = interp_linear_extrap(z_std)
                 t_std[msk1].=missing
                 t_std[msk2].=missing
                 if do_e
                     e_in[findall(ismissing.(e_in))].=0.0
-                    interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(e_in), extrapolation_bc=Line()) 
+                    interp_linear_extrap = linear_interpolation(Float64.(z_in), Float64.(e_in), extrapolation_bc=Line()) 
                     e_std[:] = interp_linear_extrap(z_std)
                     e_std[msk1].=missing
                     e_std[msk2].=missing
@@ -434,7 +434,7 @@ end
 
 function interp_z(x,y,xi)
     jj=findall(isfinite.(y))
-    interp_linear_extrap = LinearInterpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
+    interp_linear_extrap = linear_interpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
     return interp_linear_extrap(xi)
 end
 

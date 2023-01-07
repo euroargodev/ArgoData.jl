@@ -27,7 +27,7 @@ using ArgoData, MeshArrays, Test
 
     pth=dirname(output_file)
     fil=basename(output_file)
-    nt,np,nz,cost=AnalysisMethods.cost_functions(pth,"prof_T",fil)
+    nt,np,nz,cost=MITprofAnalysis.cost_functions(pth,"prof_T",fil)
     @test isapprox(cost[1],1.495831407933)
 
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)

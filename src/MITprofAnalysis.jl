@@ -245,7 +245,7 @@ end
 # - trim : Filter out data points that lack T, Te, etc.
 
 """
-    read_pos_level(k=1; path="")
+    read_pos_level(k=1; input_path="")
 
 Read in from `csv/profile_positions.csv` and e.g. `csv_levels/k1.csv`,
 parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
@@ -254,10 +254,10 @@ parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
 df=MITprofAnalysis.read_pos_level(5)
 ```    
 """
-function read_pos_level(k=1; path="")
-    df=CSV.read(joinpath(path,"csv","profile_positions.csv"),DataFrame)
+function read_pos_level(k=1; input_path="")
+    df=CSV.read(joinpath(input_path,"csv","profile_positions.csv"),DataFrame)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
-    MITprofAnalysis.add_level!(df,k,path=path)
+    MITprofAnalysis.add_level!(df,k,input_path=input_path)
     df
 end
 
@@ -271,8 +271,8 @@ df=MITprofAnalysis.read_pos_level(5)
 MITprofAnalysis.add_coeffs!(df)
 ```
 """
-function add_coeffs!(df; path="")
-    df.📚=load_object(joinpath(path,"csv","profile_coeffs.jld2"))
+function add_coeffs!(df; input_path="")
+    df.📚=load_object(joinpath(input_path,"csv","profile_coeffs.jld2"))
 end
 
 """
@@ -285,8 +285,8 @@ df=CSV.read("csv/profile_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,5)
 ```
 """
-function add_level!(df,k; path="")
-    df1=CSV.read(joinpath(path,"csv_levels","k$(k).csv"),DataFrame)
+function add_level!(df,k; input_path="")
+    df1=CSV.read(joinpath(input_path,"csv_levels","k$(k).csv"),DataFrame)
     #
     list_n=("T","Te","Tw","S","Se","Sw")
     [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
@@ -317,8 +317,8 @@ end
 Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
 
 ```
-datapath=joinpath(pwd(),"csv","profile_positions.csv")
-df=CSV.read(datapath,DataFrame)
+input_file=joinpath("Argo_MITprof_files_input","csv","profile_positions.csv")
+df=CSV.read(input_file,DataFrame)
 G=GriddedFields.load()
 MITprofAnalysis.add_tile!(df,G.Γ,30)
 ```
@@ -434,10 +434,10 @@ This assumes that `df.pos` are indices into Array `ar` and should be used to gro
 using ArgoData
 G=GriddedFields.load();
 
-P=( variable=:Td, level=10, year=2010, month=1, path="",
+P=( variable=:Td, level=10, year=2010, month=1, input_path="Argo_MITprof_files_input",
     statistic=:median, npoint=9, nmon=3, rng=(-1.0,1.0))
 
-df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.path) )
+df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,input_path=P.input_path) )
 
 GriddedFields.update_tile!(G,P.npoint);
 ar1=G.array();
@@ -500,7 +500,6 @@ function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::
                         func=(x->x), nmon=1, npoint=1, nobs=1)
     ny=length(years)
     ar1=G.array()
-    println(nmon)
 
     for y in 1:ny, m in 1:12
         m==1 ? println("starting year "*string(years[y])) : nothing
@@ -521,8 +520,6 @@ function stat_write(file,arr,varia)
     ny=size(arr,4)
     nt=12*ny
 
-    isfile(file) ? rm(file) : nothing
-
     ds = NCDataset(file,"c")
     defDim(ds,"i",90)
     defDim(ds,"j",1170)
@@ -542,13 +539,27 @@ function stat_write(file,arr,varia)
 end
 
 """
-    stat_driver(;varia=:Td,level=1,years=2004:2021,to_file=false)
+    stat_driver(;varia=:Td,level=1,years=2004:2021,output_to_file=false,
+    nmon=1, npoint=1, sta=:median, nobs=1, input_path="", output_path="")
+
+```
+P=( variable=:Td, level=10, years=2004:2007, 
+    statistic=:median, npoint=3, nmon=3, 
+    input_path="Argo_MITprof_files_input",
+    output_path=joinpath(tempdir(),"Argo_MITprof_files"),
+    output_to_file=false
+    )
+
+stat_driver(input_path=P.input_path,varia=P.variable,level=P.level,years=P.years,
+        nmon=P.nmon, npoint=P.npoint, sta=P.statistic, 
+        output_path=P.output_path, output_to_file=P.output_to_file)
+```    
 """
-function stat_driver(;varia=:Td,level=1,years=2004:2021,to_file=false,
-    nmon=1, npoint=1, nobs=1)
+function stat_driver(;varia=:Td,level=1,years=2004:2021,output_to_file=false,
+    nmon=1, npoint=1, sta=:median, nobs=1, input_path="",output_path="")
     
     G=GriddedFields.load()
-    df=MITprofAnalysis.read_pos_level(level)
+    df=MITprofAnalysis.read_pos_level(level,input_path=input_path)
     df1=MITprofAnalysis.trim(df)
 
     ny=length(years)
@@ -556,18 +567,30 @@ function stat_driver(;varia=:Td,level=1,years=2004:2021,to_file=false,
 
     npoint>1 ? GriddedFields.update_tile!(G,npoint) : nothing
 
-    stat_monthly!(arr,df1,varia,:median,years,G,nmon=nmon,npoint=npoint,nobs=nobs)   
+    stat_monthly!(arr,df1,varia,sta,years,G,nmon=nmon,npoint=npoint,nobs=nobs)
     
-    suf=string(varia)
-    ext=string(level)*"_np$(npoint)nm$(nmon)no$(nobs).nc"
-    level<10 ? output_file=suf*"_k0"*ext : output_file=suf*"_k"*ext
-    pth=joinpath(tempdir(),"Argo_MITprof_files")
-    output_file=joinpath(pth,"stat_output",output_file)
+    return if output_to_file
+        suf=string(varia)
+        ext=string(level)*"_np$(npoint)nm$(nmon)no$(nobs).nc"
+        level<10 ? output_file=suf*"_k0"*ext : output_file=suf*"_k"*ext
 
-    to_file ? stat_write(output_file,arr,varia) : nothing
-    return to_file ? output_file : arr
+        !isdir(output_path) ? mkdir(output_path) : nothing
+        output_file=joinpath(output_path,"stat_output",output_file)
+        !isdir(dirname(output_file)) ? mkdir(dirname(output_file)) : nothing
+        isfile(output_file) ? rm(output_file) : nothing
+
+        stat_write(output_file,arr,varia)
+    else
+        arr
+    end
 end
 
+"""
+    list_stat_configurations()
+
+List of confiburations (each one a choice of nmon,npoint,nobs) to be used in 
+`stat_map_combine` (see `examples/MITprof_plots.jl`).
+"""
 function list_stat_configurations()
     list=DataFrame(:nmon => [],:npoint => [],:nobs => [])
     #

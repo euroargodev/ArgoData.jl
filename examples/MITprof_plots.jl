@@ -187,7 +187,7 @@ function stat_map_combine(G,level=5)
     ar2=G.array(); ar2.=NaN
     level<10 ? lev="0"*string(level) : lev=string(level)
  
-    list=MITprofStats.list_stat_configurations()
+    list=MITprofStat.list_stat_configurations()
     for i in 1:size(list,1)
         stat_driver(;level=1,years=2004:2021,to_file=true,
         nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs])

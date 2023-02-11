@@ -245,7 +245,7 @@ end
 # - trim : Filter out data points that lack T, Te, etc.
 
 """
-    read_pos_level(k=1)
+    read_pos_level(k=1; path="")
 
 Read in from `csv/profile_positions.csv` and e.g. `csv_levels/k1.csv`,
 parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
@@ -254,10 +254,10 @@ parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
 df=MITprofAnalysis.read_pos_level(5)
 ```    
 """
-function read_pos_level(k=1)
-    df=CSV.read("csv/profile_positions.csv",DataFrame)
+function read_pos_level(k=1; path="")
+    df=CSV.read(joinpath(path,"csv","profile_positions.csv"),DataFrame)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
-    MITprofAnalysis.add_level!(df,k)
+    MITprofAnalysis.add_level!(df,k,path=path)
     df
 end
 
@@ -271,8 +271,8 @@ df=MITprofAnalysis.read_pos_level(5)
 MITprofAnalysis.add_coeffs!(df)
 ```
 """
-function add_coeffs!(df)
-    df.📚=load_object(joinpath("csv","profile_coeffs.jld2"))
+function add_coeffs!(df; path="")
+    df.📚=load_object(joinpath(path,"csv","profile_coeffs.jld2"))
 end
 
 """
@@ -285,8 +285,8 @@ df=CSV.read("csv/profile_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,5)
 ```
 """
-function add_level!(df,k)
-    df1=CSV.read("csv_levels/k$(k).csv",DataFrame)
+function add_level!(df,k; path="")
+    df1=CSV.read(joinpath(path,"csv_levels","k$(k).csv"),DataFrame)
     #
     list_n=("T","Te","Tw","S","Se","Sw")
     [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
@@ -317,7 +317,8 @@ end
 Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
 
 ```
-df=CSV.read("csv/profile_positions.csv",DataFrame)
+datapath=joinpath(pwd(),"csv","profile_positions.csv")
+df=CSV.read(datapath,DataFrame)
 G=GriddedFields.load()
 MITprofAnalysis.add_tile!(df,G.Γ,30)
 ```
@@ -431,16 +432,19 @@ This assumes that `df.pos` are indices into Array `ar` and should be used to gro
 
 ```
 using ArgoData
-G=GriddedFields.load()
-df=MITprofAnalysis.read_pos_level(10)
+G=GriddedFields.load();
 
-df1=MITprofAnalysis.trim(df)
-years=2010:2010; ny=length(years); 
+P=( variable=:Td, level=10, year=2010, month=1, path="",
+    statistic=:median, npoint=9, nmon=3, rng=(-1.0,1.0))
 
-ar1=G.array()
-MITprofStat.stat_monthly!(ar1,df1,:Td,:median,2010,1,G,nmon=3)
+df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.path) )
 
-MITprofPlots.stat_map(ar1,G)
+GriddedFields.update_tile!(G,P.npoint);
+ar1=G.array();
+MITprofStat.stat_monthly!(ar1,df1,
+    P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon,npoint=P.npoint);
+
+MITprofPlots.stat_map(ar1,G,rng=P.rng)
 ```
 """
 function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,G::NamedTuple; 
@@ -485,8 +489,7 @@ For each year in `years`, twelve fields are computed -- one per month.
 ```
 using ArgoData
 G=GriddedFields.load()
-df=MITprofAnalysis.read_pos_level(1)
-df1=MITprofAnalysis.trim(df)
+df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(1) )
 
 years=2004:2021
 arr=G.array(12,length(years))

@@ -317,7 +317,7 @@ end
 Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
 
 ```
-input_file=joinpath("Argo_MITprof_files_input","csv","profile_positions.csv")
+input_file=joinpath("MITprof_input","csv","profile_positions.csv")
 df=CSV.read(input_file,DataFrame)
 G=GriddedFields.load()
 MITprofAnalysis.add_tile!(df,G.Γ,30)
@@ -434,7 +434,7 @@ This assumes that `df.pos` are indices into Array `ar` and should be used to gro
 using ArgoData
 G=GriddedFields.load();
 
-P=( variable=:Td, level=10, year=2010, month=1, input_path="Argo_MITprof_files_input",
+P=( variable=:Td, level=10, year=2010, month=1, input_path="MITprof_input",
     statistic=:median, npoint=9, nmon=3, rng=(-1.0,1.0))
 
 df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,input_path=P.input_path) )
@@ -489,11 +489,11 @@ For each year in `years`, twelve fields are computed -- one per month.
 ```
 using ArgoData
 G=GriddedFields.load()
-df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(1) )
+df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(1, input_path="MITprof_input") )
 
-years=2004:2021
+years=2004:2007
 arr=G.array(12,length(years))
-MITprofAnalysis.stat_monthly!(arr,df1,:Td,:median,years,G,nmon=3);
+MITprofStat.stat_monthly!(arr,df1,:Td,:median,years,G,nmon=3);
 ```
 """
 function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; 
@@ -545,8 +545,8 @@ end
 ```
 P=( variable=:Td, level=10, years=2004:2007, 
     statistic=:median, npoint=3, nmon=3, 
-    input_path="Argo_MITprof_files_input",
-    output_path=joinpath(tempdir(),"Argo_MITprof_files"),
+    input_path="MITprof_input",
+    output_path=joinpath(tempdir(),"MITprof_output"),
     output_to_file=false
     )
 

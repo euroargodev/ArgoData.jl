@@ -438,7 +438,7 @@ df1=MITprofAnalysis.trim(df)
 years=2010:2010; ny=length(years); 
 
 ar1=G.array()
-MITprofAnalysis.stat_monthly!(ar1,df,:Td,:median,2010,1,G,nmon=3)
+MITprofStat.stat_monthly!(ar1,df1,:Td,:median,2010,1,G,nmon=3)
 
 MITprofPlots.stat_map(ar1,G)
 ```

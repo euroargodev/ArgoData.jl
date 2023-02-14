@@ -171,7 +171,7 @@ function stat_map(ar::Array,G::NamedTuple; rng=(),ttl="")
 
     f = Figure()
     ax1 = Axis(f[1,1], title=ttl)
-    sc1 = scatter!(ax1,XC[ii],YC[ii],color=ar1[ii],colorrange=colorrange,markersize=3)
+    sc1 = scatter!(ax1,XC[ii],YC[ii],color=ar1[ii],colorrange=colorrange,markersize=5)
     xlims!(ax1, -180, 180)
     ylims!(ax1, -90, 90)
 

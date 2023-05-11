@@ -14,17 +14,29 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ f97a0592-8ea8-4ed0-a430-2e5ca491de35
+using ArgoData, Dates
+
 # ╔═╡ 6d20ca4c-ef5b-11ed-1770-a1a82cc76bf4
 using NCDatasets, CSV, DataFrames, CairoMakie, Glob, PlutoUI
 
 # ╔═╡ 6ab822be-e68d-4b5e-a419-1b0150e8a906
 TableOfContents()
 
-# ╔═╡ b1e91477-75b0-4508-a966-191e0d30cbfe
-md"""## Creating annual files
+# ╔═╡ 11368595-8d18-42b0-a6b2-f2e2170b0bdd
+YEAR=1999
 
-todo
-"""
+# ╔═╡ 7c6028d6-ac08-4105-b1f1-e2b3bd25c4bc
+md"""## MITprof example"""
+
+# ╔═╡ 0d5a08ae-1c76-401d-a9b2-f8ee124eb017
+#let
+#	mp=MITprofStandard(list1[1])
+#	mp1=subset(mp, (year.(mp.date).>=1999) .* (year.(mp.date).<2000))
+#	mp=MITprofStandard(list1[2])
+#	mp2=subset(mp, (year.(mp.date).>=1999) .* (year.(mp.date).<2000))
+#	mp3=combine(mp1,mp2)
+#end
 
 # ╔═╡ 5ad50fc5-cb64-44c9-a7c9-ee8c17f8cfa2
 md"""## basic checks"""
@@ -35,6 +47,9 @@ begin
 	fil0=joinpath(path0,"MITprof_Argo.csv")
 end
 
+# ╔═╡ 21100eae-9da9-427f-9170-b889ec46b728
+list1=glob("MITprof_Argo/*.nc",path0)
+
 # ╔═╡ 0a996425-f355-408b-9e8e-2fc83e81143a
 md"""## Read from File
 
@@ -44,17 +59,6 @@ Is the file there ? Let's check : $(isfile(fil0))
 
 If `false` then please go to the bottom of this page for directions.
 """
-
-# ╔═╡ d656d6b8-334e-42e8-99b8-353766f5fa2c
-function minmaxyears(tmp)
-	y0=Int(floor(minimum(tmp)/10000))
-	y1=Int(ceil(maximum(tmp)/10000))
-	if y0==0
-		ii=findall(tmp.>0)
-		y0=Int(floor(minimum(tmp[ii])/10000))
-	end
-	return y0,y1
-end
 
 # ╔═╡ d946439d-98ce-410f-b02b-246c16b85735
 begin
@@ -89,15 +93,14 @@ let
 	iS=findall(isfinite.(cost.jS))
 	hist!(a,cost.jS[iS],bins=0:0.1:10,label="S")
 	axislegend("Titled Legend", position = :rt)
-	f
-end
 
-# ╔═╡ 2b79e7c1-6f83-4791-bce1-d30dadc5f3c6
-let
-	f,a=hist(cost.y0[:],bins=2000:2025,label="y0")
+	a=Axis(f[1,2])
+	hist!(a,cost.y0[:],bins=2000:2025,label="y0")
 	hist!(a,cost.y1[:],bins=2000:2025,label="y1")
 	axislegend("Titled Legend", position = :lt)
 	f
+
+	#f
 end
 
 # ╔═╡ 5ceb3b95-83ea-4f1c-b32f-41ed4b729e4c
@@ -107,9 +110,10 @@ if start_from_scratch
 	tmp1=zeros(2)
 	for i in 1:size(cost,1)
 		ds=Dataset(joinpath(path0,"MITprof_Argo", cost.file[i]))
-		tmp1.=minmaxyears(ds["prof_YYYYMMDD"][:])
-		cost.y0[i]=tmp1[1]
-		cost.y1[i]=tmp1[2]
+		(y0,y1)=extrema(year.(ds["prof_date"][:]))
+		#tmp1.=minmaxyears(ds["prof_YYYYMMDD"][:])
+		cost.y0[i]=y0
+		cost.y1[i]=y1
 		close(ds)
 	end
 	CSV.write(joinpath(tempdir(),"MITprof_Argo.csv"),cost)
@@ -120,17 +124,67 @@ end
 # ╔═╡ c53c3d47-4641-46da-a933-53e8eb066c94
 #keep_working(text=md"The answer is not quite right.") = Markdown.MD(Markdown.Admonition("danger", "Keep working on it!", [text]));
 
+# ╔═╡ 1678e756-aca9-4379-8714-49a8edd9a5b8
+md"""## Appendix"""
+
+# ╔═╡ 723f60dd-7f1c-499b-83cd-ef5894067bdd
+function subset(mp::MITprofStandard,selection::BitVector)
+	ii=findall(selection)
+	if !isempty(ii)
+	    MITprofStandard(tempname()*"_MITprof.nc",
+	    mp.lon[ii],mp.lat[ii],mp.date[ii],mp.depth,mp.ID[ii],
+	    mp.T[ii,:],mp.Te[ii,:],mp.Tw[ii,:],
+	    mp.S[ii,:],mp.Se[ii,:],mp.Sw[ii,:])
+	else
+		missing
+	end
+end
+
+# ╔═╡ d22cdfee-cf1a-4f2a-b2a6-49b5a6c5b6ff
+begin
+	function combine(mp1::MITprofStandard,mp2::MITprofStandard)
+	    !(mp1.depth==mp2.depth) ? error("inconsistent depths") : nothing
+	    MITprofStandard(tempname()*"_MITprof.nc",
+	    vcat(mp1.lon,mp2.lon),vcat(mp1.lat,mp2.lat),vcat(mp1.date,mp2.date),
+	    mp1.depth,vcat(mp1.ID,mp2.ID),
+	    vcat(mp1.T,mp2.T),vcat(mp1.Te,mp2.Te),vcat(mp1.Tw,mp2.Tw),
+	    vcat(mp1.S,mp2.S),vcat(mp1.Se,mp2.Se),vcat(mp1.Sw,mp2.Sw)
+		)
+	end
+		
+end
+
+# ╔═╡ e351e3af-af99-474d-86f0-3936a7c01618
+function combine(mps)
+    MITprofStandard(tempname()*"_MITprof.nc",
+        vcat([mp.lon for mp in mps]...),
+        vcat([mp.lat for mp in mps]...),
+        vcat([mp.date for mp in mps]...),
+        mps[1].depth[:],
+        vcat([mp.ID for mp in mps]...),
+        vcat([mp.T for mp in mps]...),
+        vcat([mp.Te for mp in mps]...),
+        vcat([mp.Tw for mp in mps]...),
+        vcat([mp.S for mp in mps]...),
+        vcat([mp.Se for mp in mps]...),
+        vcat([mp.Sw for mp in mps]...),
+    )
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+ArgoData = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
+ArgoData = "~0.1.15"
 CSV = "~0.10.10"
 CairoMakie = "~0.10.4"
 DataFrames = "~1.5.0"
@@ -145,7 +199,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-rc2"
 manifest_format = "2.0"
-project_hash = "55fc8ef4b16a2d653b3658d1e0b7c7cba52a3b2a"
+project_hash = "167ef365513ff52802fffe45a7678876e7a215a8"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -188,6 +242,12 @@ version = "0.4.1"
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.1"
 
+[[deps.ArgoData]]
+deps = ["CSV", "DataFrames", "Dates", "Downloads", "FTPClient", "Glob", "Interpolations", "MITgcmTools", "MeshArrays", "NCDatasets", "OceanStateEstimation", "OrderedCollections", "Pkg", "Printf", "Statistics", "YAML"]
+git-tree-sha1 = "a7b92703ebd55d01f8fb0451a3cf790307c6182e"
+uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
+version = "0.1.15"
+
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
@@ -211,6 +271,11 @@ version = "0.4.6"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.BitFlags]]
+git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
+uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
+version = "0.1.7"
 
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -262,11 +327,23 @@ git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.1"
 
+[[deps.CatViews]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "23d1f1e10d4e24374112fcf800ac981d14a54b24"
+uuid = "81a5f4ea-a946-549a-aa7e-2a7f63a27d31"
+version = "1.0.0"
+
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "e30f2f4e20f7f186dc36529910beaedc60cfa644"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 version = "1.16.0"
+
+[[deps.ClimateModels]]
+deps = ["CSV", "DataFrames", "Dates", "Downloads", "Git", "NetCDF", "OrderedCollections", "Pkg", "Statistics", "Suppressor", "TOML", "Test", "UUIDs"]
+git-tree-sha1 = "81a64dad5c7e72992fcd4af4d14b1496bab5247b"
+uuid = "f6adb021-9183-4f40-84dc-8cea6f651bb0"
+version = "0.2.15"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -325,6 +402,18 @@ deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.0.2+0"
 
+[[deps.ConcurrentUtilities]]
+deps = ["Serialization", "Sockets"]
+git-tree-sha1 = "96d823b94ba8d187a6d8f0826e731195a74b90e9"
+uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
+version = "2.2.0"
+
+[[deps.Conda]]
+deps = ["Downloads", "JSON", "VersionParsing"]
+git-tree-sha1 = "e32a90da027ca45d84678b826fffd3110bb3fc90"
+uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
+version = "1.8.0"
+
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "738fec4d684a9a6ee9598a8bfee305b26831f28c"
@@ -368,9 +457,27 @@ git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
 uuid = "e2d170a0-9d28-54be-80f0-106bbe20a464"
 version = "1.0.0"
 
+[[deps.Dataverse]]
+deps = ["CSV", "Conda", "DataFrames", "Downloads", "HTTP", "JSON", "PyCall"]
+git-tree-sha1 = "21fd97553d03212049286c74f3d63b0121cac6bb"
+uuid = "9c0b9be8-e31e-490f-90fe-77697562404d"
+version = "0.2.0"
+
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
+[[deps.DiskArrays]]
+deps = ["OffsetArrays"]
+git-tree-sha1 = "43226f85ea2e3946e48087db99f1ba67f9b5cdef"
+uuid = "3c3547ce-8d99-4f5e-a174-61eb10b00ae3"
+version = "0.3.11"
+
+[[deps.Distances]]
+deps = ["LinearAlgebra", "SparseArrays", "Statistics", "StatsAPI"]
+git-tree-sha1 = "49eba9ad9f7ead780bfb7ee319f962c811c6d3b2"
+uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
+version = "0.10.8"
 
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -448,6 +555,12 @@ git-tree-sha1 = "c6033cc3892d0ef5bb9cd29b7f2f0331ea5184ea"
 uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
 version = "3.3.10+0"
 
+[[deps.FTPClient]]
+deps = ["LibCURL", "URIParser"]
+git-tree-sha1 = "fcdcac297167852b23bae6d7bb3bf82a726ff70c"
+uuid = "01fcc997-4f28-56b8-8a06-30002c134abb"
+version = "1.2.1"
+
 [[deps.FileIO]]
 deps = ["Pkg", "Requires", "UUIDs"]
 git-tree-sha1 = "299dc33549f68299137e51e6d49a13b5b1da9673"
@@ -486,6 +599,11 @@ deps = ["Printf"]
 git-tree-sha1 = "8339d61043228fdd3eb658d86c926cb282ae72a8"
 uuid = "59287772-0a20-5a39-b81b-1366585eb4c0"
 version = "0.4.2"
+
+[[deps.FortranFiles]]
+git-tree-sha1 = "f8cec967f151a65f03afd826650c6e91d8b1da16"
+uuid = "c58ffaec-ab22-586d-bfc5-781a99fd0b10"
+version = "0.6.0"
 
 [[deps.FreeType]]
 deps = ["CEnum", "FreeType2_jll"]
@@ -539,6 +657,18 @@ git-tree-sha1 = "9b02998aba7bf074d14de89f9d37ca24a1a0b046"
 uuid = "78b55507-aeef-58d4-861c-77aaff3498b1"
 version = "0.21.0+0"
 
+[[deps.Git]]
+deps = ["Git_jll"]
+git-tree-sha1 = "51764e6c2e84c37055e846c516e9015b4a291c7d"
+uuid = "d7ba0133-e1db-5d97-8f8c-041e4b3a1eb2"
+version = "1.3.0"
+
+[[deps.Git_jll]]
+deps = ["Artifacts", "Expat_jll", "JLLWrappers", "LibCURL_jll", "Libdl", "Libiconv_jll", "OpenSSL_jll", "PCRE2_jll", "Zlib_jll"]
+git-tree-sha1 = "d8be4aab0f4e043cc40984e9097417307cce4c03"
+uuid = "f8c6e375-362e-5223-8a59-34ff63f689eb"
+version = "2.36.1+2"
+
 [[deps.Glib_jll]]
 deps = ["Artifacts", "Gettext_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Libiconv_jll", "Libmount_jll", "PCRE2_jll", "Pkg", "Zlib_jll"]
 git-tree-sha1 = "d3b3624125c1474292d0d8ed0f65554ac37ddb23"
@@ -578,6 +708,12 @@ deps = ["Artifacts", "JLLWrappers", "LibCURL_jll", "Libdl", "OpenSSL_jll", "Pkg"
 git-tree-sha1 = "4cc2bb72df6ff40b055295fdef6d92955f9dede8"
 uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
 version = "1.12.2+2"
+
+[[deps.HTTP]]
+deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
+git-tree-sha1 = "42c6b37c6a2242cb646a1dd5518631db0be9b967"
+uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+version = "1.8.1"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -708,6 +844,12 @@ version = "1.4.0"
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
+
+[[deps.JLD2]]
+deps = ["FileIO", "MacroTools", "Mmap", "OrderedCollections", "Pkg", "Printf", "Reexport", "Requires", "TranscodingStreams", "UUIDs"]
+git-tree-sha1 = "42c17b18ced77ff0be65957a591d34f4ed57c631"
+uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+version = "0.4.31"
 
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
@@ -846,10 +988,22 @@ version = "0.3.23"
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
+[[deps.LoggingExtras]]
+deps = ["Dates", "Logging"]
+git-tree-sha1 = "cedb76b37bc5a6c702ade66be44f831fa23c681e"
+uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
+version = "1.0.0"
+
 [[deps.MIMEs]]
 git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
 uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
 version = "0.1.4"
+
+[[deps.MITgcmTools]]
+deps = ["ClimateModels", "CodecZlib", "DataFrames", "Dates", "Downloads", "FortranFiles", "MeshArrays", "OrderedCollections", "Printf", "Scratch", "SparseArrays", "Suppressor", "Tar", "UUIDs"]
+git-tree-sha1 = "57a9bb10a502f06e2727118682addf075c1405d0"
+uuid = "62725fbc-3a66-4df3-9000-e33e85b3a198"
+version = "0.2.5"
 
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
@@ -895,10 +1049,22 @@ git-tree-sha1 = "8f52dbaa1351ce4cb847d95568cb29e62a307d93"
 uuid = "0a4f8689-d25c-4efe-a92b-7142dfc1aa53"
 version = "0.5.6"
 
+[[deps.MbedTLS]]
+deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "Random", "Sockets"]
+git-tree-sha1 = "03a9b9718f5682ecb107ac9f7308991db4ce395b"
+uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
+version = "1.1.7"
+
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.2+0"
+
+[[deps.MeshArrays]]
+deps = ["CatViews", "Dates", "LazyArtifacts", "NearestNeighbors", "Pkg", "Printf", "SparseArrays", "Statistics", "Unitful"]
+git-tree-sha1 = "8aa22a1e308edf2d6120871c67c2b1bde8b695cf"
+uuid = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
+version = "0.2.37"
 
 [[deps.MiniQhull]]
 deps = ["QhullMiniWrapper_jll"]
@@ -937,6 +1103,18 @@ git-tree-sha1 = "0877504529a3e5c3343c6f8b4c0381e57e4387e4"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "1.0.2"
 
+[[deps.NearestNeighbors]]
+deps = ["Distances", "StaticArrays"]
+git-tree-sha1 = "2c3726ceb3388917602169bed973dbc97f1b51a8"
+uuid = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
+version = "0.4.13"
+
+[[deps.NetCDF]]
+deps = ["DiskArrays", "Formatting", "NetCDF_jll"]
+git-tree-sha1 = "328178762645783b20495d408ab317b4c2d25b1a"
+uuid = "30363a11-5582-574a-97bb-aa9a979735b9"
+version = "0.11.7"
+
 [[deps.NetCDF_jll]]
 deps = ["Artifacts", "HDF5_jll", "JLLWrappers", "LibCURL_jll", "Libdl", "Pkg", "XML2_jll", "Zlib_jll"]
 git-tree-sha1 = "072f8371f74c3b9e1b26679de7fbf059d45ea221"
@@ -957,6 +1135,12 @@ version = "1.2.0"
 git-tree-sha1 = "6862738f9796b3edc1c09d0890afce4eca9e7e93"
 uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
 version = "0.5.4"
+
+[[deps.OceanStateEstimation]]
+deps = ["CodecZlib", "Dataverse", "Distributed", "Downloads", "FortranFiles", "Glob", "JLD2", "MITgcmTools", "MeshArrays", "NCDatasets", "Pkg", "Printf", "Scratch", "SharedArrays", "Statistics", "TOML", "Tar"]
+git-tree-sha1 = "4ef845ca7265fa4484590b404c8aff74e158c64c"
+uuid = "891f6deb-a4f5-4bc5-a2e3-1e8f649cdd2c"
+version = "0.3.4"
 
 [[deps.OffsetArrays]]
 deps = ["Adapt"]
@@ -991,6 +1175,12 @@ version = "3.1.4+0"
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
 version = "0.8.1+0"
+
+[[deps.OpenSSL]]
+deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
+git-tree-sha1 = "51901a49222b09e3743c65b8847687ae5fc78eb2"
+uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
+version = "1.4.1"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1124,6 +1314,12 @@ git-tree-sha1 = "d7a7aef8f8f2d537104f170139553b14dfe39fe9"
 uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
 version = "1.7.2"
 
+[[deps.PyCall]]
+deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
+git-tree-sha1 = "62f417f6ad727987c755549e9cd88c46578da562"
+uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+version = "1.95.1"
+
 [[deps.QOI]]
 deps = ["ColorTypes", "FileIO", "FixedPointNumbers"]
 git-tree-sha1 = "18e8f4d1426e965c7b532ddd260599e1510d26ce"
@@ -1253,6 +1449,11 @@ git-tree-sha1 = "d263a08ec505853a5ff1c1ebde2070419e3f28e9"
 uuid = "73760f76-fbc4-59ce-8f25-708e95d2df96"
 version = "0.4.0"
 
+[[deps.SimpleBufferStream]]
+git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
+uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
+version = "1.1.0"
+
 [[deps.SimpleTraits]]
 deps = ["InteractiveUtils", "MacroTools"]
 git-tree-sha1 = "5d7e3f4e11935503d3ecaf7186eac40602e7d231"
@@ -1348,6 +1549,12 @@ version = "1.3.0"
     ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
     InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
 
+[[deps.StringEncodings]]
+deps = ["Libiconv_jll"]
+git-tree-sha1 = "33c0da881af3248dafefb939a21694b97cfece76"
+uuid = "69024149-9ee7-55f6-a4c4-859efe599b68"
+version = "0.3.6"
+
 [[deps.StringManipulation]]
 git-tree-sha1 = "46da2434b41f41ac3594ee9816ce5541c6096123"
 uuid = "892a3eda-7b42-436c-8928-eab12a02cf0e"
@@ -1367,6 +1574,11 @@ uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
 version = "5.10.1+6"
+
+[[deps.Suppressor]]
+git-tree-sha1 = "c6ed566db2fe3931292865b966d6d140b7ef32a9"
+uuid = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
+version = "0.2.1"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -1427,6 +1639,12 @@ git-tree-sha1 = "3c712976c47707ff893cf6ba4354aa14db1d8938"
 uuid = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 version = "1.3.0"
 
+[[deps.URIParser]]
+deps = ["Unicode"]
+git-tree-sha1 = "53a9f49546b8d2dd2e688d216421d050c9a31d0d"
+uuid = "30578b45-9adc-5946-b283-645ec420af67"
+version = "0.4.1"
+
 [[deps.URIs]]
 git-tree-sha1 = "074f993b0ca030848b897beff716d93aca60f06a"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
@@ -1444,6 +1662,17 @@ deps = ["REPL"]
 git-tree-sha1 = "53915e50200959667e78a92a418594b428dffddf"
 uuid = "1cfade01-22cf-5700-b092-accc4b62d6e1"
 version = "0.4.1"
+
+[[deps.Unitful]]
+deps = ["ConstructionBase", "Dates", "LinearAlgebra", "Random"]
+git-tree-sha1 = "dba3eba51b9512695b59e0bd8263ac074c5ed2d9"
+uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
+version = "1.13.1"
+
+[[deps.VersionParsing]]
+git-tree-sha1 = "58d6e80b4ee071f5efd07fda82cb9fbe17200868"
+uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
+version = "1.3.0"
 
 [[deps.WeakRefStrings]]
 deps = ["DataAPI", "InlineStrings", "Parsers"]
@@ -1522,6 +1751,12 @@ git-tree-sha1 = "79c31e7844f6ecf779705fbc12146eb190b7d845"
 uuid = "c5fb5394-a638-5e4d-96e5-b29de1b5cf10"
 version = "1.4.0+3"
 
+[[deps.YAML]]
+deps = ["Base64", "Dates", "Printf", "StringEncodings"]
+git-tree-sha1 = "dbc7f1c0012a69486af79c8bcdb31be820670ba2"
+uuid = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+version = "0.4.8"
+
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
@@ -1599,18 +1834,24 @@ version = "3.5.0+0"
 
 # ╔═╡ Cell order:
 # ╟─6ab822be-e68d-4b5e-a419-1b0150e8a906
-# ╠═b1e91477-75b0-4508-a966-191e0d30cbfe
+# ╠═f97a0592-8ea8-4ed0-a430-2e5ca491de35
+# ╟─21100eae-9da9-427f-9170-b889ec46b728
+# ╟─11368595-8d18-42b0-a6b2-f2e2170b0bdd
+# ╟─7c6028d6-ac08-4105-b1f1-e2b3bd25c4bc
+# ╠═0d5a08ae-1c76-401d-a9b2-f8ee124eb017
 # ╟─5ad50fc5-cb64-44c9-a7c9-ee8c17f8cfa2
 # ╠═ea63e4a9-7b55-49ca-8f84-fc7ea5601947
 # ╟─b7876512-ed67-4df9-b02e-1b852e5c1da5
-# ╟─2b79e7c1-6f83-4791-bce1-d30dadc5f3c6
 # ╟─0a996425-f355-408b-9e8e-2fc83e81143a
 # ╠═3315389d-d144-4133-ba2a-88cffc039fdf
-# ╟─91d55d4c-851b-492d-9aa3-bb33279d45bd
-# ╟─5ceb3b95-83ea-4f1c-b32f-41ed4b729e4c
-# ╟─d656d6b8-334e-42e8-99b8-353766f5fa2c
+# ╠═91d55d4c-851b-492d-9aa3-bb33279d45bd
+# ╠═5ceb3b95-83ea-4f1c-b32f-41ed4b729e4c
 # ╟─d946439d-98ce-410f-b02b-246c16b85735
 # ╠═c53c3d47-4641-46da-a933-53e8eb066c94
+# ╟─1678e756-aca9-4379-8714-49a8edd9a5b8
 # ╠═6d20ca4c-ef5b-11ed-1770-a1a82cc76bf4
+# ╠═723f60dd-7f1c-499b-83cd-ef5894067bdd
+# ╠═d22cdfee-cf1a-4f2a-b2a6-49b5a6c5b6ff
+# ╠═e351e3af-af99-474d-86f0-3936a7c01618
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

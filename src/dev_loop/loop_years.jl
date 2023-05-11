@@ -93,9 +93,9 @@ using Distributed
 
     list1=glob("MITprof_Argo/*.nc",path0)
 
-    output_path=joinpath(path0,"MITprof_Argo_annual_bis")
+    output_path=joinpath(path0,"MITprof_Argo_yearly")
 
-    year1=2006
+    year1=2017
 end #@everywhere begin
 
 

@@ -23,23 +23,11 @@ using NCDatasets, CSV, DataFrames, CairoMakie, Glob, PlutoUI
 # ╔═╡ 6ab822be-e68d-4b5e-a419-1b0150e8a906
 TableOfContents()
 
-# ╔═╡ 11368595-8d18-42b0-a6b2-f2e2170b0bdd
-YEAR=1999
-
-# ╔═╡ 7c6028d6-ac08-4105-b1f1-e2b3bd25c4bc
-md"""## MITprof example"""
-
-# ╔═╡ 0d5a08ae-1c76-401d-a9b2-f8ee124eb017
-#let
-#	mp=MITprofStandard(list1[1])
-#	mp1=subset(mp, (year.(mp.date).>=1999) .* (year.(mp.date).<2000))
-#	mp=MITprofStandard(list1[2])
-#	mp2=subset(mp, (year.(mp.date).>=1999) .* (year.(mp.date).<2000))
-#	mp3=combine(mp1,mp2)
-#end
-
 # ╔═╡ 5ad50fc5-cb64-44c9-a7c9-ee8c17f8cfa2
-md"""## basic checks"""
+md"""## Basic Checks
+
+The cost functions should be about one on average. The deployment dates (y0) should start in 1998. Floats that are still active should show last profile dates (y1) near present time.
+"""
 
 # ╔═╡ 3315389d-d144-4133-ba2a-88cffc039fdf
 begin
@@ -47,17 +35,29 @@ begin
 	fil0=joinpath(path0,"MITprof_Argo.csv")
 end
 
-# ╔═╡ 21100eae-9da9-427f-9170-b889ec46b728
-list1=glob("MITprof_Argo/*.nc",path0)
-
 # ╔═╡ 0a996425-f355-408b-9e8e-2fc83e81143a
 md"""## Read from File
 
 The expected file to read is $(fil0)
 
-Is the file there ? Let's check : $(isfile(fil0))
+Is the file there ? Answer : $(isfile(fil0))
 
 If `false` then please go to the bottom of this page for directions.
+"""
+
+# ╔═╡ 7c6028d6-ac08-4105-b1f1-e2b3bd25c4bc
+md"""## MITprof example
+
+See the [ArgoData.jl docs](https://euroargodev.github.io/ArgoData.jl/dev/) for more explanation about the `MITprofStandard` data structure. It provides a convenient interface to the files.
+
+```
+using ArgoData.jl
+mp=MITprofStandard(list1[1])
+mp1=subset(mp, (year.(mp.date).>=1999) .* (year.(mp.date).<2000))
+mp=MITprofStandard(list1[2])
+mp2=subset(mp, (year.(mp.date).>=1999) .* (year.(mp.date).<2000))
+mp3=combine(mp1,mp2)
+```
 """
 
 # ╔═╡ d946439d-98ce-410f-b02b-246c16b85735
@@ -73,14 +73,28 @@ begin
 	"""
 end
 
-# ╔═╡ 91d55d4c-851b-492d-9aa3-bb33279d45bd
-if start_from_scratch
+# ╔═╡ 5ceb3b95-83ea-4f1c-b32f-41ed4b729e4c
+if !start_from_scratch
+	cost=CSV.read(fil0,DataFrame)
+	✔1 = "All set"
+else
 	list=glob("MITprof_Argo_cost/*.csv",path0)
 	cost=DataFrame(jT=Float32[],jS=Float32[],file=String[])
 	[append!(cost,CSV.read(f,DataFrame)) for f in list]	
-	cost
-else
-	cost=CSV.read(fil0,DataFrame)
+	
+	cost.y0.=0
+	cost.y1.=0
+	tmp1=zeros(2)
+	for i in 1:size(cost,1)
+		ds=Dataset(joinpath(path0,"MITprof_Argo", cost.file[i]))
+		(y0,y1)=extrema(year.(ds["prof_date"][:]))
+		#tmp1.=minmaxyears(ds["prof_YYYYMMDD"][:])
+		cost.y0[i]=y0
+		cost.y1[i]=y1
+		close(ds)
+	end
+	CSV.write(joinpath(tempdir(),"MITprof_Argo.csv"),cost)
+	✔1 = "All set"
 end
 
 # ╔═╡ ea63e4a9-7b55-49ca-8f84-fc7ea5601947
@@ -88,6 +102,8 @@ end
 
 # ╔═╡ b7876512-ed67-4df9-b02e-1b852e5c1da5
 let
+	✔1
+	
 	iT=findall(isfinite.(cost.jT))
 	f,a=hist(cost.jT[iT],bins=0:0.1:10,label="T")
 	iS=findall(isfinite.(cost.jS))
@@ -102,27 +118,6 @@ let
 
 	#f
 end
-
-# ╔═╡ 5ceb3b95-83ea-4f1c-b32f-41ed4b729e4c
-if start_from_scratch
-	cost.y0.=0
-	cost.y1.=0
-	tmp1=zeros(2)
-	for i in 1:size(cost,1)
-		ds=Dataset(joinpath(path0,"MITprof_Argo", cost.file[i]))
-		(y0,y1)=extrema(year.(ds["prof_date"][:]))
-		#tmp1.=minmaxyears(ds["prof_YYYYMMDD"][:])
-		cost.y0[i]=y0
-		cost.y1[i]=y1
-		close(ds)
-	end
-	CSV.write(joinpath(tempdir(),"MITprof_Argo.csv"),cost)
-else
-	"All set"
-end
-
-# ╔═╡ c53c3d47-4641-46da-a933-53e8eb066c94
-#keep_working(text=md"The answer is not quite right.") = Markdown.MD(Markdown.Admonition("danger", "Keep working on it!", [text]));
 
 # ╔═╡ 1678e756-aca9-4379-8714-49a8edd9a5b8
 md"""## Appendix"""
@@ -1834,24 +1829,19 @@ version = "3.5.0+0"
 
 # ╔═╡ Cell order:
 # ╟─6ab822be-e68d-4b5e-a419-1b0150e8a906
-# ╠═f97a0592-8ea8-4ed0-a430-2e5ca491de35
-# ╟─21100eae-9da9-427f-9170-b889ec46b728
-# ╟─11368595-8d18-42b0-a6b2-f2e2170b0bdd
-# ╟─7c6028d6-ac08-4105-b1f1-e2b3bd25c4bc
-# ╠═0d5a08ae-1c76-401d-a9b2-f8ee124eb017
 # ╟─5ad50fc5-cb64-44c9-a7c9-ee8c17f8cfa2
 # ╠═ea63e4a9-7b55-49ca-8f84-fc7ea5601947
 # ╟─b7876512-ed67-4df9-b02e-1b852e5c1da5
 # ╟─0a996425-f355-408b-9e8e-2fc83e81143a
 # ╠═3315389d-d144-4133-ba2a-88cffc039fdf
-# ╠═91d55d4c-851b-492d-9aa3-bb33279d45bd
-# ╠═5ceb3b95-83ea-4f1c-b32f-41ed4b729e4c
+# ╟─5ceb3b95-83ea-4f1c-b32f-41ed4b729e4c
+# ╟─7c6028d6-ac08-4105-b1f1-e2b3bd25c4bc
+# ╠═f97a0592-8ea8-4ed0-a430-2e5ca491de35
 # ╟─d946439d-98ce-410f-b02b-246c16b85735
-# ╠═c53c3d47-4641-46da-a933-53e8eb066c94
 # ╟─1678e756-aca9-4379-8714-49a8edd9a5b8
 # ╠═6d20ca4c-ef5b-11ed-1770-a1a82cc76bf4
-# ╠═723f60dd-7f1c-499b-83cd-ef5894067bdd
-# ╠═d22cdfee-cf1a-4f2a-b2a6-49b5a6c5b6ff
-# ╠═e351e3af-af99-474d-86f0-3936a7c01618
+# ╟─723f60dd-7f1c-499b-83cd-ef5894067bdd
+# ╟─d22cdfee-cf1a-4f2a-b2a6-49b5a6c5b6ff
+# ╟─e351e3af-af99-474d-86f0-3936a7c01618
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

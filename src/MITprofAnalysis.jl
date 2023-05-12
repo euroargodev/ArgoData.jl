@@ -1,6 +1,6 @@
 module MITprofAnalysis
 
-using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics, JLD2
+using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics, JLD2, Glob
 
 import ArgoData.MITprofStandard
 import ArgoData.ArgoTools: monthly_climatology_factors
@@ -75,7 +75,7 @@ valid data points for T and S (`nbT` ,`nbS`).
 
 ```
 using ArgoData
-path="MITprof/"
+path="MITprof_Argo_yearly/"
 csv_file="csv/profile_positions.csv"
 
 using MeshArrays
@@ -97,7 +97,7 @@ function csv_of_positions(path,Γ)
 
     for ff in 1:nfiles
         output_file=list[ff]
-        mod(ff,100)==0 ? println("output_file $(ff) is "*output_file) : nothing
+        true ? println("output_file $(ff) is "*output_file) : nothing
 
         mp=MITprofStandard(output_file)
 
@@ -105,13 +105,19 @@ function csv_of_positions(path,Γ)
         y[ff,1]=year(minimum(da))
         y[ff,2]=year(maximum(da))
 
-        (f,i,j,c)=MeshArrays.knn(Γ.XC,Γ.YC,mp.lon[:],mp.lat[:])
+        #fix to avoid issue in prepare_interpolation
+        (lon,lat)=(mp.lon[:],mp.lat[:])
+        ii=findall( isnan.(lon.*lat) )
+        lon[ii].=0.0
+        lat[ii].=-89.99
+        
+        (f,i,j,c)=MeshArrays.knn(Γ.XC,Γ.YC,lon,lat)
         pos=[[f[ii],i[ii],j[ii]] for ii in 1:length(c)]
 
         nbT=sum((!ismissing).(mp.T[:,:]),dims=2)
         nbS=sum((!ismissing).(mp.S[:,:]),dims=2)
 
-        d[ff]=DataFrame(ID=parse.(Int,mp.ID),lon=mp.lon,lat=mp.lat,
+        d[ff]=DataFrame(ID=parse.(Int,mp.ID),lon=lon,lat=lat,
             date=da,pos=c[:],nbT=nbT[:],nbS=nbS[:])
     end
 
@@ -139,8 +145,7 @@ Create Array of all values for one variable, obtained by looping through files i
 end
 ```
 """
-function csv_of_variables(name::String)
-    path="MITprof/"
+function csv_of_variables(name::String; path="MITprof")
     csv_file="csv/profile_positions.csv"
     df=CSV.read(csv_file,DataFrame)
     
@@ -170,7 +175,7 @@ The loop below creates interpolation coefficients for all data points.
 The results are stored in a file called `csv/profile_coeffs.jld2` at the end.
 
 ```
-using SharedArrays, distributed
+using SharedArrays, Distributed
 
 @everywhere begin
     using ArgoData
@@ -215,15 +220,16 @@ function csv_of_levels(k=0)
     csv_file="csv/profile_positions.csv"
     df0=CSV.read(csv_file,DataFrame)
 
-    path="csv_levels/"
-    
+    path_input="csv/"
+    path_output="csv_of_levels/"
+
     nfiles= length(list_v)
     for ff in 1:nfiles
         println(list_v[ff])
-        df=CSV.read(path*list_v[ff]*".csv",DataFrame)
+        df=CSV.read(path_input*list_v[ff]*".csv",DataFrame)
         name=list_n[ff]
         for k in kk
-            fil=path*"k$(k).csv"
+            fil=path_output*"k$(k).csv"
             if ff==1
                 df1=DataFrame(date=df0.date)
             else
@@ -286,7 +292,7 @@ MITprofAnalysis.add_level!(df,5)
 ```
 """
 function add_level!(df,k; input_path="")
-    df1=CSV.read(joinpath(input_path,"csv_levels","k$(k).csv"),DataFrame)
+    df1=CSV.read(joinpath(input_path,"csv_of_levels","k$(k).csv"),DataFrame)
     #
     list_n=("T","Te","Tw","S","Se","Sw")
     [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]

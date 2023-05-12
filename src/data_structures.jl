@@ -97,7 +97,7 @@ mp=MITprof.MITprofStandard(fil)
 """
 function MITprofStandard(fil::String)
     ds=Dataset(fil)
-    haskey(ds,"prof_descr") ? ID=ds["prof_descr"] : ID=split(basename(fil),"_")[1]
+    haskey(ds,"prof_descr") ? ID=ds["prof_descr"] : ID="0000"
     MITprofStandard(fil,
         ds["prof_lon"],ds["prof_lat"],ds["prof_date"],ds["prof_depth"],
         fill(ID,size(ds["prof_lon"])),

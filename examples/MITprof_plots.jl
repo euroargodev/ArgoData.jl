@@ -69,8 +69,8 @@ function array_status(csv_file="csv/profile_positions.csv")
     
     #eliminate problematic data points:
     df=df[df.lat .> -89.99,:]
-    df=df[df.date .> DateTime(1000,1,1),:]
-    df=df[df.date .< DateTime(2022,4,1),:]
+    df=df[df.date .> MITprofAnalysis.date_min,:]
+    df=df[df.date .< MITprofAnalysis.date_max,:]
         
     #display basic statistics of the Argo float array:
     array_status(df)
@@ -190,7 +190,7 @@ function stat_map_combine(G,level=5,varia=:Td)
     list=MITprofStat.list_stat_configurations()
     for i in 1:size(list,1)
         println(list[i,:])
-        MITprofStat.stat_driver(;varia=varia,level=level,years=2004:2021,output_to_file=true,
+        MITprofStat.stat_driver(;varia=varia,level=level,years=2004:2022,output_to_file=true,
         nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs],output_path=".")
     end
 

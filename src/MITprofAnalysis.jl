@@ -392,8 +392,12 @@ df1=MITprofAnalysis.trim(df)
 trim(df) = df[
     (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
     (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
-    (df.date .> DateTime(1000,1,1)) .& (df.date .< DateTime(2022,4,1))
+    (df.date .> date_min) .& (df.date .< date_max)
     ,:]
+
+#to restrict analysis to arbitrary time period:
+date_min=DateTime(1000,1,1)
+date_max=DateTime(3000,1,1)
 
 end #module MITprofAnalysis
 
@@ -545,7 +549,7 @@ function stat_write(file,arr,varia)
 end
 
 """
-    stat_driver(;varia=:Td,level=1,years=2004:2021,output_to_file=false,
+    stat_driver(;varia=:Td,level=1,years=2004:2022,output_to_file=false,
     nmon=1, npoint=1, sta=:median, nobs=1, input_path="", output_path="")
 
 ```
@@ -561,7 +565,7 @@ MITprofStat.stat_driver(input_path=P.input_path,varia=P.variable,level=P.level,y
         output_path=P.output_path, output_to_file=P.output_to_file)
 ```    
 """
-function stat_driver(;varia=:Td,level=1,years=2004:2021,output_to_file=false,
+function stat_driver(;varia=:Td,level=1,years=2004:2022,output_to_file=false,
     nmon=1, npoint=1, sta=:median, nobs=1, input_path="",output_path="")
     
     G=GriddedFields.load()

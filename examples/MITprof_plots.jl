@@ -133,7 +133,7 @@ grid provided by `G`. Options : `func` = function to apply on the gridded statis
 using ArgoData
 #include("examples/MITprof_plots.jl")
 
-df=MITprofAnalysis.read_pos_level(10)
+df=MITprofAnalysis.read_pos_level(5)
 df=MITprofAnalysis.trim(df)
 G=GriddedFields.load()
 
@@ -183,19 +183,21 @@ end
 
 using NCDatasets
 
-function stat_map_combine(G,level=5)
+function stat_map_combine(G,level=5,varia=:Td)
     ar2=G.array(); ar2.=NaN
     level<10 ? lev="0"*string(level) : lev=string(level)
  
     list=MITprofStat.list_stat_configurations()
     for i in 1:size(list,1)
-        stat_driver(;level=1,years=2004:2021,to_file=true,
-        nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs])
+        println(list[i,:])
+        MITprofStat.stat_driver(;varia=varia,level=level,years=2004:2021,output_to_file=true,
+        nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs],output_path=".")
     end
 
     for i in 1:size(list,1)
-        ds = NCDataset("stat_output/δT_$(lev)_$(i).nc")
-        ar3=ds["δT"][:,:,120]; ii=findall((!isnan).(ar3))
+        fil="stat_output/$(varia)_k"*lev*"_np$(list.npoint[i])nm$(list.nmon[i])no$(list.nobs[i]).nc"
+        ds = NCDataset(fil)
+        ar3=ds["δ"][:,:,120]; ii=findall((!isnan).(ar3))
         ar2[ii].=ar3[ii]
         close(ds)
     end

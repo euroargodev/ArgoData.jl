@@ -70,8 +70,9 @@ using Distributed
 
         list_variables=(:lon,:lat,:date,:depth,:T,:Te,:Tw,:S,:Se,:Sw)
         [ArgoData.MITprof.defVar_fromVar(fil,getfield(mpref,var)) for var in list_variables]
-
+        
         ds=NCDataset(fil,"a")
+
         for var in list_variables
             tmp=getfield(mp,var)
             tmpref=getfield(mpref,var)
@@ -81,6 +82,21 @@ using Distributed
                 ds[name(tmpref)].=tmp
             end
         end
+        
+        #add ID, YYYYMMDD, HHMMSS
+        
+        t=Dates.julian2datetime.(Dates.datetime2julian(DateTime(0,1,1)) .+mp.date)
+        ymd=Dates.year.(t)*1e4+Dates.month.(t)*1e2+Dates.day.(t)
+        hms=Dates.hour.(t)*1e4+Dates.minute.(t)*1e2+Dates.second.(t)
+ 
+        defVar(ds,"prof_ID",Int64,("iPROF",))
+        defVar(ds,"prof_YYYYMMDD",Float64,("iPROF",))
+        defVar(ds,"prof_HHMMSS",Float64,("iPROF",))
+
+        ds["prof_YYYYMMDD"].=ymd
+        ds["prof_HHMMSS"].=ymd
+        ds["prof_ID"].=parse.(Int,mp.ID)
+
         close(ds)
     end
 
@@ -99,7 +115,7 @@ using Distributed
 end #@everywhere begin
 
 
-@distributed for m in 1:nworkers()
+@sync @distributed for m in 1:nworkers()
     YEAR=year1 .+ (m-1)
     list2=sublist(list0,YEAR)
 
@@ -108,7 +124,8 @@ end #@everywhere begin
     mps=MITprofStandard[]
     for fil in list2
         mp=MITprofStandard(	joinpath(path0,"MITprof_Argo",fil) )
-        mp=subset(mp, (year.(mp.date).==YEAR))
+        da=Dates.julian2datetime.(Dates.datetime2julian(DateTime(0,1,1)) .+mp.date)
+        mp=subset(mp, (year.(da).==YEAR))
         (!ismissing(mp))&&(!isempty(mp.lon)) ? push!(mps,mp) : nothing #println("skip $(fil)")
     end
 
@@ -121,4 +138,3 @@ end #@everywhere begin
         write(fil,mpc,mpref)
     end
 end
-

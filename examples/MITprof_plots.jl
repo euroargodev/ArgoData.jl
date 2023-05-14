@@ -183,28 +183,37 @@ end
 
 using NCDatasets
 
-function stat_map_combine(G,level=5,varia=:Td)
+function stat_map_combine(G,level=5,varia=:Td, rec=120; 
+    reuse_stat_output=false, skip_plotting=false)
     ar2=G.array(); ar2.=NaN
     level<10 ? lev="0"*string(level) : lev=string(level)
  
     list=MITprofStat.list_stat_configurations()
-    for i in 1:size(list,1)
-        println(list[i,:])
-        MITprofStat.stat_driver(;varia=varia,level=level,years=2004:2022,output_to_file=true,
-        nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs],output_path=".")
+    if !reuse_stat_output
+        for i in 1:size(list,1)
+            println(list[i,:])
+            MITprofStat.stat_driver(;varia=varia,level=level,years=2004:2022,output_to_file=true,
+            nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs],output_path=".")
+        end
     end
 
     for i in 1:size(list,1)
         fil="stat_output/$(varia)_k"*lev*"_np$(list.npoint[i])nm$(list.nmon[i])no$(list.nobs[i]).nc"
         ds = NCDataset(fil)
-        ar3=ds["δ"][:,:,120]; ii=findall((!isnan).(ar3))
+        ar3=ds["δ"][:,:,rec]; ii=findall((!isnan).(ar3))
         ar2[ii].=ar3[ii]
         close(ds)
     end
 
     γ=G.Γ.XC.grid
-    ar1=ar2.*γ.write(G.msk[:,1])
-    MITprofPlots.stat_map(ar1,G,rng=(-1.0,1.0))
+    ar2[findall(isnan.(ar2))].=0
+    ar1=ar2.*γ.write(G.msk[:,level])
+
+    if !skip_plotting
+        MITprofPlots.stat_map(ar1,G,rng=(-1.0,1.0))
+    else
+        ar1
+    end
 end
 
 end

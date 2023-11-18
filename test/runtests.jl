@@ -5,7 +5,7 @@ using ArgoData, MeshArrays, Test
     files_list=GDAC.files_list()
     GDAC.download_file(files_list[10000,:])
 
-    ftp="ftp://usgodae.org/pub/outgoing/argo/dac/"
+    ftp="ftp://ftp.ifremer.fr/ifremer/argo/dac/"
     fil=GDAC.download_file(files_list[10000,:],"meta",ftp)
 
     @test isfile(fil)

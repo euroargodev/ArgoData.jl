@@ -1,15 +1,19 @@
 # ArgoData.jl
 
-Analysis and Processing of 
+Tools to access, visualize, process, and analyze of 
 [Argo](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo) ocean data sets.
 
-## Contents
+### Contents
 
 - `GDAC` module to access and retrieve files from Argo server
-- `MITprof` format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015) for [standard depth data](https://doi.org/10.7910/DVN/EE3C40)
+- `MITprof` module for the format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015)
 - `MITprof_plots` module (in `examples/`) for `MITprof`
-- `AnalysisMethods` for cost functions and geospatial statistics
-- `Notebooks` 
+- `MITprofAnalysis` module for model-data comparison
+- `MITprofAnalysis` module for tabular data access
+- `MITprofStat` module geospatial statistics
+
+### Notebooks
+
   - [ArgoData](https://juliaocean.github.io/OceanRobots.jl/dev/examples/Float_Argo.html) 🚀 interactive vizualisation
   - [MITprof](https://euroargodev.github.io/ArgoData.jl/dev/ArgoToMITprof.html) 🚀 simplified format
   - [argopy](http://gaelforget.net/notebooks/Argo_argopy.html) 🚀 python API via Julia

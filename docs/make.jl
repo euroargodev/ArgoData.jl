@@ -20,7 +20,7 @@ makedocs(;
     format=Documenter.HTML(),
     pages=[
         "Home" => "index.md",
-        "Modules" => "modules.md",
+        "Examples" => "examples.md",
         "Reference" => "Functionalities.md",
     ],
     repo="https://github.com/euroargodev/ArgoData.jl/blob/{commit}{path}#L{line}",

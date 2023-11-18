@@ -7,7 +7,7 @@ Tools to access, visualize, process, and analyze of
 
 - `GDAC` module to access and retrieve files from Argo server
 - `MITprof` module for the format of [Forget, et al 2015](http://dx.doi.org/10.5194/gmd-8-3071-2015)
-- `MITprof_plots` module (in `examples/`) for `MITprof`
+- `MITprofPlots` module (in `examples/`) for `MITprof`
 - `MITprofAnalysis` module for model-data comparison
 - `MITprofAnalysis` module for tabular data access
 - `MITprofStat` module geospatial statistics

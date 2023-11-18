@@ -301,13 +301,13 @@ function prof_interp!(prof,prof_std,meta)
             #avoid duplicates:
             msk2=findall( ([false;(z_in[1:end-1]-z_in[2:end]).==0.0]).==true )
             if length(kk)>5
-                interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(t_in), extrapolation_bc=Line()) 
+                interp_linear_extrap = linear_interpolation(Float64.(z_in), Float64.(t_in), extrapolation_bc=Line()) 
                 t_std[:] = interp_linear_extrap(z_std)
                 t_std[msk1].=missing
                 t_std[msk2].=missing
                 if do_e
                     e_in[findall(ismissing.(e_in))].=0.0
-                    interp_linear_extrap = LinearInterpolation(Float64.(z_in), Float64.(e_in), extrapolation_bc=Line()) 
+                    interp_linear_extrap = linear_interpolation(Float64.(z_in), Float64.(e_in), extrapolation_bc=Line()) 
                     e_std[:] = interp_linear_extrap(z_std)
                     e_std[msk1].=missing
                     e_std[msk2].=missing
@@ -434,7 +434,7 @@ end
 
 function interp_z(x,y,xi)
     jj=findall(isfinite.(y))
-    interp_linear_extrap = LinearInterpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
+    interp_linear_extrap = linear_interpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
     return interp_linear_extrap(xi)
 end
 
@@ -561,20 +561,18 @@ end
 """
     monthly_climatology_factors(date)
 
-if `date` is a date in `days since DateTime(0)`
-
-and `ff(rec)` returns a value for month `rec` in `1:12`
-
-then compute the factors to interpolate from `rec[1],rec[2]` to `date`.
+If `date` is a DateTime, a vector of DateTime, or a date in `days since DateTime(0)`
+then compute the corresponding climatological months (1 to 12) and interpolation 
+factors (0.0 to 1.0) and return result as `fac0,fac1,rec0,rec1`.
 
 For example :
 
 ```
 ff(x)=sin((x-0.5)/12*2pi)
-fac,rec=monthly_climatology_factors(prof["date"])
+(fac0,fac1,rec0,rec1)=monthly_climatology_factors(ArgoTools.DateTime(2011,1,10))
 
-gg=fac[1]*ff(rec[1])+fac[2]*ff(rec[2])
-(ff(rec[1]),gg,ff(rec[2]))
+gg=fac0*ff(rec0)+fac1*ff(rec1)
+(ff(rec0),gg,ff(rec1))
 ```
 """
 function monthly_climatology_factors(date)
@@ -589,17 +587,44 @@ function monthly_climatology_factors(date)
     tim_fld=[tim_fld[12]-365.0;tim_fld...;tim_fld[1]+365.0]
     rec_fld=[12;1:12;1]
     
-    year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
-    date0=DateTime(year0,1,1)-DateTime(0)
+    if isa(date,DateTime)
+        tmp=date-DateTime(year(date))
+        tim_prof=tmp.value/86400/1000
+        tim_prof>365.0 ? tim_prof=365.0 : nothing
+    elseif isa(date,Number)
+        year0=year(DateTime(0,1,1)+Day(Int(floor(date))))
+        date0=DateTime(year0,1,1)-DateTime(0)
 
-    date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
-    tim_prof=date-date0
-    tim_prof>365.0 ? tim_prof=365.0 : nothing
+        date0=date0.value/86400/1000+1 #+1 is to match Matlab's datenum
+        tim_prof=date-date0
+        tim_prof>365.0 ? tim_prof=365.0 : nothing
+    elseif isa(date[1],DateTime)
+        tmp=[d-DateTime(year(d)) for d in date]
+        tim_prof=[i.value/86400/1000 for i in tmp]
+        [tim_prof[i]>365.0 ? tim_prof[i]=365.0 : nothing for i in 1:length(tim_prof)]
+    else 
+        error("unimplemented case")
+    end
 
-    tt=maximum(findall(tim_fld.<=tim_prof))
-    a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
-    
-    return (1-a0,a0),(rec_fld[tt],rec_fld[tt+1])
+    if isa(date,Number)||isa(date,DateTime)
+        tt=maximum(findall(tim_fld.<=tim_prof))
+        a0=(tim_prof-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
+        (1-a0,a0,rec_fld[tt],rec_fld[tt+1])
+    else
+        fac0=fill(0.0,size(date))
+        fac1=fill(0.0,size(date))
+        rec0=fill(0,size(date))
+        rec1=fill(0,size(date))
+        for ii in eachindex(date)
+            tt=maximum(findall(tim_fld.<=tim_prof[ii]))
+            a0=(tim_prof[ii]-tim_fld[tt])/(tim_fld[tt+1]-tim_fld[tt])
+            fac0[ii]=1.0 -a0
+            fac1[ii]=a0
+            rec0[ii]=rec_fld[tt]
+            rec1[ii]=rec_fld[tt+1]
+        end
+        (fac0,fac1,rec0,rec1)
+    end
 end
 
 end #module ArgoTools
@@ -607,7 +632,10 @@ end #module ArgoTools
 
 module GriddedFields
 
-using MeshArrays, OceanStateEstimation, Statistics
+using MeshArrays, OceanStateEstimation, MITgcmTools, Statistics
+
+import ArgoData.MITprofStandard
+import ArgoData.ArgoTools
 
 function NaN_mask(Γ)
     msk=write(Γ.hFacC)
@@ -647,7 +675,10 @@ end
     load()
 
 Load gridded fields from files (and download the files if needed).
-Originally this function returned `(Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)`.
+Originally this function returned `Γ,msk,T,S,σT,σS,array`. 
+    
+The embeded `array()` function returns a 2D array initialized to `missing`. 
+And `array(1)`, `array(3,2)`, etc add dimensions to the resulting array.
 """
 function load()
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
@@ -681,16 +712,102 @@ function load()
     end
     σS=σS.grid.read(tmp,σS.grid)
 
-    (Γ=Γ,msk,T=T,S=S,σT=σT,σS=σS)
+    initialize_array() = Array{Union{Missing, Float64}}(missing, Γ.XC.grid.ioSize...)
+    initialize_array(n) = Array{Union{Missing, Float64}}(missing, (Γ.XC.grid.ioSize...,n...))
+    initialize_array(n1,n2) = initialize_array((n1,n2))
+    initialize_array(n1,n2,n3) = initialize_array((n1,n2,n3))
+
+    γ=Γ.XC.grid
+    til=γ.write(MeshArray(γ))
+
+    (Γ=Γ,msk=msk,T=T,S=S,σT=σT,σS=σS,array=initialize_array,tile=til)
 end
 
-function interp_h(z_in::MeshArray,f,i,j,w,z_out)
+function update_tile!(G,npoint)
+    γ=G.Γ.XC.grid
+    τ=Tiles(γ,npoint,npoint)
+    T=MeshArray(γ)
+    [T[t.face][t.i,t.j].=t.tile for t in τ]
+    G.tile.=γ.write(T)
+end
+
+interp_h(z_in::MeshArray,f::Matrix,i,j,w,z_out) = interp_h(z_in,f[1,:],i[1,:],j[1,:],w[1,:],z_out)
+
+function interp_h(z_in::MeshArray,f::Vector,i,j,w,z_out)
     for k in 1:50
         z_out[k]=NaN
         if !isnan(sum(w[1,:]))
-            x=[z_in[f[1,ii],k][i[1,ii],j[1,ii]] for ii=1:4]
+            x=[z_in[f[ii],k][i[ii],j[ii]] for ii=1:4]
             kk=findall(isfinite.(x))
-            ~isempty(kk) ? z_out[k]=sum(w[1,kk].*x[kk])/sum(w[1,kk]) : nothing
+            ~isempty(kk) ? z_out[k]=sum(w[kk].*x[kk])/sum(w[kk]) : nothing
+        end
+    end
+end
+
+"""
+    interp(T_in::MeshArray,Γ,mp::MITprofStandard)
+
+Interpolate `T_in`, defined on grid `Γ`, to locations speficied in `mp`. 
+
+For a more efficient, in place, option see `interp!`.
+
+```
+fil="MITprof/1901238_MITprof.nc"
+mp=MITprofStandard(fil)
+
+interp(G.T[1],G.Γ,mp)
+```
+"""
+function interp(T_in,Γ,mp::MITprofStandard)
+    T_out=similar(mp.T)
+    interp!(T_in,Γ,mp,T_out)
+    return T_out
+end    
+
+"""
+    interp!(T_in::MeshArray,Γ,mp::MITprofStandard,📚,T_out)
+    interp!(T_in::MeshArray,Γ,mp::MITprofStandard,T_out)
+
+Interpolate `T_in`, defined on grid `Γ`, to locations speficied in `mp` and store the result in array `T_out`.
+
+Providing interpolation coefficients `📚` computed beforehand speeds up repeated calls.
+
+Example:
+
+```
+fil=glob("*_MITprof.nc","MITprof")[1000]
+mp=MITprofStandard(fil)
+
+(f,i,j,w)=InterpolationFactors(G.Γ,mp.lon[:],mp.lat[:]);
+📚=(f=f,i=i,j=j,w=w)
+
+T=[similar(mp.T) for i in 1:12]
+[interp!(G.T[i],G.Γ,mp,📚,T[i]) for i in 1:12]
+```
+
+In the above example, `[interp!(G.T[i],G.Γ,mp,T[i]) for i in 1:12]` would be **much slower**.
+"""
+function interp!(T_in::MeshArray,Γ,mp::MITprofStandard,📚::NamedTuple,T_out)
+    z_in=-Γ.RC
+    z_out=mp.depth[:]
+    interp_backend!(mp,📚,z_in,T_in,z_out,T_out)
+end    
+
+function interp!(T_in::MeshArray,Γ,mp::MITprofStandard,T_out)
+    z_in=-Γ.RC
+    z_out=mp.depth[:]
+    (f,i,j,w)=InterpolationFactors(Γ,mp.lon[:],mp.lat[:]);
+    📚=(f=f,i=i,j=j,w=w)
+    interp_backend!(mp,📚,z_in,T_in,z_out,T_out)
+end    
+
+function interp_backend!(mp::MITprofStandard,📚::NamedTuple,z_in,T_in,z_out,T_out)
+    tmp=Array{Union{Missing, Float64},1}(missing,50)
+    for m in 1:length(mp.lon)
+        tmp.=missing
+        if mp.lat[m]>-89.99
+            GriddedFields.interp_h(T_in,📚.f[m,:],📚.i[m,:],📚.j[m,:],📚.w[m,:],tmp)
+            T_out[m,:].=ArgoTools.interp_z(z_in,tmp,z_out)
         end
     end
 end

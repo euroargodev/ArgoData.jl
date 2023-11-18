@@ -20,13 +20,13 @@ makedocs(;
     format=Documenter.HTML(),
     pages=[
         "Home" => "index.md",
-        "Modules" => "modules.md",
-        "Reference" => "functions.md",
+        "Examples" => "examples.md",
+        "Reference" => "Functionalities.md",
     ],
     repo="https://github.com/euroargodev/ArgoData.jl/blob/{commit}{path}#L{line}",
     sitename="ArgoData.jl",
     authors="gaelforget <gforget@mit.edu>",
-    assets=String[],
+    warnonly = [:cross_references,:missing_docs],
 )
 
 #create csv list of floats

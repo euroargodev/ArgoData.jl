@@ -90,13 +90,13 @@ prof_std.Sweight[1:5]
 # +
 #4. spatio-temporal interpolation
 
-fac,rec=ArgoTools.monthly_climatology_factors(prof.date[1])
+(fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(prof.date[1])
 # -
 
-prof_T1=[GriddedFields.Interpolate(gridded_fields.T[rec[1]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-prof_T2=[GriddedFields.Interpolate(gridded_fields.T[rec[2]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
+prof_T0=[GriddedFields.Interpolate(gridded_fields.T[rec0][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_T1=[GriddedFields.Interpolate(gridded_fields.T[rec1][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
 
-prof_std.Testim.=ArgoTools.interp_z(-gridded_fields.Γ.RC,fac[1]*prof_T1+fac[2]*prof_T2,z_std)
+prof_std.Testim.=ArgoTools.interp_z(-gridded_fields.Γ.RC,fac0*prof_T0+fac1*prof_T1,z_std)
 prof_std.Testim[1:5]
 
 if do_plot
@@ -107,11 +107,11 @@ end
 # +
 #4. spatio-temporal interpolation
 
-prof_S1=[GriddedFields.Interpolate(gridded_fields.S[rec[1]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
-prof_S2=[GriddedFields.Interpolate(gridded_fields.S[rec[2]][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
+prof_S0=[GriddedFields.Interpolate(gridded_fields.S[rec0][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50]
+prof_S1=[GriddedFields.Interpolate(gridded_fields.S[rec1][:,k],📚.f,📚.i,📚.j,📚.w)[1] for k=1:50];
 # -
 
-prof_std.Sestim.=ArgoTools.interp_z(-gridded_fields.Γ.RC,fac[1]*prof_S1+fac[2]*prof_S2,z_std)
+prof_std.Sestim.=ArgoTools.interp_z(-gridded_fields.Γ.RC,fac0*prof_S0+fac1*prof_S1,z_std)
 prof_std.Sestim[1:5]
 
 ArgoTools.prof_test_set2!(prof_std,meta);

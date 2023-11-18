@@ -5,7 +5,7 @@ using ArgoData, MeshArrays, Test
     files_list=GDAC.files_list()
     GDAC.download_file(files_list[10000,:])
 
-    ftp="ftp://usgodae.org/pub/outgoing/argo/dac/"
+    ftp="ftp://ftp.ifremer.fr/ifremer/argo/dac/"
     fil=GDAC.download_file(files_list[10000,:],"meta",ftp)
 
     @test isfile(fil)
@@ -27,12 +27,18 @@ using ArgoData, MeshArrays, Test
 
     pth=dirname(output_file)
     fil=basename(output_file)
-    nt,np,nz,cost=AnalysisMethods.cost_functions(pth,"prof_T",fil)
+    nt,np,nz,cost=MITprofAnalysis.cost_functions(pth,"prof_T",fil)
     @test isapprox(cost[1],1.495831407933)
 
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
     Γ=GridLoad(γ)
     df=AnalysisMethods.profile_positions(pth,Γ,fil)
     @test isapprox(maximum(df.lat),6.859)
+
+    dates=[ArgoTools.DateTime(2011,1,10) ArgoTools.DateTime(2011,1,20)]
+    (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(dates)
+    (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(dates[1])
+    @test isapprox(fac0,0.20967741935483875)
+    @test rec0==12
 
 end

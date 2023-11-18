@@ -1,9 +1,11 @@
 
-module MITprof_plots
+module MITprofPlots
 
-using ArgoData, DataFrames, CSV, Dates, GLMakie, JLD2, Statistics
+using ArgoData, DataFrames, Dates, Statistics
+using CairoMakie
+import CSV, JLD2
 
-#trim_cost is used in plot_cost
+#trim_cost is used in MITprofPlots.cost
 function trim_cost(cost)
     ii=findall((!ismissing).(cost) .&& (isfinite).(cost) .&& (cost.>0.0))
     med=round(median(cost[ii]), digits=3)
@@ -19,14 +21,14 @@ function trim_cost(cost)
 end
 
 """
-    plot_cost()
+    cost_functions()
 
 ```
-f=MITprof_plots.plot_cost()
+f=MITprofPlots.cost_functions()
 save("cost_pdf.png", f)
 ```
 """
-function plot_cost()
+function cost_functions()
     #
     costT=load("csv/prof_T_stats.jld2","cost")
     costT,medT,nbT=trim_cost(costT)
@@ -47,56 +49,40 @@ function plot_cost()
 end
 
 """
-    plot_stats()
+    array_status()
 
-Read file `profile_positions.csv`, pre-process, and then compute 
+Read file `csv/profile_positions.csv`, pre-process, and then compute 
 and display basic statistics of the Argo float array.
 
 ```
-f=MITprof_plots.plot_stats()
+f=MITprofPlots.array_status()
 save("ArgoDistributions.png", f)
 ```
 """
-function plot_stats()
-    df=read_profile_positions()
+function array_status(csv_file="csv/profile_positions.csv")
+    #read csv file
+    csv_file="csv/profile_positions.csv"
+    df=CSV.read(csv_file,DataFrame)
 
+    #add ym time variable = year + (month-1/2)/12 :
+    df.ym=year.(df.date)+(month.(df.date) .-0.5)/12
+    
+    #eliminate problematic data points:
+    df=df[df.lat .> -89.99,:]
+    df=df[df.date .> MITprofAnalysis.date_min,:]
+    df=df[df.date .< MITprofAnalysis.date_max,:]
+        
     #display basic statistics of the Argo float array:
-    plot_stats(df)
+    array_status(df)
 end
 
 """
-    read_profile_positions(csv_file="csv/profile_positions.csv")
+    array_status(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
 
-Read "profile_positions.csv" file.
-
-```
-df=MITprof_plots.read_profile_positions("csv/profile_positions.csv")
-```
-"""
-function read_profile_positions(csv_file="csv/profile_positions.csv")
-df=CSV.read(csv_file,DataFrame)
-
-#time variable = year + (month-1/2)/12 :
-df.ym=year.(df.date)+(month.(df.date) .-0.5)/12
-
-#eliminate problematic data points:
-#l0=size(df,1)
-df=df[df.lat .> -89.99,:]
-df=df[df.date .> DateTime(1000,1,1),:]
-#l1=size(df,1)
-df=df[df.date .< DateTime(2022,4,1),:]
-#l2=size(df,1)
-
-df
-end
-
-"""
-    plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
-
-Call `plot_stats` with `df` already in memory. Please refer to the `plot_stats()` 
+Call `array_status` with `df` already in memory. Please refer to the `array_status()` 
 source code for documentation on how to load `df`.
 """
-function plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
+function array_status(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
     txt(ym) = string(Int(floor(ym)))*"/"*string(Int(round((ym-floor(ym))*12+0.5)))
     
     #ii=findall(peryear[:,:year].>1900)
@@ -137,40 +123,97 @@ function plot_stats(df::DataFrame; ym1=2004+(12-0.5)/12,ym2=2021+(12-0.5)/12)
 end
 
 """
-    map_stats(df::DataFrame,G::NamedTuple)
+    stat_map(df::DataFrame,G::NamedTuple,var::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
+
+Compute and display map of statistic `sta` of variable `var` from DataFrame `df` on the 
+grid provided by `G`. Options : `func` = function to apply on the gridded statistic;
+`rng` = color range for plotting; `n0` = mask out statistic if observations are fewer than `n0`.
 
 ```
+using ArgoData
+#include("examples/MITprof_plots.jl")
+
+df=MITprofAnalysis.read_pos_level(5)
+df=MITprofAnalysis.trim(df)
 G=GriddedFields.load()
-MITprof_plots.map_stats(df,G)
+
+MITprofPlots.stat_map(df,G,:Td,:median; rng=(-1.0,1.0),n0=3)
+
+#MITprofPlots.stat_map(df,G,:Td,:n)
+#MITprofPlots.stat_map(df,G,:Td,:var; rng=(0.0,3.0),func=sqrt)
+#MITprofPlots.stat_map(df,G,:Td,:var; rng=(0.0,3.0),func=sqrt,n0=3)
 ```
 """
-function map_stats(df::DataFrame,G::NamedTuple)
-    gdf=groupby(df,:pos)
-    df2=combine(gdf) do df
-        (m = log10(length(df.ID)), lon=mean(df.lon), lat=mean(df.lat))
-    end
+function stat_map(df::DataFrame,G::NamedTuple,va::Symbol,sta::Symbol; func=(x->x), rng=(), n0=0)
 
-    tmp1=fill(0.0,(90,1170))
-    ii=fill(0,2)
-    for i in 1:size(df2,1)
-        ii.=parse.(Int,split(split(split(df2[i,:pos],"(")[2],")")[1],","))
-        tmp1[ii[1],ii[2]]=df2[i,:m]
-    end
+    ar=G.array()
+    MITprofStat.stat_grid!(ar,df,va,sta,func=func)
+    ar[ismissing.(ar)].=NaN
 
-    #GriddedFields.MeshArrays.read(tmp1,G.msk.grid)
+    n=G.array()
+    MITprofStat.stat_grid!(n,df,va,:n)
+    n[ismissing.(n)].=0.0
+
+    ar[n .<=n0].=NaN
+    ttl="variable, statistic = "*string(va)*","*string(sta)
+
+    stat_map(ar,G; rng=rng,ttl=ttl)    
+end
+
+function stat_map(ar::Array,G::NamedTuple; rng=(),ttl="")
+    ar[ismissing.(ar)].=NaN
+    ar1=Float64.(ar)
+
+    ii=findall( (!isnan).(ar1) )
+    isempty(rng) ? colorrange=extrema(ar1[ii]) : colorrange=rng
     XC=GriddedFields.MeshArrays.write(G.Γ.XC)
     YC=GriddedFields.MeshArrays.write(G.Γ.YC)
-    ii=findall((!).(tmp1.==0))
 
     f = Figure()
-
-    ax1 = Axis(f[1,1], title="number of profiles per day")
-    scatter!(ax1,XC[ii],YC[ii],color=tmp1[ii])
+    ax1 = Axis(f[1,1], title=ttl)
+    sc1 = scatter!(ax1,XC[ii],YC[ii],color=ar1[ii],colorrange=colorrange,markersize=5)
     xlims!(ax1, -180, 180)
     ylims!(ax1, -90, 90)
 
-    #(XC,YC,tmp1,f)
+    Colorbar(f[1,2],sc1)
+
     f
+end
+
+
+using NCDatasets
+
+function stat_map_combine(G,level=5,varia=:Td, rec=120; 
+    reuse_stat_output=false, skip_plotting=false)
+    ar2=G.array(); ar2.=NaN
+    level<10 ? lev="0"*string(level) : lev=string(level)
+ 
+    list=MITprofStat.list_stat_configurations()
+    if !reuse_stat_output
+        for i in 1:size(list,1)
+            println(list[i,:])
+            MITprofStat.stat_driver(;varia=varia,level=level,years=2004:2022,output_to_file=true,
+            nmon=list[i,:nmon], npoint=list[i,:npoint], nobs=list[i,:nobs],output_path=".")
+        end
+    end
+
+    for i in 1:size(list,1)
+        fil="stat_output/$(varia)_k"*lev*"_np$(list.npoint[i])nm$(list.nmon[i])no$(list.nobs[i]).nc"
+        ds = NCDataset(fil)
+        ar3=ds["δ"][:,:,rec]; ii=findall((!isnan).(ar3))
+        ar2[ii].=ar3[ii]
+        close(ds)
+    end
+
+    γ=G.Γ.XC.grid
+    ar2[findall(isnan.(ar2))].=0
+    ar1=ar2.*γ.write(G.msk[:,level])
+
+    if !skip_plotting
+        MITprofPlots.stat_map(ar1,G,rng=(-1.0,1.0))
+    else
+        ar1
+    end
 end
 
 end

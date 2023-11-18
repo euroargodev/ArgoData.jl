@@ -6,7 +6,7 @@ Content of this section:
 - Modules (1): GDAC, MITprof, GriddedFields
 - Modules (2): MITprofAnalysis, MITprofStat
 
-### Data Structures
+## Data Structures
 
 ```@docs
 ProfileNative
@@ -14,21 +14,21 @@ ProfileStandard
 MITprofStandard
 ```
 
-### Module: GDAC
+## Module: GDAC
 
 ```@autodocs
 Modules = [GDAC]
 Order   = [:type,:function]
 ```
 
-### Module: MITprof
+## Module: MITprof
 
 ```@autodocs
 Modules = [MITprof]
 Order   = [:type,:function]
 ```
 
-### Module: GriddedFields
+## Module: GriddedFields
 
 ```@autodocs
 Modules = [GriddedFields]
@@ -36,14 +36,14 @@ Order   = [:type,:function]
 ```
 
 
-### Module: MITprofAnalysis
+## Module: MITprofAnalysis
 
 ```@autodocs
 Modules = [MITprofAnalysis]
 Order   = [:type,:function]
 ```
 
-### Module: MITprofStat
+## Module: MITprofStat
 
 ```@autodocs
 Modules = [MITprofStat]

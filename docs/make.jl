@@ -26,6 +26,7 @@ makedocs(;
     repo="https://github.com/euroargodev/ArgoData.jl/blob/{commit}{path}#L{line}",
     sitename="ArgoData.jl",
     authors="gaelforget <gforget@mit.edu>",
+    warnonly = [:cross_references,:missing_docs],
 )
 
 #create csv list of floats

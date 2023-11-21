@@ -106,7 +106,7 @@ function MITprofStandard(fil::String)
         )
 end
 
-function Base.show(io::IO, mp::MITprofStandard) where {T}
+function Base.show(io::IO, mp::MITprofStandard)
     printstyled(io, "File name is ",color=:normal)
     printstyled(io, "$(basename(mp.filename)) \n",color=:blue)
     printstyled(io, "List of variables : \n",color=:normal)

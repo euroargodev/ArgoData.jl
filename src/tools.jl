@@ -432,8 +432,15 @@ function prof_convert!(prof,meta)
     meta["TPOTfromTINSITU"] ? ArgoTools.prof_TtoΘ!(prof) : nothing
 end
 
-function interp_z(x,y,xi)
-    jj=findall(isfinite.(y))
+"""
+    interp_z(x,y,xi; keep_mask=false)
+
+Call `Interpolations.linear_interpolation` with `extrapolation_bc=Flat()`. 
+
+If `keep_mask=true` then retain NaNs that are sometime to indicate sea floor has been reached (e.g. in model output). 
+"""
+function interp_z(x,y,xi; keep_mask=false)
+    !keep_mask ? jj=findall(isfinite.(y)) : jj=eachindex(y)
     interp_linear_extrap = linear_interpolation(Float64.(x[jj]), Float64.(y[jj]), extrapolation_bc=Flat()) 
     return interp_linear_extrap(xi)
 end

@@ -32,7 +32,7 @@ using ArgoData, MeshArrays, Test
 
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
     Γ=GridLoad(γ)
-    df=AnalysisMethods.profile_positions(pth,Γ,fil)
+    df=MITprofAnalysis.csv_of_positions(pth,Γ,fil)
     @test isapprox(maximum(df.lat),6.859)
 
     dates=[ArgoTools.DateTime(2011,1,10) ArgoTools.DateTime(2011,1,20)]

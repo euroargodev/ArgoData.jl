@@ -689,7 +689,7 @@ The embeded `array()` function returns a 2D array initialized to `missing`.
 And `array(1)`, `array(3,2)`, etc add dimensions to the resulting array.
 
 ```
-using OceanStateEstimation, MITgcm; MITPROFclim_download()
+using OceanStateEstimation, MITgcm; OceanStateEstimation.MITPROFclim_download()
 using ArgoData; gridded_fields=GriddedFields.load()
 ```
 """

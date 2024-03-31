@@ -639,8 +639,10 @@ end #module ArgoTools
 
 module GriddedFields
 
-using MeshArrays, OceanStateEstimation, Statistics
+using MeshArrays, Statistics
 
+import OceanStateEstimation.MITPROFclim_download
+import OceanStateEstimation.ScratchSpaces
 import ArgoData.MITprofStandard
 import ArgoData.ArgoTools
 
@@ -693,7 +695,7 @@ function load()
     
     msk=NaN_mask(Γ)
 
-    OceanStateEstimation.MITPROFclim_download()
+    MITPROFclim_download()
 
     pth=joinpath(ScratchSpaces.MITprof,"gcmfaces_climatologies")
     T=MonthlyClimatology(joinpath(pth,"T_OWPv1_M_eccollc_90x50.bin"),msk)

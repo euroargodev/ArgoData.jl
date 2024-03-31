@@ -1,6 +1,6 @@
 using Documenter, ArgoData, PlutoSliderServer
 
-using MITgcm; gridded_fields=GriddedFields.load()
+using OceanStateEstimation, MITgcm; MITPROFclim_download()
 
 #python dependencies
 if false

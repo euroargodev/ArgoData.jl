@@ -641,7 +641,6 @@ module GriddedFields
 
 using MeshArrays, Statistics
 
-import OceanStateEstimation.MITPROFclim_download
 import OceanStateEstimation.ScratchSpaces
 import ArgoData.MITprofStandard
 import ArgoData.ArgoTools
@@ -688,14 +687,17 @@ Originally this function returned `Γ,msk,T,S,σT,σS,array`.
     
 The embeded `array()` function returns a 2D array initialized to `missing`. 
 And `array(1)`, `array(3,2)`, etc add dimensions to the resulting array.
+
+```
+using OceanStateEstimation, MITgcm; MITPROFclim_download()
+using ArgoData; gridded_fields=GriddedFields.load()
+```
 """
 function load()
     γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
     Γ=GridLoad(γ,option="full")
     
     msk=NaN_mask(Γ)
-
-    MITPROFclim_download()
 
     pth=joinpath(ScratchSpaces.MITprof,"gcmfaces_climatologies")
     T=MonthlyClimatology(joinpath(pth,"T_OWPv1_M_eccollc_90x50.bin"),msk)

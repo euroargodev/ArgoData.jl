@@ -397,6 +397,8 @@ df1=MITprofAnalysis.trim(df)
 trim(df) = df[
     (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
     (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
+    (!isnan).(df.T) .& (!isnan).(df.Te) .&
+    (!isnan).(df.S) .& (!isnan).(df.Se) .&
     (df.date .> date_min) .& (df.date .< date_max)
     ,:]
 

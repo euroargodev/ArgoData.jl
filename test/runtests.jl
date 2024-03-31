@@ -1,4 +1,4 @@
-using ArgoData, MeshArrays, Test
+using ArgoData, MeshArrays, MITgcm, Test
 
 @testset "ArgoData.jl" begin
 

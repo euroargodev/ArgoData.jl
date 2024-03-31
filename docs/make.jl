@@ -1,5 +1,7 @@
 using Documenter, ArgoData, PlutoSliderServer
 
+using MITgcm; gridded_fields=GriddedFields.load()
+
 #python dependencies
 if false
 import Pkg, PyCall, Conda

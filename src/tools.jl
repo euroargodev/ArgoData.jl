@@ -639,7 +639,7 @@ end #module ArgoTools
 
 module GriddedFields
 
-using MeshArrays, OceanStateEstimation, MITgcmTools, Statistics
+using MeshArrays, OceanStateEstimation, Statistics
 
 import ArgoData.MITprofStandard
 import ArgoData.ArgoTools

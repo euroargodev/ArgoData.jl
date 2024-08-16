@@ -2,7 +2,8 @@ using Documenter, ArgoData, PlutoSliderServer
 
 using Climatology, MITgcm
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
-Climatology.MITPROFclim_download()
+pth=Climatology.MITPROFclim_download()
+println(pth)
 
 #python dependencies
 if false

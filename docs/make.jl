@@ -1,6 +1,8 @@
 using Documenter, ArgoData, PlutoSliderServer
 
-using Climatology, MITgcm; Climatology.MITPROFclim_download()
+using Climatology, MITgcm
+ENV["DATADEPS_ALWAYS_ACCEPT"]=true
+Climatology.MITPROFclim_download()
 
 #python dependencies
 if false

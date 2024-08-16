@@ -9,7 +9,7 @@ if Sys.ARCH!==:aarch64
   run(pipeline(`which python`,tmpfile)) #external python path
   ENV["PYTHON"]=readline(tmpfile)
   #ENV["PYTHON"]=""
-  Pkg.build("PyCall")
+  using Pkg; Pkg.build("PyCall")
 
   using PyCall, Conda
   ArgoData.conda(:argopy)

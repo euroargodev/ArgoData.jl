@@ -5,10 +5,13 @@ ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 Climatology.MITPROFclim_download()
 
 if Sys.ARCH!==:aarch64
-  tmpfile=joinpath(tempdir(),"pythonpath.txt")
-  run(pipeline(`which python`,tmpfile)) #external python path
-  ENV["PYTHON"]=readline(tmpfile)
-  #ENV["PYTHON"]=""
+  if false #external python path
+    tmpfile=joinpath(tempdir(),"pythonpath.txt")
+    run(pipeline(`which python`,tmpfile)) 
+    ENV["PYTHON"]=readline(tmpfile)
+  else #internal python path
+    ENV["PYTHON"]=""
+  end
   using Pkg; Pkg.build("PyCall")
 
   using PyCall, Conda

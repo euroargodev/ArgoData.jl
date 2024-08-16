@@ -4,6 +4,12 @@ using Climatology, MITgcm
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 Climatology.MITPROFclim_download()
 
+if true
+using PyCall, Conda
+ArgoData.conda(:argopy)
+argopy=ArgoData.pyimport(:argopy)
+end
+
 @testset "ArgoData.jl" begin
 
     files_list=GDAC.files_list()

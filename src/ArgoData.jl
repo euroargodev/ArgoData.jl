@@ -14,4 +14,7 @@ export GDAC, ArgoTools, GriddedFields
 export MITprof, MITprofAnalysis, MITprofStat
 export ProfileNative, ProfileStandard, MITprofStandard
 
+conda(dev::String) = conda(:pyargo)
+pyimport(dev::String) = pyimport(:pyargo)
+
 end # module

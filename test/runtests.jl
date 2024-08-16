@@ -4,10 +4,16 @@ using Climatology, MITgcm
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 Climatology.MITPROFclim_download()
 
-if true
-using PyCall, Conda
-ArgoData.conda(:argopy)
-argopy=ArgoData.pyimport(:argopy)
+if Sys.ARCH!==:aarch64
+  tmpfile=joinpath(tempdir(),"pythonpath.txt")
+  run(pipeline(`which python`,tmpfile)) #external python path
+  ENV["PYTHON"]=readline(tmpfile)
+  #ENV["PYTHON"]=""
+  Pkg.build("PyCall")
+
+  using PyCall, Conda
+  ArgoData.conda(:argopy)
+  argopy=ArgoData.pyimport(:argopy)
 end
 
 @testset "ArgoData.jl" begin

@@ -1,6 +1,6 @@
 using Documenter, ArgoData, PlutoSliderServer
 
-using OceanStateEstimation, MITgcm; OceanStateEstimation.MITPROFclim_download()
+using Climatology, MITgcm; Climatology.MITPROFclim_download()
 
 #python dependencies
 if false

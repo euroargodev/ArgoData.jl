@@ -308,6 +308,37 @@ function add_level!(df,k; input_path="")
     df.Snd=df.Sd.*sqrt.(df.Sw)
 end
 
+function read_pos_level_for_stat(level; reference=:OCCA1)
+  df=CSV.read("csv/profile_positions.csv",DataFrame)
+  add_k!(df,level,reference)
+  df=trim(df)
+  df.pos=MITprofAnalysis.parse_pos.(df.pos)
+  df.Td=df.T-df.Te
+  df.Sd=df.S-df.Se
+  df
+end
+
+function read_k(fil,k)
+  jldopen(fil,"r") do file
+    file["single_stored_object"][:,k]
+  end
+end
+
+function add_k!(df,k,reference)
+  df.T=read_k("jld/T.jld2",k); GC.gc()
+  df.Tw=read_k("jld/Tw.jld2",k); GC.gc()
+  df.S=read_k("jld/S.jld2",k); GC.gc()
+  df.Sw=read_k("jld/Sw.jld2",k); GC.gc()
+  if reference!==:OCCA1
+    println("jld/THETA_$(reference).jld2")
+    df.Te=read_k("jld/THETA_$(reference).jld2",k); GC.gc()
+    df.Se=read_k("jld/SALT_$(reference).jld2",k); GC.gc()
+  else
+    df.Te=read_k("jld/Te.jld2",k); GC.gc()
+    df.Se=read_k("jld/Se.jld2",k); GC.gc()
+  end
+end
+
 """
     add_climatology_factors!(df)
 
@@ -410,9 +441,12 @@ end #module MITprofAnalysis
 
 module MITprofStat
 
-using NCDatasets, DataFrames, CSV, Statistics, Dates, MeshArrays
+using NCDatasets, DataFrames, CSV, Statistics, Dates, MeshArrays, Bootstrap
 import ArgoData.GriddedFields
 import ArgoData.MITprofAnalysis
+
+bootbias(x)= length(x)>=5 ? bias(bootstrap(mean, x, BasicSampling(100)))[1] : NaN
+bootstderr(x)= length(x)>=5 ? stderror(bootstrap(mean, x, BasicSampling(100)))[1] : NaN
 
 """
     stat_df(df::DataFrame,by::Symbol,va::Symbol)
@@ -422,7 +456,8 @@ Compute statistics (mean, median, variance) of variable `va` from DataFrame `df`
 function stat_df(df::DataFrame,by::Symbol,va::Symbol)
     gdf=groupby(df,by)
     sdf=combine(gdf) do df
-        (n=size(df,1), mean=mean(df[:,va]) , median=median(df[:,va]), var=var(df[:,va]))
+       (n=size(df,1), mean=mean(df[:,va]) ,  
+       bias=bootbias(df[:,va]), err=bootstderr(df[:,va]))
     end
 
     sdf
@@ -483,16 +518,24 @@ function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::
 
     if npoint==1
         sdf1=stat_df(df1,:pos,va)
-        for i in 1:size(sdf1,1)
+        sdf1.npoint.=npoint
+	if sta!==:none
+          for i in 1:size(sdf1,1)
             sdf1[i,:n]>=nobs ? ar[sdf1[i,:pos]]=func(sdf1[i,sta]) : nothing
+          end
         end
     else        
         df1[:,:tile]=G.tile[df1.pos]
         sdf1=stat_df(df1,:tile,va)
-        for i in 1:size(sdf1,1)
+        sdf1.npoint.=npoint
+        if sta!==:none
+          for i in 1:size(sdf1,1)
             sdf1[i,:n]>=nobs ? ar[G.tile.==sdf1[i,:tile]].=func(sdf1[i,sta]) : nothing
+          end
         end
     end
+
+    return sdf1
 end
 
 """
@@ -517,17 +560,19 @@ function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::
                         func=(x->x), nmon=1, npoint=1, nobs=1)
     ny=length(years)
     ar1=G.array()
-
+    sdf1=fill(DataFrame(),12,ny)
     for y in 1:ny, m in 1:12
         m==1 ? println("starting year "*string(years[y])) : nothing
         ar1.=missing
-        stat_monthly!(ar1,df,va,sta,years[y],m,G;
+        sdf1[m,y]=stat_monthly!(ar1,df,va,sta,years[y],m,G;
             func=func, nmon=nmon, npoint=npoint, nobs=nobs)
         arr[:,:,m,y].=ar1
     end
 
     arr[ismissing.(arr)].=NaN
     arr.=Float64.(arr)
+
+    return sdf1
 end
 
 """
@@ -555,77 +600,169 @@ function stat_write(file,arr,varia)
     close(ds)
 end
 
+function stat_write(file,sdf::Matrix{DataFrame})
+    ny=size(sdf,2)
+    nt=12*ny
+    df=DataFrame()
+    for y in 1:ny
+    for m in 1:12
+       tmp=sdf[m,y]
+       tmp.y.=y
+       tmp.m.=m
+       append!(df,tmp)
+    end
+    end
+    CSV.write(file,df)
+end
+
 """
     stat_driver(;varia=:Td,level=1,years=2004:2022,output_to_file=false,
-    nmon=1, npoint=1, sta=:median, nobs=1, input_path="", output_path="")
+    nmon=1, npoint=1, sta=:none, nobs=1, input_path="", output_path="")
 
 ```
 P=( variable=:Td, level=10, years=2004:2007, 
     statistic=:median, npoint=3, nmon=3, 
     input_path="MITprof_input",
-    output_path=joinpath(tempdir(),"MITprof_output"),
+    output_path=joinpath(tempdir(),"stat_output"),
     output_to_file=false
     )
 
-MITprofStat.stat_driver(input_path=P.input_path,varia=P.variable,level=P.level,years=P.years,
+MITprofStat.stat_driver(input_path=P.input_path,varia=P.variable,
+        level=P.level,years=P.years,
         nmon=P.nmon, npoint=P.npoint, sta=P.statistic, 
         output_path=P.output_path, output_to_file=P.output_to_file)
 ```    
 """
 function stat_driver(;varia=:Td,level=1,years=2004:2022,output_to_file=false,
-    nmon=1, npoint=1, sta=:median, nobs=1, input_path="",output_path="")
-    
+    nmon=1, npoint=1, sta=:none, nobs=1, reference=:OCCA1,output_path="stat_output")
+   
+    output_to_nc=false
+    output_to_csv=true
+
     G=GriddedFields.load()
-    df=MITprofAnalysis.read_pos_level(level,input_path=input_path)
-    df1=MITprofAnalysis.trim(df)
+    df1=MITprofAnalysis.read_pos_level_for_stat(level,reference=reference)
 
     ny=length(years)
     arr=G.array(12,ny)
 
     npoint>1 ? GriddedFields.update_tile!(G,npoint) : nothing
 
-    stat_monthly!(arr,df1,varia,sta,years,G,nmon=nmon,npoint=npoint,nobs=nobs)
-    
+    sdf=stat_monthly!(arr,df1,varia,sta,years,G,nmon=nmon,npoint=npoint,nobs=nobs)
+
     return if output_to_file
+      if output_to_nc
         suf=string(varia)
         ext=string(level)*"_np$(npoint)nm$(nmon)no$(nobs).nc"
         level<10 ? output_file=suf*"_k0"*ext : output_file=suf*"_k"*ext
 
-        !isdir(output_path) ? mkdir(output_path) : nothing
-        output_file=joinpath(output_path,"stat_output",output_file)
+        output_file=joinpath(output_path,output_file)
         !isdir(dirname(output_file)) ? mkdir(dirname(output_file)) : nothing
         isfile(output_file) ? rm(output_file) : nothing
 
         stat_write(output_file,arr,varia)
+      end
+      if output_to_csv
+        suf=string(varia)
+        ext=string(level)*"_np$(npoint)nm$(nmon).csv"
+        level<10 ? output_file=suf*"_k0"*ext : output_file=suf*"_k"*ext
+
+        output_file=joinpath(output_path,output_file)
+        !isdir(dirname(output_file)) ? mkdir(dirname(output_file)) : nothing
+        isfile(output_file) ? rm(output_file) : nothing
+
+        stat_write(output_file,sdf)
+      end
     else
         arr
     end
 end
 
+function stat_combine(G,level=5,varia=:Td, rec=120;
+    path_input="stat_output",stat_config="",
+    func=(x->x))
+
+    ar2=G.array(); ar2.=0.0
+    ar2w=G.array(); ar2w.=0.0
+    ar3=G.array(); ar3.=0.0
+    ar3w=G.array(); ar3w.=0.0
+    level<10 ? lev="0"*string(level) : lev=string(level)
+
+    if isempty(stat_config)
+      list=MITprofStat.list_stat_configurations()
+    elseif isa(stat_config,String)
+      list=CSV.read(stat_config,DataFrame)
+    elseif isa(stat_config,DataFrame)
+      list=stat_config
+    end
+
+    nsize=size(list,1)
+    for i in 1:nsize
+        npoint=list.npoint[i]
+        nmon=list.nmon[i]
+        nobs=list.nobs[i]
+
+        fil=joinpath(path_input,"$(varia)_k"*lev*"_np$(npoint)nm$(nmon).csv")
+        ##
+        sdf1=CSV.read(fil,DataFrame)
+        y=Int(ceil(rec/12))
+        m=mod1(rec-12*Int(floor(rec/12)),12)
+        sdf1=sdf1[(sdf1.m.==m).&&(sdf1.y.==y),:]
+        ##
+        sta=:mean
+        ar3.=NaN
+        ar3w.=NaN
+        npoint>1 ? GriddedFields.update_tile!(G,npoint) : nothing
+        npoint==1 ? sdf1.pos.=MITprofAnalysis.parse_pos.(sdf1.pos) : nothing
+        if npoint==1
+          for i in 1:size(sdf1,1)
+            sdf1[i,:n]>=nobs ? ar3[sdf1[i,:pos]]=func(sdf1[i,sta]) : nothing
+            sdf1[i,:n]>=nobs ? ar3w[sdf1[i,:pos]]=1 : nothing
+            #sdf1[i,:n]>=nobs ? ar3w[sdf1[i,:pos]]=1/(sdf1[i,:err]^2) : nothing
+            #sdf1[i,:n]>=nobs ? ar3w[sdf1[i,:pos]]=1/(sdf1[i,:err]^2)/npoint : nothing
+	  end
+        else
+          for i in 1:size(sdf1,1)
+            sdf1[i,:n]>=nobs ? ar3[G.tile.==sdf1[i,:tile]].=func(sdf1[i,sta]) : nothing
+            sdf1[i,:n]>=nobs ? ar3w[G.tile.==sdf1[i,:tile]].=1 : nothing
+            #sdf1[i,:n]>=nobs ? ar3w[G.tile.==sdf1[i,:tile]].=1/(sdf1[i,:err]^2) : nothing
+            #sdf1[i,:n]>=nobs ? ar3w[G.tile.==sdf1[i,:tile]].=1/(sdf1[i,:err]^2)/npoint : nothing
+          end
+        end
+
+        ii=findall((!isnan).(ar3))
+        #w=list.nobs[i]/(list.npoint[i]^2)
+        ar2[ii].+=ar3w[ii].*ar3[ii]
+        ar2w[ii].+=ar3w[ii]
+    end
+    γ=G.Γ.XC.grid
+    #ar2=ar2./ar2w
+    #ar2=ar2./nsize
+    ar2=ar2./max.(ar2w,nsize/2)
+    ar2[findall(isnan.(ar2))].=0
+
+    z_std=Float64.([[5:10:185]... ; [200:20:500]... ; [550:50:1000]...; [1100:100:6000]...])
+    z_model=-G.Γ.RC
+    kk= ( z_std[level]<=z_model[1] ? 1 : maximum(findall(z_model.<z_std[level])) )
+
+    ar2.*γ.write(G.msk[:,kk])
+end
+
+
 """
     list_stat_configurations()
 
-List of confiburations (each one a choice of nmon,npoint,nobs) to be used in 
-`stat_map_combine` (see `examples/MITprof_plots.jl`).
+List of confiburations (each one a choice of nmon,npoint,nobs) to be used in `stat_combine`.
 """
 function list_stat_configurations()
     list=DataFrame(:nmon => [],:npoint => [],:nobs => [])
     #
-    push!(list,[5 30 100])
-    push!(list,[5 18 30])
-    push!(list,[5 10 10])
-    push!(list,[5 5 10])
-    push!(list,[5 3 10])
-    #
-    push!(list,[3 5 5])
-    push!(list,[3 3 5])
-    push!(list,[3 2 5])
-    push!(list,[3 1 5])
-    #
-    push!(list,[1 3 2])
-    push!(list,[1 2 2])
-    push!(list,[1 1 2])
-    #
+    push!(list,[5 30 50])
+    push!(list,[5 18 40])
+    push!(list,[5 10 30])
+    push!(list,[5 5 20])
+    push!(list,[5 3 9])
+    push!(list,[5 2 6])
+    push!(list,[5 1 3])
     list
 end
 

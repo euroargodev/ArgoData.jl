@@ -1,6 +1,8 @@
 using ArgoData, MeshArrays, Test
+using Climatology, MITgcm
 
-using OceanStateEstimation, MITgcm; OceanStateEstimation.MITPROFclim_download()
+ENV["DATADEPS_ALWAYS_ACCEPT"]=true
+Climatology.MITPROFclim_download()
 
 @testset "ArgoData.jl" begin
 

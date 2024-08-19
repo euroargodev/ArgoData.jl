@@ -6,29 +6,40 @@ pth=Climatology.MITPROFclim_download()
 println(pth)
 
 #python dependencies
-if false
-import Pkg, PyCall, Conda
 
-tmpfile=joinpath(tempdir(),"pythonpath.txt")
-run(pipeline(`which python`,tmpfile)) #external python path
-ENV["PYTHON"]=readline(tmpfile)
-#ENV["PYTHON"]=""
-Pkg.build("PyCall")
-Conda.add("argopy")
+run_argopy=true
+Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
-argopy=PyCall.pyimport("argopy")
+if run_argopy
+  method="internal"
+  if method=="external"
+    tmpfile=joinpath(tempdir(),"pythonpath.txt")
+    run(pipeline(`which python`,tmpfile)) #external python path
+    ENV["PYTHON"]=readline(tmpfile)
+  else
+    ENV["PYTHON"]=""
+  end
+
+  using Pkg
+  Pkg.build("PyCall")
+  using PyCall, Conda
+  ArgoData.conda(:argopy)
+  argopy=ArgoData.pyimport(:argopy)
 end
 
 #make docs
 makedocs(;
     modules=[ArgoData],
     format=Documenter.HTML(),
+#   format=Documenter.HTML(repolink = "github.com/euroargodev/ArgoData.jl.git"),
     pages=[
         "Home" => "index.md",
         "Examples" => "examples.md",
         "Reference" => "Functionalities.md",
     ],
     repo="https://github.com/euroargodev/ArgoData.jl/blob/{commit}{path}#L{line}",
+#   repo = "github.com/euroargodev/ArgoData.jl.git",
+#    repo=Remotes.GitHub("euroargodev", "ArgoData.jl"),
     sitename="ArgoData.jl",
     authors="gaelforget <gforget@mit.edu>",
     warnonly = [:cross_references,:missing_docs],
@@ -41,6 +52,7 @@ mv("Argo_float_files.csv",joinpath(@__DIR__,"build", "Argo_float_files.csv"))
 
 #run notebooks
 lst=("ArgoToMITprof.jl",)
+run_argopy ? lst=(lst...,"Argo_argopy.jl") : nothing
 for i in lst
     fil_in=joinpath(@__DIR__,"..", "examples",i)
     fil_out=joinpath(@__DIR__,"build", i[1:end-2]*"html")

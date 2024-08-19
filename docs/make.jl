@@ -1,5 +1,4 @@
 using Documenter, ArgoData, PlutoSliderServer
-import Pkg, PyCall, Conda
 
 using Climatology, MITgcm
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
@@ -20,7 +19,10 @@ if run_argopy
   else
     ENV["PYTHON"]=""
   end
+
+  using Pkg
   Pkg.build("PyCall")
+  using PyCall, Conda
   ArgoData.conda(:argopy)
   argopy=ArgoData.pyimport(:argopy)
 end

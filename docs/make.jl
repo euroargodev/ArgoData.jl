@@ -1,4 +1,5 @@
 using Documenter, ArgoData, PlutoSliderServer
+import Pkg, PyCall, Conda
 
 using Climatology, MITgcm
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
@@ -6,17 +7,19 @@ pth=Climatology.MITPROFclim_download()
 println(pth)
 
 #python dependencies
-if false
-import Pkg, PyCall, Conda
 
-tmpfile=joinpath(tempdir(),"pythonpath.txt")
-run(pipeline(`which python`,tmpfile)) #external python path
-ENV["PYTHON"]=readline(tmpfile)
-#ENV["PYTHON"]=""
-Pkg.build("PyCall")
-Conda.add("argopy")
-
-argopy=PyCall.pyimport("argopy")
+if Sys.ARCH!==:aarch64
+  method="external"
+  if method=="external"
+    tmpfile=joinpath(tempdir(),"pythonpath.txt")
+    run(pipeline(`which python`,tmpfile)) #external python path
+    ENV["PYTHON"]=readline(tmpfile)
+  else
+    ENV["PYTHON"]=""
+  end
+  Pkg.build("PyCall")
+  ArgoData.conda(:argopy)
+  argopy=ArgoData.pyimport(:argopy)
 end
 
 #make docs
@@ -41,6 +44,7 @@ mv("Argo_float_files.csv",joinpath(@__DIR__,"build", "Argo_float_files.csv"))
 
 #run notebooks
 lst=("ArgoToMITprof.jl",)
+Sys.ARCH!==:aarch64 ? lst=(lst...,"Argo_argopy.jl") : nothing
 for i in lst
     fil_in=joinpath(@__DIR__,"..", "examples",i)
     fil_out=joinpath(@__DIR__,"build", i[1:end-2]*"html")

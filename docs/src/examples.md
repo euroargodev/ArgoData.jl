@@ -78,9 +78,9 @@ lst=Dataverse.file_list(doi)
 
 ## Argo via Python API
 
-The python library called [argopy](https://img.shields.io/readthedocs/argopy?logo=readthedocs) provides more ways to access, manipulate, and visualize [Argo data](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo). The notebook below demonstrates how you can : 
+The python library called [argopy](https://github.com/euroargodev/argopy#readme) provides more ways to access, manipulate, and visualize [Argo data](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo). The notebook below demonstrates how you can : 
 
-1. install `argopy` into `Julia` via [Conda.jl](https://github.com/JuliaPy/Conda.jl)
-2. use `argopy` from Julia via [PyCall.jl](https://github.com/JuliaPy/PyCall.jl)
+1. install `argopy` into `Julia` via [Conda.jl](https://github.com/JuliaPy/Conda.jl#readme)
+2. use `argopy` from Julia via [PyCall.jl](https://github.com/JuliaPy/PyCall.jl#readme)
 
-👉 [Notebook](http://gaelforget.net/notebooks/Argo_argopy.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/Argo_argopy.jl)
+👉 [Notebook](../Argo_argopy.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/Argo_argopy.jl)

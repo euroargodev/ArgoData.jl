@@ -8,8 +8,11 @@ println(pth)
 
 #python dependencies
 
-if Sys.ARCH!==:aarch64
-  method="external"
+run_argopy=true
+Sys.ARCH!==:aarch64 ? run_argopy=false : nothing
+
+if run_argopy
+  method="internal"
   if method=="external"
     tmpfile=joinpath(tempdir(),"pythonpath.txt")
     run(pipeline(`which python`,tmpfile)) #external python path
@@ -26,12 +29,15 @@ end
 makedocs(;
     modules=[ArgoData],
     format=Documenter.HTML(),
+#   format=Documenter.HTML(repolink = "github.com/euroargodev/ArgoData.jl.git"),
     pages=[
         "Home" => "index.md",
         "Examples" => "examples.md",
         "Reference" => "Functionalities.md",
     ],
     repo="https://github.com/euroargodev/ArgoData.jl/blob/{commit}{path}#L{line}",
+#   repo = "github.com/euroargodev/ArgoData.jl.git",
+#    repo=Remotes.GitHub("euroargodev", "ArgoData.jl"),
     sitename="ArgoData.jl",
     authors="gaelforget <gforget@mit.edu>",
     warnonly = [:cross_references,:missing_docs],
@@ -44,7 +50,7 @@ mv("Argo_float_files.csv",joinpath(@__DIR__,"build", "Argo_float_files.csv"))
 
 #run notebooks
 lst=("ArgoToMITprof.jl",)
-Sys.ARCH!==:aarch64 ? lst=(lst...,"Argo_argopy.jl") : nothing
+run_argopy ? lst=(lst...,"Argo_argopy.jl") : nothing
 for i in lst
     fil_in=joinpath(@__DIR__,"..", "examples",i)
     fil_out=joinpath(@__DIR__,"build", i[1:end-2]*"html")

@@ -16,7 +16,7 @@ Tools to access, visualize, process, and analyze of
 
   - [ArgoData](https://juliaocean.github.io/OceanRobots.jl/dev/examples/Float_Argo.html) 🚀 interactive vizualisation
   - [MITprof](ArgoToMITprof.html) 🚀 simplified format
-  - [argopy](http://gaelforget.net/notebooks/Argo_argopy.html) 🚀 python API via Julia
+  - [argopy](../Argo_argopy.html) 🚀 python API via Julia
 
 _This package is in early developement stage when breaking changes can be expected._
 

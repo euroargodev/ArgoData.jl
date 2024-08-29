@@ -18,7 +18,7 @@ if run_argopy
   else #internal python path
     ENV["PYTHON"]=""
   end
-  using Pkg; Pkg.build("PyCall")
+  using Pkg; Pkg.build("PyCall"); Pkg.build("ArgoData")
 
   using PyCall, Conda
   ArgoData.conda(:argopy)

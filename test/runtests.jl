@@ -45,6 +45,7 @@ end
     mp=MITprofStandard(output_file)
     MITprof.write(output_file*".tmp1",mp);
     MITprof.write(output_file*".tmp2",[mp,mp]);
+    show(mp)
 
     @test isa(mp,MITprofStandard)
 

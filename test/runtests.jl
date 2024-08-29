@@ -10,7 +10,7 @@ run_argopy=true
 #Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
 if run_argopy
-  method="internal"
+  method="external"
   if method=="external"
     tmpfile=joinpath(tempdir(),"pythonpath.txt")
     run(pipeline(`which python`,tmpfile)) 

@@ -21,7 +21,8 @@ using ArgoData, MeshArrays, Test
 using Climatology, MITgcm
 
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
-Climatology.MITPROFclim_download()
+clim_path=Climatology.MITPROFclim_download()
+readdir(clim_path)
 
 if run_argopy
   @testset "argopy" begin

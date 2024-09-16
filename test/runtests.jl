@@ -1,5 +1,5 @@
 
-run_argopy=true
+run_argopy=false
 Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 method="external"
 

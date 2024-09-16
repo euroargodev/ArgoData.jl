@@ -33,10 +33,10 @@ ArgoDataMakieExt = ["Makie"]
 ArgoDataPyCallExt = ["PyCall"]
 
 [compat]
-CSV = "0.10"
-Conda = "1"
 Bootstrap = "2"
+CSV = "0.10"
 Climatology = "0.5"
+Conda = "1"
 DataFrames = "1"
 Downloads = "1"
 FTPClient = "1"

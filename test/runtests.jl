@@ -5,20 +5,10 @@ ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 Climatology.MITPROFclim_download()
 
 run_argopy=true
-#Sys.ARCH==:aarch64 ? run_argopy=false : nothing
+Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
 if run_argopy
-  method="internal"
-  if method=="external"
-    tmpfile=joinpath(tempdir(),"pythonpath.txt")
-    run(pipeline(`which python`,tmpfile)) 
-    ENV["PYTHON"]=readline(tmpfile)
-  else #internal python path
-    ENV["PYTHON"]=""
-  end
-  using Pkg; Pkg.build("PyCall")
-
-  using PyCall, Conda
+  using PythonCall, CondaPkg
   ArgoData.conda(:argopy)
   argopy=ArgoData.pyimport(:argopy)
 end

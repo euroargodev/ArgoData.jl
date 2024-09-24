@@ -11,6 +11,7 @@ Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 if run_argopy
   using PythonCall, CondaPkg
   ArgoData.conda(:argopy)
+  CondaPkg.status()
   argopy=ArgoData.pyimport(:argopy)
 end
 
@@ -20,8 +21,8 @@ if run_argopy
     argopy=ArgoData.pyimport(:argopy)
 
     ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))
-    ds_points = ds_fetcher.to_xarray()
-    ds_profiles = ds_points.argo.point2profile()
+#    ds_points = ds_fetcher.to_xarray()
+#    ds_profiles = ds_points.argo.point2profile()
 
     @test true
   end

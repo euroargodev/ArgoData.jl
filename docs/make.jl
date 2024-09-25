@@ -10,7 +10,7 @@ println(pth)
 run_argopy=false
 Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
-if run_argopy
+if false
   method="internal"
   if method=="external"
     tmpfile=joinpath(tempdir(),"pythonpath.txt")

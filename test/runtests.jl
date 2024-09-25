@@ -19,12 +19,11 @@ if run_argopy
   @testset "argopy" begin
     ArgoData.conda(:argopy)
     argopy=ArgoData.pyimport(:argopy)
+    println(argopy.status())
 
     ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))
-#    ds_points = ds_fetcher.to_xarray()
-#    ds_profiles = ds_points.argo.point2profile()
-
-    println(argopy.status())
+    ds_points = ds_fetcher.to_xarray()
+    ds_profiles = ds_points.argo.point2profile()
 
     @test true
   end

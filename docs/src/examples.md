@@ -87,4 +87,9 @@ argopy=ArgoData.pyimport(:argopy)
 println(argopy.status())
 ```
 
+```@example argopy
+ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))
+ds_points = ds_fetcher.to_xarray()
+```
+
 👉 [Notebook](../Argo_argopy.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/Argo_argopy.jl)

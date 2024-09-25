@@ -10,14 +10,9 @@ Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
 if run_argopy
   using PythonCall, CondaPkg
-  ArgoData.conda(:argopy)
-  CondaPkg.status()
-  argopy=ArgoData.pyimport(:argopy)
-end
-
-if run_argopy
   @testset "argopy" begin
     ArgoData.conda(:argopy)
+    println(CondaPkg.status())
     argopy=ArgoData.pyimport(:argopy)
     println(argopy.status())
 

@@ -1,35 +1,22 @@
 
-run_argopy=false
-Sys.ARCH==:aarch64 ? run_argopy=false : nothing
-method="external"
-
-if run_argopy
-  if method=="external"
-    tmpfile=joinpath(tempdir(),"pythonpath.txt")
-    run(pipeline(`which python`,tmpfile)) 
-    ENV["PYTHON"]=readline(tmpfile)
-  else #internal python path
-    ENV["PYTHON"]=""
-  end
-  using Pkg; Pkg.build("PyCall")
-  using PyCall, Conda
-end
-
-##
-
 using ArgoData, MeshArrays, Test
 using Climatology, MITgcm
 
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 clim_path=Climatology.MITPROFclim_download()
-readdir(clim_path)
+
+run_argopy=true
+Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
 if run_argopy
+  using PythonCall, CondaPkg
   @testset "argopy" begin
     ArgoData.conda(:argopy)
+    println(CondaPkg.status())
     argopy=ArgoData.pyimport(:argopy)
+    println(argopy.status())
 
-    ds_fetcher=argopy.DataFetcher().float([6902746, 6902747, 6902757, 6902766])
+    ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))
     ds_points = ds_fetcher.to_xarray()
     ds_profiles = ds_points.argo.point2profile()
 

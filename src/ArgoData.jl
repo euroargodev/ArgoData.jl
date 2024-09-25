@@ -10,11 +10,14 @@ include("GDAC.jl")
 include("MITprof.jl")
 include("MITprofAnalysis.jl")
 
+import NetworkOptions
+
 export GDAC, ArgoTools, GriddedFields
 export MITprof, MITprofAnalysis, MITprofStat
 export ProfileNative, ProfileStandard, MITprofStandard
 
-conda(dev::String) = conda(:pyargo)
-pyimport(dev::String) = pyimport(:pyargo)
+function conda end
+function pyimport end
+function CondaPkgDev end
 
 end # module

@@ -24,6 +24,8 @@ if run_argopy
 #    ds_points = ds_fetcher.to_xarray()
 #    ds_profiles = ds_points.argo.point2profile()
 
+    println(argopy.status())
+
     @test true
   end
 end

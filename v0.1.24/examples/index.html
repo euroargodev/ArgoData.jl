@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · ArgoData.jl</title><meta name="title" content="Examples · ArgoData.jl"/><meta property="og:title" content="Examples · ArgoData.jl"/><meta property="twitter:title" content="Examples · ArgoData.jl"/><meta name="description" content="Documentation for ArgoData.jl."/><meta property="og:description" content="Documentation for ArgoData.jl."/><meta property="twitter:description" content="Documentation for ArgoData.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">ArgoData.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Download-From-Argo-Data-Center"><span>Download From Argo Data Center</span></a></li><li><a class="tocitem" href="#Argo-on-Standard-Depth-Levels"><span>Argo on Standard Depth Levels</span></a></li><li><a class="tocitem" href="#Argo-via-Python-API"><span>Argo via Python API</span></a></li></ul></li><li><a class="tocitem" href="../Functionalities/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/euroargodev/ArgoData.jl/blob/master/docs/src/examples.md#L" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>The <code>One Argo Float</code> notebook demonstrates various functionalities of the <code>ArgoData.jl</code> package, which are further documented below.</p><p>👉 <a href="https://juliaocean.github.io/OceanRobots.jl/dev/examples/Float_Argo.html">One Argo Float</a> 👈 <a href="https://raw.githubusercontent.com/juliaocean/OceanRobots.jl/master/examples/Float_Argo.jl">(code)</a></p><h2 id="Download-From-Argo-Data-Center"><a class="docs-heading-anchor" href="#Download-From-Argo-Data-Center">Download From Argo Data Center</a><a id="Download-From-Argo-Data-Center-1"></a><a class="docs-heading-anchor-permalink" href="#Download-From-Argo-Data-Center" title="Permalink"></a></h2><p>Downloading and accessing an Argo file (<code>wmo=13857</code> from <code>folder=&quot;aoml&quot;</code>) is done like this.</p><pre><code class="language-julia hljs">using ArgoData
+input_file=GDAC.download_file(&quot;aoml&quot;,13857)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;/tmp/Argo_DAC_files/aoml/13857/13857_prof.nc&quot;</code></pre><p>You can then simply access the file content using <a href="https://github.com/Alexander-Barth/NCDatasets.jl#readme">NCDatasets.jl</a>.</p><pre><code class="language-julia hljs">using NCDatasets
+ds=Dataset(input_file)
+keys(ds)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">58-element Vector{String}:
+ &quot;DATA_TYPE&quot;
+ &quot;FORMAT_VERSION&quot;
+ &quot;HANDBOOK_VERSION&quot;
+ &quot;REFERENCE_DATE_TIME&quot;
+ &quot;DATE_CREATION&quot;
+ &quot;DATE_UPDATE&quot;
+ &quot;PLATFORM_NUMBER&quot;
+ &quot;PROJECT_NAME&quot;
+ &quot;PI_NAME&quot;
+ &quot;STATION_PARAMETERS&quot;
+ ⋮
+ &quot;HISTORY_SOFTWARE_RELEASE&quot;
+ &quot;HISTORY_REFERENCE&quot;
+ &quot;HISTORY_DATE&quot;
+ &quot;HISTORY_ACTION&quot;
+ &quot;HISTORY_PARAMETER&quot;
+ &quot;HISTORY_START_PRES&quot;
+ &quot;HISTORY_STOP_PRES&quot;
+ &quot;HISTORY_PREVIOUS_VALUE&quot;
+ &quot;HISTORY_QCTEST&quot;</code></pre><p>A list of all <code>folder,wmo</code> pairs can be obtained using <code>files_list=GDAC.files_list()</code>. And a method to download files in bulk &amp; parallel is presented in <a href="https://github.com/euroargodev/ArgoData.jl/blob/master/examples/Argo_distributed_download.jl">examples/Argo_distributed_download.jl</a>.</p><h2 id="Argo-on-Standard-Depth-Levels"><a class="docs-heading-anchor" href="#Argo-on-Standard-Depth-Levels">Argo on Standard Depth Levels</a><a id="Argo-on-Standard-Depth-Levels-1"></a><a class="docs-heading-anchor-permalink" href="#Argo-on-Standard-Depth-Levels" title="Permalink"></a></h2><p>A more complete version of the workflow presented below is in this notebook:</p><p>👉 <a href="../ArgoToMITprof.html">from Argo to MITprof</a> 👈 <a href="https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/ArgoToMITprof.jl">(code)</a></p><h3 id="The-MITprof-Format"><a class="docs-heading-anchor" href="#The-MITprof-Format">The <code>MITprof</code> Format</a><a id="The-MITprof-Format-1"></a><a class="docs-heading-anchor-permalink" href="#The-MITprof-Format" title="Permalink"></a></h3><p>The MITprof format is a simple to use version of Argo where profiles have been converted to potential temperature and interpolated to <a href="https://juliaocean.github.io/OceanRobots.jl/dev/examples/Float_Argo.html">standard depth levels</a>.</p><p>Turning an Argo file (<code>input_file</code>) into an MITprof file (<code>output_file</code>) proceeds as follows. </p><ol><li>gridded fields are retrieved. These climatologies enable quality control of the data and scientific applications in step 2.</li><li>read the Argo file and process it. The observed profiles are interpolated to standard depth levels, converted to potential temperature, quality controled, and appended climatological profiles. </li></ol><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>For more detail on the use of climatologies, representation error estimation, and model-data <code>cost functions</code>, see Forget et al 2015, Forget 2011, Forget and Wunsch 2007.</p></div></div><pre><code class="language-julia hljs">gridded_fields=GriddedFields.load()
+output_file=MITprof.format(gridded_fields,input_file)
+ds2=Dataset(output_file)
+keys(ds2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">13-element Vector{String}:
+ &quot;prof_depth&quot;
+ &quot;prof_ID&quot;
+ &quot;prof_lon&quot;
+ &quot;prof_lat&quot;
+ &quot;prof_date&quot;
+ &quot;prof_YYYYMMDD&quot;
+ &quot;prof_HHMMSS&quot;
+ &quot;prof_T&quot;
+ &quot;prof_Tweight&quot;
+ &quot;prof_Testim&quot;
+ &quot;prof_S&quot;
+ &quot;prof_Sweight&quot;
+ &quot;prof_Sestim&quot;</code></pre><h3 id="Associated-Data-Structure"><a class="docs-heading-anchor" href="#Associated-Data-Structure">Associated Data Structure</a><a id="Associated-Data-Structure-1"></a><a class="docs-heading-anchor-permalink" href="#Associated-Data-Structure" title="Permalink"></a></h3><p>The generated file can be accessed normally as a NetCDF file (e.g., <code>Dataset(output_file)</code>) or using the convenient <code>MITprofStandard</code> data structure.</p><pre><code class="language-julia hljs">mp=MITprofStandard(output_file)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">File name is <span class="sgr34">13857_MITprof.nc </span>
+List of variables : 
+  lon   is <span class="sgr34">(140,) </span>
+  lat   is <span class="sgr34">(140,) </span>
+  date  is <span class="sgr34">(140,) </span>
+  depth is <span class="sgr34">(55,) </span>
+  ID    is <span class="sgr34">(140,) </span>
+  T     is <span class="sgr34">(140, 55) </span>
+  Te    is <span class="sgr34">(140, 55) </span>
+  Tw    is <span class="sgr34">(140, 55) </span>
+  S     is <span class="sgr34">(140, 55) </span>
+  Se    is <span class="sgr34">(140, 55) </span>
+  Sw    is <span class="sgr34">(140, 55)</span></code></pre><h3 id="Sample-MITprof-Files"><a class="docs-heading-anchor" href="#Sample-MITprof-Files">Sample <code>MITprof</code> Files</a><a id="Sample-MITprof-Files-1"></a><a class="docs-heading-anchor-permalink" href="#Sample-MITprof-Files" title="Permalink"></a></h3><p>The full set of MITprof profiles processed in 2023 from the <a href="https://argo.ucsd.edu/">Argo</a> data base is available in <a href="https://doi.org/10.7910/DVN/7HLV09">this Dataverse</a>. This dataset can be explored and retrieved using <a href="https://github.com/gdcc/Dataverse.jl#readme">Dataverse.jl</a>.</p><pre><code class="language-julia hljs">using Dataverse
+doi=&quot;https://doi.org/10.7910/DVN/7HLV09&quot;
+lst=Dataverse.file_list(doi)
+Dataverse.file_download(lst,lst.filename[2],tempdir())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Downloading file : /tmp/MITprof_Argo_1999.nc</code></pre><p>Another example is the original collection of MITprof files from <a href="http://dx.doi.org/10.5194/gmd-8-3071-2015">Forget, et al 2015</a> is archived in <a href="https://doi.org/10.7910/DVN/EE3C40">this Dataverse</a>. This contains an earlier versio of Argo along with complementary datasets.</p><pre><code class="language-julia hljs">using Dataverse
+doi=&quot;https://doi.org/10.7910/DVN/EE3C40&quot;
+lst=Dataverse.file_list(doi)</code></pre><div><div style = "float: left;"><span>12×4 DataFrame</span></div><div style = "clear: both;"></div></div><div class = "data-frame" style = "overflow-x: scroll;"><table class = "data-frame" style = "margin-bottom: 6px;"><thead><tr class = "header"><th class = "rowNumber" style = "font-weight: bold; text-align: right;">Row</th><th style = "text-align: left;">filename</th><th style = "text-align: left;">filesize</th><th style = "text-align: left;">id</th><th style = "text-align: left;">url</th></tr><tr class = "subheader headerLastRow"><th class = "rowNumber" style = "font-weight: bold; text-align: right;"></th><th title = "String" style = "text-align: left;">String</th><th title = "Int64" style = "text-align: left;">Int64</th><th title = "Int64" style = "text-align: left;">Int64</th><th title = "String" style = "text-align: left;">String</th></tr></thead><tbody><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">1</td><td style = "text-align: left;">MITprof_mar2016_argo0708.nc</td><td style = "text-align: right;">815848760</td><td style = "text-align: right;">2845790</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845790</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">2</td><td style = "text-align: left;">MITprof_mar2016_argo0910.nc</td><td style = "text-align: right;">880816932</td><td style = "text-align: right;">2845789</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845789</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">3</td><td style = "text-align: left;">MITprof_mar2016_argo1112.nc</td><td style = "text-align: right;">964198352</td><td style = "text-align: right;">2845791</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845791</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">4</td><td style = "text-align: left;">MITprof_mar2016_argo1314.nc</td><td style = "text-align: right;">1097483536</td><td style = "text-align: right;">2845793</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845793</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">5</td><td style = "text-align: left;">MITprof_mar2016_argo1515.nc</td><td style = "text-align: right;">638674860</td><td style = "text-align: right;">2845788</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845788</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">6</td><td style = "text-align: left;">MITprof_mar2016_argo9506.nc</td><td style = "text-align: right;">981153408</td><td style = "text-align: right;">2845792</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845792</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">7</td><td style = "text-align: left;">MITprof_mar2016_climode.nc</td><td style = "text-align: right;">37788892</td><td style = "text-align: right;">2845786</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845786</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">8</td><td style = "text-align: left;">MITprof_mar2016_ctd.nc</td><td style = "text-align: right;">1337162264</td><td style = "text-align: right;">2845794</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845794</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">9</td><td style = "text-align: left;">MITprof_mar2016_itp.nc</td><td style = "text-align: right;">48296856</td><td style = "text-align: right;">2845787</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845787</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">10</td><td style = "text-align: left;">MITprof_mar2016_seals.nc</td><td style = "text-align: right;">372054428</td><td style = "text-align: right;">2845785</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845785</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">11</td><td style = "text-align: left;">MITprof_mar2016_xbt.nc</td><td style = "text-align: right;">395252264</td><td style = "text-align: right;">2845783</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2845783</td></tr><tr><td class = "rowNumber" style = "font-weight: bold; text-align: right;">12</td><td style = "text-align: left;">README.pdf</td><td style = "text-align: right;">56137</td><td style = "text-align: right;">2863426</td><td style = "text-align: left;">https://dataverse.harvard.edu/api/access/datafile/2863426</td></tr></tbody></table></div><h2 id="Argo-via-Python-API"><a class="docs-heading-anchor" href="#Argo-via-Python-API">Argo via Python API</a><a id="Argo-via-Python-API-1"></a><a class="docs-heading-anchor-permalink" href="#Argo-via-Python-API" title="Permalink"></a></h2><p>The python library called <a href="https://github.com/euroargodev/argopy#readme">argopy</a> provides more ways to access, manipulate, and visualize <a href="https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo">Argo data</a>. </p><pre><code class="language-julia hljs">using ArgoData, CondaPkg, PythonCall
+ArgoData.conda(:argopy)
+argopy=ArgoData.pyimport(:argopy)
+println(argopy.status())</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">    CondaPkg Found dependencies: /home/runner/work/ArgoData.jl/ArgoData.jl/docs/CondaPkg.toml
+    CondaPkg Found dependencies: /home/runner/.julia/packages/PythonCall/Nr75f/CondaPkg.toml
+    CondaPkg Dependencies already up to date
+src argovis is: ok | src erddap is: ok | src gdac is: ok</code></pre><pre><code class="language-julia hljs">ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))
+ds_points = ds_fetcher.to_xarray()</code></pre><div><svg style="position: absolute; width: 0; height: 0; overflow: hidden">
+<defs>
+<symbol id="icon-database" viewBox="0 0 32 32">
+<path d="M16 0c-8.837 0-16 2.239-16 5v4c0 2.761 7.163 5 16 5s16-2.239 16-5v-4c0-2.761-7.163-5-16-5z"></path>
+<path d="M16 17c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
+<path d="M16 26c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
+</symbol>
+<symbol id="icon-file-text2" viewBox="0 0 32 32">
+<path d="M28.681 7.159c-0.694-0.947-1.662-2.053-2.724-3.116s-2.169-2.030-3.116-2.724c-1.612-1.182-2.393-1.319-2.841-1.319h-15.5c-1.378 0-2.5 1.121-2.5 2.5v27c0 1.378 1.122 2.5 2.5 2.5h23c1.378 0 2.5-1.122 2.5-2.5v-19.5c0-0.448-0.137-1.23-1.319-2.841zM24.543 5.457c0.959 0.959 1.712 1.825 2.268 2.543h-4.811v-4.811c0.718 0.556 1.584 1.309 2.543 2.268zM28 29.5c0 0.271-0.229 0.5-0.5 0.5h-23c-0.271 0-0.5-0.229-0.5-0.5v-27c0-0.271 0.229-0.5 0.5-0.5 0 0 15.499-0 15.5 0v7c0 0.552 0.448 1 1 1h7v19.5z"></path>
+<path d="M23 26h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
+<path d="M23 22h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
+<path d="M23 18h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
+</symbol>
+</defs>
+</svg>
+<style>/* CSS stylesheet for displaying xarray objects in jupyterlab.
+ *
+ */
+
+:root {
+  --xr-font-color0: var(--jp-content-font-color0, rgba(0, 0, 0, 1));
+  --xr-font-color2: var(--jp-content-font-color2, rgba(0, 0, 0, 0.54));
+  --xr-font-color3: var(--jp-content-font-color3, rgba(0, 0, 0, 0.38));
+  --xr-border-color: var(--jp-border-color2, #e0e0e0);
+  --xr-disabled-color: var(--jp-layout-color3, #bdbdbd);
+  --xr-background-color: var(--jp-layout-color0, white);
+  --xr-background-color-row-even: var(--jp-layout-color1, white);
+  --xr-background-color-row-odd: var(--jp-layout-color2, #eeeeee);
+}
+
+html[theme=dark],
+body[data-theme=dark],
+body.vscode-dark {
+  --xr-font-color0: rgba(255, 255, 255, 1);
+  --xr-font-color2: rgba(255, 255, 255, 0.54);
+  --xr-font-color3: rgba(255, 255, 255, 0.38);
+  --xr-border-color: #1F1F1F;
+  --xr-disabled-color: #515151;
+  --xr-background-color: #111111;
+  --xr-background-color-row-even: #111111;
+  --xr-background-color-row-odd: #313131;
+}
+
+.xr-wrap {
+  display: block !important;
+  min-width: 300px;
+  max-width: 700px;
+}
+
+.xr-text-repr-fallback {
+  /* fallback to plain text repr when CSS is not injected (untrusted notebook) */
+  display: none;
+}
+
+.xr-header {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: solid 1px var(--xr-border-color);
+}
+
+.xr-header > div,
+.xr-header > ul {
+  display: inline;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.xr-obj-type,
+.xr-array-name {
+  margin-left: 2px;
+  margin-right: 10px;
+}
+
+.xr-obj-type {
+  color: var(--xr-font-color2);
+}
+
+.xr-sections {
+  padding-left: 0 !important;
+  display: grid;
+  grid-template-columns: 150px auto auto 1fr 20px 20px;
+}
+
+.xr-section-item {
+  display: contents;
+}
+
+.xr-section-item input {
+  display: none;
+}
+
+.xr-section-item input + label {
+  color: var(--xr-disabled-color);
+}
+
+.xr-section-item input:enabled + label {
+  cursor: pointer;
+  color: var(--xr-font-color2);
+}
+
+.xr-section-item input:enabled + label:hover {
+  color: var(--xr-font-color0);
+}
+
+.xr-section-summary {
+  grid-column: 1;
+  color: var(--xr-font-color2);
+  font-weight: 500;
+}
+
+.xr-section-summary > span {
+  display: inline-block;
+  padding-left: 0.5em;
+}
+
+.xr-section-summary-in:disabled + label {
+  color: var(--xr-font-color2);
+}
+
+.xr-section-summary-in + label:before {
+  display: inline-block;
+  content: '►';
+  font-size: 11px;
+  width: 15px;
+  text-align: center;
+}
+
+.xr-section-summary-in:disabled + label:before {
+  color: var(--xr-disabled-color);
+}
+
+.xr-section-summary-in:checked + label:before {
+  content: '▼';
+}
+
+.xr-section-summary-in:checked + label > span {
+  display: none;
+}
+
+.xr-section-summary,
+.xr-section-inline-details {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.xr-section-inline-details {
+  grid-column: 2 / -1;
+}
+
+.xr-section-details {
+  display: none;
+  grid-column: 1 / -1;
+  margin-bottom: 5px;
+}
+
+.xr-section-summary-in:checked ~ .xr-section-details {
+  display: contents;
+}
+
+.xr-array-wrap {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 20px auto;
+}
+
+.xr-array-wrap > label {
+  grid-column: 1;
+  vertical-align: top;
+}
+
+.xr-preview {
+  color: var(--xr-font-color3);
+}
+
+.xr-array-preview,
+.xr-array-data {
+  padding: 0 5px !important;
+  grid-column: 2;
+}
+
+.xr-array-data,
+.xr-array-in:checked ~ .xr-array-preview {
+  display: none;
+}
+
+.xr-array-in:checked ~ .xr-array-data,
+.xr-array-preview {
+  display: inline-block;
+}
+
+.xr-dim-list {
+  display: inline-block !important;
+  list-style: none;
+  padding: 0 !important;
+  margin: 0;
+}
+
+.xr-dim-list li {
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+}
+
+.xr-dim-list:before {
+  content: '(';
+}
+
+.xr-dim-list:after {
+  content: ')';
+}
+
+.xr-dim-list li:not(:last-child):after {
+  content: ',';
+  padding-right: 5px;
+}
+
+.xr-has-index {
+  font-weight: bold;
+}
+
+.xr-var-list,
+.xr-var-item {
+  display: contents;
+}
+
+.xr-var-item > div,
+.xr-var-item label,
+.xr-var-item > .xr-var-name span {
+  background-color: var(--xr-background-color-row-even);
+  margin-bottom: 0;
+}
+
+.xr-var-item > .xr-var-name:hover span {
+  padding-right: 5px;
+}
+
+.xr-var-list > li:nth-child(odd) > div,
+.xr-var-list > li:nth-child(odd) > label,
+.xr-var-list > li:nth-child(odd) > .xr-var-name span {
+  background-color: var(--xr-background-color-row-odd);
+}
+
+.xr-var-name {
+  grid-column: 1;
+}
+
+.xr-var-dims {
+  grid-column: 2;
+}
+
+.xr-var-dtype {
+  grid-column: 3;
+  text-align: right;
+  color: var(--xr-font-color2);
+}
+
+.xr-var-preview {
+  grid-column: 4;
+}
+
+.xr-index-preview {
+  grid-column: 2 / 5;
+  color: var(--xr-font-color2);
+}
+
+.xr-var-name,
+.xr-var-dims,
+.xr-var-dtype,
+.xr-preview,
+.xr-attrs dt {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 10px;
+}
+
+.xr-var-name:hover,
+.xr-var-dims:hover,
+.xr-var-dtype:hover,
+.xr-attrs dt:hover {
+  overflow: visible;
+  width: auto;
+  z-index: 1;
+}
+
+.xr-var-attrs,
+.xr-var-data,
+.xr-index-data {
+  display: none;
+  background-color: var(--xr-background-color) !important;
+  padding-bottom: 5px !important;
+}
+
+.xr-var-attrs-in:checked ~ .xr-var-attrs,
+.xr-var-data-in:checked ~ .xr-var-data,
+.xr-index-data-in:checked ~ .xr-index-data {
+  display: block;
+}
+
+.xr-var-data > table {
+  float: right;
+}
+
+.xr-var-name span,
+.xr-var-data,
+.xr-index-name div,
+.xr-index-data,
+.xr-attrs {
+  padding-left: 25px !important;
+}
+
+.xr-attrs,
+.xr-var-attrs,
+.xr-var-data,
+.xr-index-data {
+  grid-column: 1 / -1;
+}
+
+dl.xr-attrs {
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 125px auto;
+}
+
+.xr-attrs dt,
+.xr-attrs dd {
+  padding: 0;
+  margin: 0;
+  float: left;
+  padding-right: 10px;
+  width: auto;
+}
+
+.xr-attrs dt {
+  font-weight: normal;
+  grid-column: 1;
+}
+
+.xr-attrs dt:hover span {
+  display: inline-block;
+  background: var(--xr-background-color);
+  padding-right: 10px;
+}
+
+.xr-attrs dd {
+  grid-column: 2;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.xr-icon-database,
+.xr-icon-file-text2,
+.xr-no-icon {
+  display: inline-block;
+  vertical-align: middle;
+  width: 1em;
+  height: 1.5em !important;
+  stroke-width: 0;
+  stroke: currentColor;
+  fill: currentColor;
+}
+</style><pre class='xr-text-repr-fallback'>&lt;xarray.Dataset&gt; Size: 30MB
+Dimensions:          (N_POINTS: 248145)
+Coordinates:
+  * N_POINTS         (N_POINTS) int64 2MB 0 1 2 3 ... 248142 248143 248144
+    LATITUDE         (N_POINTS) float64 2MB 20.33 20.33 20.33 ... 23.2 23.2 23.2
+    LONGITUDE        (N_POINTS) float64 2MB -49.45 -49.45 ... -55.21 -55.21
+    TIME             (N_POINTS) datetime64[ns] 2MB 2017-03-28T11:55:00 ... 20...
+Data variables: (12/15)
+    CYCLE_NUMBER     (N_POINTS) int64 2MB 1 1 1 1 1 1 ... 247 247 247 247 247
+    DATA_MODE        (N_POINTS) &lt;U1 993kB &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; ... &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27;
+    DIRECTION        (N_POINTS) &lt;U1 993kB &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; ... &#x27;A&#x27; &#x27;A&#x27; &#x27;A&#x27; &#x27;A&#x27;
+    PLATFORM_NUMBER  (N_POINTS) int64 2MB 6902766 6902766 ... 6902766 6902766
+    POSITION_QC      (N_POINTS) int64 2MB 1 1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1
+    PRES             (N_POINTS) float32 993kB 12.2 17.0 ... 2.013e+03 2.018e+03
+    ...               ...
+    PSAL_ERROR       (N_POINTS) float32 993kB 0.01 0.01 0.01 ... 0.01 0.01 0.01
+    PSAL_QC          (N_POINTS) int64 2MB 1 1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1
+    TEMP             (N_POINTS) float32 993kB 24.38 24.38 24.38 ... 3.716 3.709
+    TEMP_ERROR       (N_POINTS) float32 993kB 0.002 0.002 0.002 ... 0.002 0.002
+    TEMP_QC          (N_POINTS) int64 2MB 1 1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1
+    TIME_QC          (N_POINTS) int64 2MB 1 1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1
+Attributes:
+    DATA_ID:              ARGO
+    DOI:                  http://doi.org/10.17882/42182
+    Fetched_from:         https://erddap.ifremer.fr/erddap
+    Fetched_by:           runner
+    Fetched_date:         2024/09/26
+    Fetched_constraints:  WMO6902746;WMO6902747;WMO6902757;WMO6902766
+    Fetched_uri:          [&#x27;https://erddap.ifremer.fr/erddap/tabledap/ArgoFlo...
+    history:              Variables filtered according to DATA_MODE; Variable...</pre><div class='xr-wrap' style='display:none'><div class='xr-header'><div class='xr-obj-type'>xarray.Dataset</div></div><ul class='xr-sections'><li class='xr-section-item'><input id='section-e9428a2a-5c59-4650-8b7f-b2b59a2c83fb' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-e9428a2a-5c59-4650-8b7f-b2b59a2c83fb' class='xr-section-summary'  title='Expand/collapse section'>Dimensions:</label><div class='xr-section-inline-details'><ul class='xr-dim-list'><li><span class='xr-has-index'>N_POINTS</span>: 248145</li></ul></div><div class='xr-section-details'></div></li><li class='xr-section-item'><input id='section-30e8e457-501c-47d8-bade-bc87e7014141' class='xr-section-summary-in' type='checkbox'  checked><label for='section-30e8e457-501c-47d8-bade-bc87e7014141' class='xr-section-summary' >Coordinates: <span>(4)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>N_POINTS</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>0 1 2 3 ... 248142 248143 248144</div><input id='attrs-eff4ff0b-53eb-414f-909b-c31b1a55d843' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-eff4ff0b-53eb-414f-909b-c31b1a55d843' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-865dda94-6d4b-4da5-a119-c12f8e9ed1e6' class='xr-var-data-in' type='checkbox'><label for='data-865dda94-6d4b-4da5-a119-c12f8e9ed1e6' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([     0,      1,      2, ..., 248142, 248143, 248144])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>LATITUDE</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>20.33 20.33 20.33 ... 23.2 23.2</div><input id='attrs-43783684-d738-4820-ad5e-7624e8f8e424' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-43783684-d738-4820-ad5e-7624e8f8e424' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-a409b095-e494-453d-99ce-ef40fcaf7d4f' class='xr-var-data-in' type='checkbox'><label for='data-a409b095-e494-453d-99ce-ef40fcaf7d4f' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>_CoordinateAxisType :</span></dt><dd>Lat</dd><dt><span>actual_range :</span></dt><dd>[ 1.565 25.143]</dd><dt><span>axis :</span></dt><dd>Y</dd><dt><span>colorBarMaximum :</span></dt><dd>90.0</dd><dt><span>colorBarMinimum :</span></dt><dd>-90.0</dd><dt><span>ioos_category :</span></dt><dd>Location</dd><dt><span>long_name :</span></dt><dd>Latitude of the station, best estimate</dd><dt><span>standard_name :</span></dt><dd>latitude</dd><dt><span>units :</span></dt><dd>degrees_north</dd><dt><span>valid_max :</span></dt><dd>90.0</dd><dt><span>valid_min :</span></dt><dd>-90.0</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([20.32965833, 20.32965833, 20.32965833, ..., 23.19524833,
+       23.19524833, 23.19524833])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>LONGITUDE</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>-49.45 -49.45 ... -55.21 -55.21</div><input id='attrs-5b617eb9-0281-4461-8858-88ff011a12bc' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-5b617eb9-0281-4461-8858-88ff011a12bc' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-ef7a7324-248c-4aa5-8223-b6141ff79f73' class='xr-var-data-in' type='checkbox'><label for='data-ef7a7324-248c-4aa5-8223-b6141ff79f73' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>_CoordinateAxisType :</span></dt><dd>Lon</dd><dt><span>actual_range :</span></dt><dd>[-85.606 -31.023]</dd><dt><span>axis :</span></dt><dd>X</dd><dt><span>colorBarMaximum :</span></dt><dd>180.0</dd><dt><span>colorBarMinimum :</span></dt><dd>-180.0</dd><dt><span>ioos_category :</span></dt><dd>Location</dd><dt><span>long_name :</span></dt><dd>Longitude of the station, best estimate</dd><dt><span>standard_name :</span></dt><dd>longitude</dd><dt><span>units :</span></dt><dd>degrees_east</dd><dt><span>valid_max :</span></dt><dd>180.0</dd><dt><span>valid_min :</span></dt><dd>-180.0</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([-49.45345, -49.45345, -49.45345, ..., -55.20581, -55.20581,
+       -55.20581])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>TIME</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>datetime64[ns]</div><div class='xr-var-preview xr-preview'>2017-03-28T11:55:00 ... 2024-01-...</div><input id='attrs-9aaaadca-fe03-42ce-89d1-90775f31939c' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-9aaaadca-fe03-42ce-89d1-90775f31939c' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-542af45f-8c56-4f06-82b9-59502aa5ed07' class='xr-var-data-in' type='checkbox'><label for='data-542af45f-8c56-4f06-82b9-59502aa5ed07' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>_CoordinateAxisType :</span></dt><dd>Time</dd><dt><span>actual_range :</span></dt><dd>[1.49070210e+09 1.70436999e+09]</dd><dt><span>axis :</span></dt><dd>T</dd><dt><span>ioos_category :</span></dt><dd>Time</dd><dt><span>long_name :</span></dt><dd>Julian day (UTC) of the station relative to REFERENCE_DATE_TIME</dd><dt><span>standard_name :</span></dt><dd>time</dd><dt><span>time_origin :</span></dt><dd>01-JAN-1970 00:00:00</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([&#x27;2017-03-28T11:55:00.000000000&#x27;, &#x27;2017-03-28T11:55:00.000000000&#x27;,
+       &#x27;2017-03-28T11:55:00.000000000&#x27;, ...,
+       &#x27;2024-01-04T12:06:30.000000000&#x27;, &#x27;2024-01-04T12:06:30.000000000&#x27;,
+       &#x27;2024-01-04T12:06:30.000000000&#x27;], dtype=&#x27;datetime64[ns]&#x27;)</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-fa953bef-73fc-4220-8b98-8d7ca1c9a6d7' class='xr-section-summary-in' type='checkbox'  ><label for='section-fa953bef-73fc-4220-8b98-8d7ca1c9a6d7' class='xr-section-summary' >Data variables: <span>(15)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span>CYCLE_NUMBER</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 1 1 1 1 1 ... 247 247 247 247 247</div><input id='attrs-766a5b18-fe53-477c-9bcc-b0a2f3322e0f' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-766a5b18-fe53-477c-9bcc-b0a2f3322e0f' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-da3b3112-cc3f-44eb-a8e8-bcbad9f724b3' class='xr-var-data-in' type='checkbox'><label for='data-da3b3112-cc3f-44eb-a8e8-bcbad9f724b3' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Float cycle number</dd><dt><span>conventions :</span></dt><dd>0..N, 0 : launch cycle (if exists), 1 : first complete cycle</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([  1,   1,   1, ..., 247, 247, 247])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>DATA_MODE</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>&lt;U1</div><div class='xr-var-preview xr-preview'>&#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; ... &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27;</div><input id='attrs-e4f0482d-fe21-492d-bb0d-baf685273d33' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-e4f0482d-fe21-492d-bb0d-baf685273d33' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-0bc46755-0395-4e13-82d0-36110e1c1c45' class='xr-var-data-in' type='checkbox'><label for='data-0bc46755-0395-4e13-82d0-36110e1c1c45' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Delayed mode or real time data</dd><dt><span>conventions :</span></dt><dd>R : real time; D : delayed mode; A : real time with adjustment</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([&#x27;D&#x27;, &#x27;D&#x27;, &#x27;D&#x27;, ..., &#x27;D&#x27;, &#x27;D&#x27;, &#x27;D&#x27;], dtype=&#x27;&lt;U1&#x27;)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>DIRECTION</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>&lt;U1</div><div class='xr-var-preview xr-preview'>&#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; &#x27;D&#x27; ... &#x27;A&#x27; &#x27;A&#x27; &#x27;A&#x27; &#x27;A&#x27;</div><input id='attrs-82bb9f0b-4d64-4457-a225-efd52f04f373' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-82bb9f0b-4d64-4457-a225-efd52f04f373' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-99e21ef5-bf18-49fd-b1ab-d1d20c4330c9' class='xr-var-data-in' type='checkbox'><label for='data-99e21ef5-bf18-49fd-b1ab-d1d20c4330c9' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Direction of the station profiles</dd><dt><span>conventions :</span></dt><dd>A: ascending profiles, D: descending profiles</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([&#x27;D&#x27;, &#x27;D&#x27;, &#x27;D&#x27;, ..., &#x27;A&#x27;, &#x27;A&#x27;, &#x27;A&#x27;], dtype=&#x27;&lt;U1&#x27;)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>PLATFORM_NUMBER</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>6902766 6902766 ... 6902766 6902766</div><input id='attrs-545fdce0-d6f2-4e4d-821c-62d5e4229b08' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-545fdce0-d6f2-4e4d-821c-62d5e4229b08' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-846b2d11-0d9a-429e-8724-951fdd5a9beb' class='xr-var-data-in' type='checkbox'><label for='data-846b2d11-0d9a-429e-8724-951fdd5a9beb' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Float unique identifier</dd><dt><span>conventions :</span></dt><dd>WMO float identifier : A9IIIII</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([6902766, 6902766, 6902766, ..., 6902766, 6902766, 6902766])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>POSITION_QC</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1</div><input id='attrs-900e5947-a4f1-402b-b659-0971e5a5e613' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-900e5947-a4f1-402b-b659-0971e5a5e613' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-fccd8cc0-b000-4930-bc1a-f389b8b2cd61' class='xr-var-data-in' type='checkbox'><label for='data-fccd8cc0-b000-4930-bc1a-f389b8b2cd61' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Global quality flag of POSITION_QC profile</dd><dt><span>conventions :</span></dt><dd>Argo reference table 2a</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([1, 1, 1, ..., 1, 1, 1])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>PRES</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float32</div><div class='xr-var-preview xr-preview'>12.2 17.0 ... 2.013e+03 2.018e+03</div><input id='attrs-f277ed42-beca-4dc8-a400-5bd28f562a97' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-f277ed42-beca-4dc8-a400-5bd28f562a97' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-7d9c16d9-5061-4500-a196-c85426e389e3' class='xr-var-data-in' type='checkbox'><label for='data-7d9c16d9-5061-4500-a196-c85426e389e3' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Sea Pressure</dd><dt><span>standard_name :</span></dt><dd>sea_water_pressure</dd><dt><span>units :</span></dt><dd>decibar</dd><dt><span>valid_min :</span></dt><dd>0.0</dd><dt><span>valid_max :</span></dt><dd>12000.0</dd><dt><span>resolution :</span></dt><dd>0.1</dd><dt><span>axis :</span></dt><dd>Z</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([  12.2,   17. ,   22.2, ..., 2008.1, 2012.9, 2018. ], dtype=float32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>PRES_ERROR</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float32</div><div class='xr-var-preview xr-preview'>2.4 2.4 2.4 2.4 ... 2.4 2.4 2.4 2.4</div><input id='attrs-34ecd979-55c0-49d1-b52d-fde5003a2e45' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-34ecd979-55c0-49d1-b52d-fde5003a2e45' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-5494ddf3-1b8d-4c0c-ac72-53b07ddad128' class='xr-var-data-in' type='checkbox'><label for='data-5494ddf3-1b8d-4c0c-ac72-53b07ddad128' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>ERROR IN Sea Pressure</dd><dt><span>standard_name :</span></dt><dd>sea_water_pressure</dd><dt><span>units :</span></dt><dd>decibar</dd><dt><span>valid_min :</span></dt><dd>0.0</dd><dt><span>valid_max :</span></dt><dd>12000.0</dd><dt><span>resolution :</span></dt><dd>0.1</dd><dt><span>axis :</span></dt><dd>Z</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([2.4, 2.4, 2.4, ..., 2.4, 2.4, 2.4], dtype=float32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>PRES_QC</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1</div><input id='attrs-34b58848-4cb4-4318-a9d1-026111ed947d' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-34b58848-4cb4-4318-a9d1-026111ed947d' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-ee9bd665-b158-4d73-87b2-407c0d61d14e' class='xr-var-data-in' type='checkbox'><label for='data-ee9bd665-b158-4d73-87b2-407c0d61d14e' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Global quality flag of PRES_QC profile</dd><dt><span>conventions :</span></dt><dd>Argo reference table 2a</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([1, 1, 1, ..., 1, 1, 1])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>PSAL</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float32</div><div class='xr-var-preview xr-preview'>37.38 37.38 37.38 ... 35.0 35.0</div><input id='attrs-72695b06-15e3-4ca4-a397-2f745ba9405d' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-72695b06-15e3-4ca4-a397-2f745ba9405d' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-5f86fe15-993e-44b0-a2cb-582ec48ba4be' class='xr-var-data-in' type='checkbox'><label for='data-5f86fe15-993e-44b0-a2cb-582ec48ba4be' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>PRACTICAL SALINITY</dd><dt><span>standard_name :</span></dt><dd>sea_water_salinity</dd><dt><span>units :</span></dt><dd>psu</dd><dt><span>valid_min :</span></dt><dd>0.0</dd><dt><span>valid_max :</span></dt><dd>43.0</dd><dt><span>resolution :</span></dt><dd>0.001</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([37.383  , 37.383  , 37.383  , ..., 34.99517, 34.99517, 34.99516],
+      dtype=float32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>PSAL_ERROR</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float32</div><div class='xr-var-preview xr-preview'>0.01 0.01 0.01 ... 0.01 0.01 0.01</div><input id='attrs-657d71b6-26d5-43ef-ac05-262717b61bad' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-657d71b6-26d5-43ef-ac05-262717b61bad' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-7060e045-79fc-4622-894c-705aa13af8ed' class='xr-var-data-in' type='checkbox'><label for='data-7060e045-79fc-4622-894c-705aa13af8ed' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>ERROR IN PRACTICAL SALINITY</dd><dt><span>standard_name :</span></dt><dd>sea_water_salinity</dd><dt><span>units :</span></dt><dd>psu</dd><dt><span>valid_min :</span></dt><dd>0.0</dd><dt><span>valid_max :</span></dt><dd>43.0</dd><dt><span>resolution :</span></dt><dd>0.001</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([0.01, 0.01, 0.01, ..., 0.01, 0.01, 0.01], dtype=float32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>PSAL_QC</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1</div><input id='attrs-7a18d2d2-985a-47d0-b74b-cbbf48f0de78' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-7a18d2d2-985a-47d0-b74b-cbbf48f0de78' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-41b1491d-0b54-4847-98b1-bbb56393813e' class='xr-var-data-in' type='checkbox'><label for='data-41b1491d-0b54-4847-98b1-bbb56393813e' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Global quality flag of PSAL_QC profile</dd><dt><span>conventions :</span></dt><dd>Argo reference table 2a</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([1, 1, 1, ..., 1, 1, 1])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>TEMP</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float32</div><div class='xr-var-preview xr-preview'>24.38 24.38 24.38 ... 3.716 3.709</div><input id='attrs-ca2322f6-2506-4b0d-b881-21e4e7d9ae3c' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-ca2322f6-2506-4b0d-b881-21e4e7d9ae3c' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-3c21c634-3051-4844-ac07-900fa5dc5480' class='xr-var-data-in' type='checkbox'><label for='data-3c21c634-3051-4844-ac07-900fa5dc5480' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>SEA TEMPERATURE IN SITU ITS-90 SCALE</dd><dt><span>standard_name :</span></dt><dd>sea_water_temperature</dd><dt><span>units :</span></dt><dd>degree_Celsius</dd><dt><span>valid_min :</span></dt><dd>-2.0</dd><dt><span>valid_max :</span></dt><dd>40.0</dd><dt><span>resolution :</span></dt><dd>0.001</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([24.381, 24.376, 24.376, ...,  3.721,  3.716,  3.709], dtype=float32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>TEMP_ERROR</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>float32</div><div class='xr-var-preview xr-preview'>0.002 0.002 0.002 ... 0.002 0.002</div><input id='attrs-6a202bc1-e2f4-414c-b472-87c24f73c47c' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-6a202bc1-e2f4-414c-b472-87c24f73c47c' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-ed50e9fd-2028-4862-b6a0-aa815723c856' class='xr-var-data-in' type='checkbox'><label for='data-ed50e9fd-2028-4862-b6a0-aa815723c856' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>ERROR IN SEA TEMPERATURE IN SITU ITS-90 SCALE</dd><dt><span>standard_name :</span></dt><dd>sea_water_temperature</dd><dt><span>units :</span></dt><dd>degree_Celsius</dd><dt><span>valid_min :</span></dt><dd>-2.0</dd><dt><span>valid_max :</span></dt><dd>40.0</dd><dt><span>resolution :</span></dt><dd>0.001</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([0.002, 0.002, 0.002, ..., 0.002, 0.002, 0.002], dtype=float32)</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>TEMP_QC</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1</div><input id='attrs-c13faf7d-e295-440a-8d9d-05f6337cc92a' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-c13faf7d-e295-440a-8d9d-05f6337cc92a' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-d617ad54-661d-41e5-b4d0-6e35a5719f01' class='xr-var-data-in' type='checkbox'><label for='data-d617ad54-661d-41e5-b4d0-6e35a5719f01' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Global quality flag of TEMP_QC profile</dd><dt><span>conventions :</span></dt><dd>Argo reference table 2a</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([1, 1, 1, ..., 1, 1, 1])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>TIME_QC</span></div><div class='xr-var-dims'>(N_POINTS)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 1 1 1 1 1 1 1 ... 1 1 1 1 1 1 1 1</div><input id='attrs-55f924b3-92cb-416b-96d7-3041ab53d538' class='xr-var-attrs-in' type='checkbox' ><label for='attrs-55f924b3-92cb-416b-96d7-3041ab53d538' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-223ef2da-e2c9-48d5-ab01-40c9f8f9f428' class='xr-var-data-in' type='checkbox'><label for='data-223ef2da-e2c9-48d5-ab01-40c9f8f9f428' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'><dt><span>long_name :</span></dt><dd>Global quality flag of TIME_QC profile</dd><dt><span>conventions :</span></dt><dd>Argo reference table 2a</dd><dt><span>casted :</span></dt><dd>1</dd></dl></div><div class='xr-var-data'><pre>array([1, 1, 1, ..., 1, 1, 1])</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-7eb75ca5-2497-4989-b727-ac2832c6228e' class='xr-section-summary-in' type='checkbox'  ><label for='section-7eb75ca5-2497-4989-b727-ac2832c6228e' class='xr-section-summary' >Indexes: <span>(1)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-index-name'><div>N_POINTS</div></div><div class='xr-index-preview'>PandasIndex</div><div></div><input id='index-259ab14f-f1f9-4a68-a9c9-8a500e06096e' class='xr-index-data-in' type='checkbox'/><label for='index-259ab14f-f1f9-4a68-a9c9-8a500e06096e' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([     0,      1,      2,      3,      4,      5,      6,      7,      8,
+            9,
+       ...
+       248135, 248136, 248137, 248138, 248139, 248140, 248141, 248142, 248143,
+       248144],
+      dtype=&#x27;int64&#x27;, name=&#x27;N_POINTS&#x27;, length=248145))</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-9a37ce1e-6269-4d3f-b5ca-df9d63433cc1' class='xr-section-summary-in' type='checkbox'  checked><label for='section-9a37ce1e-6269-4d3f-b5ca-df9d63433cc1' class='xr-section-summary' >Attributes: <span>(8)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'><dt><span>DATA_ID :</span></dt><dd>ARGO</dd><dt><span>DOI :</span></dt><dd>http://doi.org/10.17882/42182</dd><dt><span>Fetched_from :</span></dt><dd>https://erddap.ifremer.fr/erddap</dd><dt><span>Fetched_by :</span></dt><dd>runner</dd><dt><span>Fetched_date :</span></dt><dd>2024/09/26</dd><dt><span>Fetched_constraints :</span></dt><dd>WMO6902746;WMO6902747;WMO6902757;WMO6902766</dd><dt><span>Fetched_uri :</span></dt><dd>[&#x27;https://erddap.ifremer.fr/erddap/tabledap/ArgoFloats.nc?data_mode,latitude,longitude,position_qc,time,time_qc,direction,platform_number,cycle_number,config_mission_number,vertical_sampling_scheme,pres,temp,psal,pres_qc,temp_qc,psal_qc,pres_adjusted,temp_adjusted,psal_adjusted,pres_adjusted_qc,temp_adjusted_qc,psal_adjusted_qc,pres_adjusted_error,temp_adjusted_error,psal_adjusted_error&amp;platform_number=~&quot;6902746|6902747|6902757|6902766&quot;&amp;distinct()&amp;orderBy(&quot;time,pres&quot;)&#x27;]</dd><dt><span>history :</span></dt><dd>Variables filtered according to DATA_MODE; Variables selected according to QC</dd></dl></div></li></ul></div></div><p>👉 <a href="../Argo_argopy.html">Notebook</a> 👈 <a href="https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/Argo_argopy.jl">(code)</a></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../Functionalities/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Thursday 26 September 2024 17:13">Thursday 26 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

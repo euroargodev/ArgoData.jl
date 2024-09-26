@@ -93,20 +93,20 @@ end
     df.Sd=df.S-df.Se
     MITprofAnalysis.add_climatology_factors!(df)
     MITprofAnalysis.add_tile!(df,Γ,30)  
-    d0=DateTime("1998-01-01T00:00:00")
-    d1=DateTime("1998-02-01T00:00:00")
+    d0=DateTime("2002-01-01T00:00:00")
+    d1=DateTime("2002-02-01T00:00:00")
     df1=MITprofAnalysis.subset(df,dates=(d0,d1))
-    df2=MITprofAnalysis.subset(df,lons=(0,10),lats=(-5,5),dates=(d0,d1))
+    df2=MITprofAnalysis.subset(df,lons=(-180,0),lats=(20,50),dates=(d0,d1))
     @test !isempty(df2)
 
     G=GriddedFields.load()
-    P=( variable=:Td, level=10, year=1998, month=1, input_path=MITprof.default_path,
-        statistic=:median, npoint=9, nmon=3, rng=(-1.0,1.0))
+    P=( variable=:Td, level=10, year=2002, month=1, input_path=MITprof.default_path,
+        statistic=:mean, npoint=9, nmon=3, rng=(-1.0,1.0))
     df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,input_path=P.input_path) )
     GriddedFields.update_tile!(G,P.npoint)
     ar1=G.array()
-    MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon,npoint=P.npoint);
-    @test true
+    sta1=MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon,npoint=P.npoint);
+    @test !isempty(sta1)
 
     ##
     

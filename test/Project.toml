@@ -1,6 +1,7 @@
 [deps]
 Climatology = "9e9a4d37-2d2e-41e3-8b85-f7978328d9c7"
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 MITgcm = "dce5fa8e-68ce-4431-a242-9469c69627a0"
 MeshArrays = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"

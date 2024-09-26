@@ -693,7 +693,7 @@ using ArgoData; gridded_fields=GriddedFields.load()
 ```
 """
 function load()
-    γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
+    γ=GridSpec(ID=:LLC90)
     Γ=GridLoad(γ,option="full")
     
     msk=NaN_mask(Γ)

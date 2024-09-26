@@ -20,4 +20,11 @@ function conda end
 function pyimport end
 function CondaPkgDev end
 
+## initialize data deps
+
+#__init__() = begin
+#    downloads.__init__standard_diags()
+#end
+
+
 end # module

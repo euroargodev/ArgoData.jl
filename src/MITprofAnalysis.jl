@@ -4,6 +4,7 @@ using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics, JLD2, Gl
 
 import ArgoData.MITprofStandard
 import ArgoData.ArgoTools: monthly_climatology_factors
+import ArgoData.MITprof: default_path
 
 ## 1. Tasks that operate on MITprof files, directly, in a loop.
 #
@@ -75,14 +76,11 @@ valid data points for T and S (`nbT` ,`nbS`).
 
 ```
 using ArgoData
-path="MITprof_Argo_yearly/"
-csv_file="csv/profile_positions.csv"
-
 using MeshArrays
-γ=GridSpec("LatLonCap",MeshArrays.GRID_LLC90)
-Γ=GridLoad(γ)
-
+Γ=GridLoad(ID=:LLC90)
+path=MITprof.default_path
 df=MITprofAnalysis.csv_of_positions(path,Γ)
+csv_file=joinpath(default_path,"profile_positions.csv")
 CSV.write(csv_file, df)
 ```
 """
@@ -144,15 +142,13 @@ Create Array of all values for one variable, obtained by looping through files i
 @everywhere using ArgoData, CSV, DataFrames
 @everywhere list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
 @distributed for v in list_v
-    output_file="csv/"*v*".csv"
     tmp=MITprofAnalysis.csv_of_variables(v)
     CSV.write(output_file,DataFrame(tmp,:auto))
 end
 ```
 """
-function csv_of_variables(name::String; path="MITprof")
-    csv_file="csv/profile_positions.csv"
-    df=CSV.read(csv_file,DataFrame)
+function csv_of_variables(name::String; path=default_path, csv=joinpath(default_path,"profile_positions.csv"))
+    df=CSV.read(csv,DataFrame)
     
     list=glob("*.nc",path)
     nfiles= length(list)
@@ -217,35 +213,32 @@ prepare_interpolation(Γ,lon,lat) = InterpolationFactors(Γ,lon,lat)
 
 Create Array of all values for one level, obtained by looping through files in `csv/`. 
 """
-function csv_of_levels(k=0)
+function csv_of_levels(k=0; path=default_path, csv=joinpath(default_path,"profile_positions.csv"))
+    df0=CSV.read(csv,DataFrame)
+    path_input=path
+    path_output=path
+
     k==0 ? kk=collect(1:55) : kk=[k]
     list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
     list_n=("T","Te","Tw","S","Se","Sw")
+    vv=findall([isfile(joinpath(path_input,v*".csv")) for v in list_v])
 
-    csv_file="csv/profile_positions.csv"
-    df0=CSV.read(csv_file,DataFrame)
-
-    path_input="csv/"
-    path_output="csv_of_levels/"
-
-    nfiles= length(list_v)
-    for ff in 1:nfiles
-        println(list_v[ff])
-        df=CSV.read(path_input*list_v[ff]*".csv",DataFrame)
+    for ff in vv
+        println("starting variable $(list_v[ff])")
+        df=CSV.read(joinpath(path_input,list_v[ff]*".csv"),DataFrame)
         name=list_n[ff]
         for k in kk
-            fil=path_output*"k$(k).csv"
-            if ff==1
+            fil=joinpath(path_output,"k$(k).csv")
+            if ff==vv[1]
+                println("creating file $(fil)")
                 df1=DataFrame(date=df0.date)
             else
                 df1=CSV.read(fil,DataFrame)
             end
-            println("x$(k)")
             df1[:,name]=df[:,Symbol("x$(k)")]
             CSV.write(fil,df1)
         end
     end
-
 end
 
 ## 2. Functions that take csv as input
@@ -265,8 +258,8 @@ parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
 df=MITprofAnalysis.read_pos_level(5)
 ```    
 """
-function read_pos_level(k=1; input_path="")
-    df=CSV.read(joinpath(input_path,"csv","profile_positions.csv"),DataFrame)
+function read_pos_level(k=1; input_path=default_path)
+    df=CSV.read(joinpath(input_path,"profile_positions.csv"),DataFrame)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
     MITprofAnalysis.add_level!(df,k,input_path=input_path)
     df
@@ -282,8 +275,8 @@ df=MITprofAnalysis.read_pos_level(5)
 MITprofAnalysis.add_coeffs!(df)
 ```
 """
-function add_coeffs!(df; input_path="")
-    df.📚=load_object(joinpath(input_path,"csv","profile_coeffs.jld2"))
+function add_coeffs!(df; input_path=default_path)
+    df.📚=load_object(joinpath(input_path,"profile_coeffs.jld2"))
 end
 
 """
@@ -296,20 +289,24 @@ df=CSV.read("csv/profile_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,5)
 ```
 """
-function add_level!(df,k; input_path="")
-    df1=CSV.read(joinpath(input_path,"csv_of_levels","k$(k).csv"),DataFrame)
+function add_level!(df,k; input_path=default_path)
+    df1=CSV.read(joinpath(input_path,"k$(k).csv"),DataFrame)
     #
-    list_n=("T","Te","Tw","S","Se","Sw")
-    [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
+    list_n=("T","Te","Tw","S","Se","Sw") 
+    for i in list_n
+        if i in names(df1)
+            df[:,Symbol(i)]=df1[:,Symbol(i)]
+        end
+    end
     #
-    df.Td=df.T-df.Te
-    df.Sd=df.S-df.Se
-    df.Tnd=df.Td.*sqrt.(df.Tw)
-    df.Snd=df.Sd.*sqrt.(df.Sw)
+    (("T" in names(df))&&("Te" in names(df))) ? df.Td=df.T-df.Te : nothing
+    (("S" in names(df))&&("Se" in names(df))) ? df.Sd=df.S-df.Se : nothing
+    (("Tw" in names(df))&&("Td" in names(df))) ? df.Tnd=df.Td.*sqrt.(df.Tw) : nothing
+    (("Sw" in names(df))&&("Sd" in names(df))) ? df.Snd=df.Sd.*sqrt.(df.Sw) : nothing
 end
 
-function read_pos_level_for_stat(level; reference=:OCCA1)
-  df=CSV.read("csv/profile_positions.csv",DataFrame)
+function read_pos_level_for_stat(level; reference=:OCCA1, path=default_path)
+  df=CSV.read(joinpath(path,"profile_positions.csv"),DataFrame)
   add_k!(df,level,reference)
   df=trim(df)
   df.pos=MITprofAnalysis.parse_pos.(df.pos)
@@ -359,7 +356,7 @@ end
 Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
 
 ```
-input_file=joinpath("MITprof_input","csv","profile_positions.csv")
+input_file=joinpath("MITprof_input","profile_positions.csv")
 df=CSV.read(input_file,DataFrame)
 G=GriddedFields.load()
 MITprofAnalysis.add_tile!(df,G.Γ,30)
@@ -486,7 +483,7 @@ This assumes that `df.pos` are indices into Array `ar` and should be used to gro
 using ArgoData
 G=GriddedFields.load();
 
-P=( variable=:Td, level=10, year=2010, month=1, input_path="MITprof_input",
+P=( variable=:Td, level=10, year=2002, month=1, input_path=MITprof.default_path,
     statistic=:median, npoint=9, nmon=3, rng=(-1.0,1.0))
 
 df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,input_path=P.input_path) )

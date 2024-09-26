@@ -74,11 +74,11 @@ end
     tmp=MITprofAnalysis.prepare_interpolation(Γ,df.lon,df.lat)
     np=size(tmp[1],1)
     co=[(f=tmp[1][ii,:],i=tmp[2][ii,:],j=tmp[3][ii,:],w=tmp[4][ii,:]) for ii in 1:np]
-    fil=joinpath(path,"profile_coeffs.jld2")
+    fil=joinpath(pth,"profile_coeffs.jld2")
     MITprofAnalysis.save_object(fil,co)
 
     MITprofAnalysis.add_coeffs!(df)
-    df=MITprofAnalysis.CSV.read(joinpath(path,"profile_positions.csv"),MITprofAnalysis.DataFrame)
+    df=MITprofAnalysis.CSV.read(joinpath(pth,"profile_positions.csv"),MITprofAnalysis.DataFrame)
     MITprofAnalysis.add_level!(df,10)
     @test "T" in names(df)
 

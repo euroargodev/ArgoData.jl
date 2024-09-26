@@ -55,10 +55,12 @@ end
     nt,np,nz,cost=MITprofAnalysis.cost_functions(pth,"prof_T",fil)
     @test isapprox(cost[1],1.495831407933)
 
+    ##
+
     Γ=GridLoad(ID=:LLC90)
-    fil=ArgoData.download(1)
-    pth=dirname(fil)
-    df=MITprofAnalysis.csv_of_positions(pth,Γ,fil)
+    pth=MITprof.default_path
+    fil=MITprof.download(ids=1,path=pth)
+    df=MITprofAnalysis.csv_of_positions(pth,Γ,files[1])
     csv_file=joinpath(pth,"profile_positions.csv")
     MITprof.CSV.write(csv_file, df)
     tmp=MITprofAnalysis.csv_of_variables("prof_T",csv=csv_file,path=pth)
@@ -67,6 +69,8 @@ end
     MITprofAnalysis.csv_of_levels(10)
     @test isfile(joinpath(pth,"k10.csv"))
 
+    ##
+    
     dates=[ArgoTools.DateTime(2011,1,10) ArgoTools.DateTime(2011,1,20)]
     (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(dates)
     (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(dates[1])

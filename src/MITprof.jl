@@ -18,11 +18,13 @@ default_path=joinpath(tempdir(),"Argo_MITprof_tmp")
 function download(; DOI="doi:10.7910/DVN/7HLV09", ids=[], path=default_path)
     lst=Dataverse.file_list(DOI)
     !isdir(path) ? mkdir(path) : nothing
+    files=String[]
     for ii in (isempty(ids) ? [1:nf] : ids)
         fil=lst.filename[ii]
         Dataverse.file_download(lst,fil,path)
-        joinpath(path,fil)
+        push!(files,joinpath(path,fil))
     end
+    files
 end
 
 ## writing MITprof files

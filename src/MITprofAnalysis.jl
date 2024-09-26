@@ -258,8 +258,8 @@ parse `pos`, then `add_level!(df,k)`, and return a DataFrame.
 df=MITprofAnalysis.read_pos_level(5)
 ```    
 """
-function read_pos_level(k=1; input_path="")
-    df=CSV.read(joinpath(input_path,"csv","profile_positions.csv"),DataFrame)
+function read_pos_level(k=1; input_path=default_path)
+    df=CSV.read(joinpath(input_path,"profile_positions.csv"),DataFrame)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
     MITprofAnalysis.add_level!(df,k,input_path=input_path)
     df
@@ -275,8 +275,8 @@ df=MITprofAnalysis.read_pos_level(5)
 MITprofAnalysis.add_coeffs!(df)
 ```
 """
-function add_coeffs!(df; input_path="")
-    df.📚=load_object(joinpath(input_path,"csv","profile_coeffs.jld2"))
+function add_coeffs!(df; input_path=default_path)
+    df.📚=load_object(joinpath(input_path,"profile_coeffs.jld2"))
 end
 
 """
@@ -289,20 +289,24 @@ df=CSV.read("csv/profile_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,5)
 ```
 """
-function add_level!(df,k; input_path="")
-    df1=CSV.read(joinpath(input_path,"csv_of_levels","k$(k).csv"),DataFrame)
+function add_level!(df,k; input_path=default_path)
+    df1=CSV.read(joinpath(input_path,"k$(k).csv"),DataFrame)
     #
-    list_n=("T","Te","Tw","S","Se","Sw")
-    [df[:,Symbol(i)]=df1[:,Symbol(i)] for i in list_n]
+    list_n=("T","Te","Tw","S","Se","Sw") 
+    for i in list_n
+        if i in names(df1)
+            df[:,Symbol(i)]=df1[:,Symbol(i)]
+        end
+    end
     #
-    df.Td=df.T-df.Te
-    df.Sd=df.S-df.Se
-    df.Tnd=df.Td.*sqrt.(df.Tw)
-    df.Snd=df.Sd.*sqrt.(df.Sw)
+    (("T" in names(df))&&("Te" in names(df))) ? df.Td=df.T-df.Te : nothing
+    (("S" in names(df))&&("Se" in names(df))) ? df.Sd=df.S-df.Se : nothing
+    (("Tw" in names(df))&&("Td" in names(df))) ? df.Tnd=df.Td.*sqrt.(df.Tw) : nothing
+    (("Sw" in names(df))&&("Sd" in names(df))) ? df.Snd=df.Sd.*sqrt.(df.Sw) : nothing
 end
 
-function read_pos_level_for_stat(level; reference=:OCCA1)
-  df=CSV.read("csv/profile_positions.csv",DataFrame)
+function read_pos_level_for_stat(level; reference=:OCCA1, path=default_path)
+  df=CSV.read(joinpath(path,"profile_positions.csv"),DataFrame)
   add_k!(df,level,reference)
   df=trim(df)
   df.pos=MITprofAnalysis.parse_pos.(df.pos)
@@ -352,7 +356,7 @@ end
 Add tile index (see `MeshArrays.Tiles`) to `df` that can then be used with e.g. `groupby`.
 
 ```
-input_file=joinpath("MITprof_input","csv","profile_positions.csv")
+input_file=joinpath("MITprof_input","profile_positions.csv")
 df=CSV.read(input_file,DataFrame)
 G=GriddedFields.load()
 MITprofAnalysis.add_tile!(df,G.Γ,30)

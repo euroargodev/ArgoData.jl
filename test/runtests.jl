@@ -57,9 +57,9 @@ end
 
     ##
 
-    Γ=GridLoad(ID=:LLC90)
+    Γ=GridLoad(ID=:LLC90,option=:light)
     pth=MITprof.default_path
-    fil=MITprof.download(ids=1,path=pth)
+    files=MITprof.download(ids=1,path=pth)
     df=MITprofAnalysis.csv_of_positions(pth,Γ,files[1])
     csv_file=joinpath(pth,"profile_positions.csv")
     MITprof.CSV.write(csv_file, df)
@@ -68,6 +68,19 @@ end
     MITprofAnalysis.CSV.write(temp_file,MITprofAnalysis.DataFrame(tmp,:auto))
     MITprofAnalysis.csv_of_levels(10)
     @test isfile(joinpath(pth,"k10.csv"))
+
+    df=MITprofAnalysis.read_pos_level(10)
+
+    tmp=MITprofAnalysis.prepare_interpolation(Γ,df.lon,df.lat)
+    np=size(tmp[1],1)
+    co=[(f=tmp[1][ii,:],i=tmp[2][ii,:],j=tmp[3][ii,:],w=tmp[4][ii,:]) for ii in 1:np]
+    fil=joinpath(path,"profile_coeffs.jld2")
+    MITprofAnalysis.save_object(fil,co)
+
+    MITprofAnalysis.add_coeffs!(df)
+    df=MITprofAnalysis.CSV.read(joinpath(path,"profile_positions.csv"),MITprofAnalysis.DataFrame)
+    MITprofAnalysis.add_level!(df,10)
+    @test "T" in names(df)
 
     ##
     

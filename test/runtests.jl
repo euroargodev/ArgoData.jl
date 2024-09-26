@@ -63,9 +63,12 @@ end
     df=MITprofAnalysis.csv_of_positions(pth,Γ,files[1])
     csv_file=joinpath(pth,"profile_positions.csv")
     MITprof.CSV.write(csv_file, df)
-    tmp=MITprofAnalysis.csv_of_variables("prof_T",csv=csv_file,path=pth)
-    temp_file=joinpath(pth,"prof_T.csv")
-    MITprofAnalysis.CSV.write(temp_file,MITprofAnalysis.DataFrame(tmp,:auto))
+    list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
+    for v in list_v
+      tmp=MITprofAnalysis.csv_of_variables(v,csv=csv_file,path=pth)
+      temp_file=joinpath(pth,"$(v).csv")
+      MITprofAnalysis.CSV.write(temp_file,MITprofAnalysis.DataFrame(tmp,:auto))      
+    end
     MITprofAnalysis.csv_of_levels(10)
     @test isfile(joinpath(pth,"k10.csv"))
 
@@ -81,6 +84,20 @@ end
     df=MITprofAnalysis.CSV.read(joinpath(pth,"profile_positions.csv"),MITprofAnalysis.DataFrame)
     MITprofAnalysis.add_level!(df,10)
     @test "T" in names(df)
+    
+    #more 
+
+    df=trim(df)
+    df.pos=MITprofAnalysis.parse_pos.(df.pos)
+    df.Td=df.T-df.Te
+    df.Sd=df.S-df.Se
+    MITprofAnalysis.add_climatology_factors!(df)
+    MITprofAnalysis.add_tile!(df,Γ,30)  
+    d0=DateTime("1998-01-01T00:00:00")
+    d1=DateTime("1998-02-01T00:00:00")
+    df1=MITprofAnalysis.subset(df,dates=(d0,d1))
+    df2=MITprofAnalysis.subset(df,lons=(0,10),lats=(-5,5),dates=(d0,d1))
+    @test !isempty(df2)
 
     ##
     

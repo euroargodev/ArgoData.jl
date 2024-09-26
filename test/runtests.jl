@@ -59,7 +59,7 @@ end
 
     Γ=GridLoad(ID=:LLC90,option=:light)
     pth=MITprof.default_path
-    files=MITprof.download(ids=1,path=pth)
+    files=MITprof.download(ids=5,path=pth) #ids=5 for 2002
     df=MITprofAnalysis.csv_of_positions(pth,Γ,files[1])
     csv_file=joinpath(pth,"profile_positions.csv")
     MITprof.CSV.write(csv_file, df)
@@ -87,7 +87,7 @@ end
     
     #more 
 
-    df=trim(df)
+    df=MITprofAnalysis.trim(df)
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
     df.Td=df.T-df.Te
     df.Sd=df.S-df.Se
@@ -98,6 +98,15 @@ end
     df1=MITprofAnalysis.subset(df,dates=(d0,d1))
     df2=MITprofAnalysis.subset(df,lons=(0,10),lats=(-5,5),dates=(d0,d1))
     @test !isempty(df2)
+
+    G=GriddedFields.load()
+    P=( variable=:Td, level=10, year=1998, month=1, input_path=MITprof.default_path,
+        statistic=:median, npoint=9, nmon=3, rng=(-1.0,1.0))
+    df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,input_path=P.input_path) )
+    GriddedFields.update_tile!(G,P.npoint)
+    ar1=G.array()
+    MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon,npoint=P.npoint);
+    @test true
 
     ##
     

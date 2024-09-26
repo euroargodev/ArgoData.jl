@@ -1,5 +1,5 @@
 
-using ArgoData, MeshArrays, Test
+using ArgoData, MeshArrays, Test, Suppressor
 using Climatology, MITgcm
 
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
@@ -11,7 +11,7 @@ Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 if run_argopy
   using PythonCall, CondaPkg
   @testset "argopy" begin
-    ArgoData.conda(:argopy)
+    @suppress ArgoData.conda(:argopy)
     println(CondaPkg.status())
     argopy=ArgoData.pyimport(:argopy)
     println(argopy.status())
@@ -56,7 +56,7 @@ end
     @test isapprox(cost[1],1.495831407933)
 
     Γ=GridLoad(ID=:LLC90)
-    fil=ArgoData.download_one(1)
+    fil=ArgoData.download(1)
     pth=dirname(fil)
     df=MITprofAnalysis.csv_of_positions(pth,Γ,fil)
     csv_file=joinpath(pth,"profile_positions.csv")
@@ -65,7 +65,6 @@ end
     temp_file=joinpath(pth,"prof_T.csv")
     MITprofAnalysis.CSV.write(temp_file,MITprofAnalysis.DataFrame(tmp,:auto))
     MITprofAnalysis.csv_of_levels(10)
-
     @test isfile(joinpath(pth,"k10.csv"))
 
     dates=[ArgoTools.DateTime(2011,1,10) ArgoTools.DateTime(2011,1,20)]

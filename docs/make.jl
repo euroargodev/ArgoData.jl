@@ -7,24 +7,17 @@ println(pth)
 
 #python dependencies
 
-run_argopy=false
+run_argopy=true
 Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
-if false
-  method="internal"
-  if method=="external"
-    tmpfile=joinpath(tempdir(),"pythonpath.txt")
-    run(pipeline(`which python`,tmpfile)) #external python path
-    ENV["PYTHON"]=readline(tmpfile)
-  else
-    ENV["PYTHON"]=""
+if run_argopy
+  using PythonCall, CondaPkg
+  argopy=try
+    ArgoData.pyimport(:argopy)
+  catch
+    ArgoData.conda(:argopy)
+    ArgoData.pyimport(:argopy)
   end
-
-  using Pkg
-  Pkg.build("PyCall")
-  using PyCall, Conda
-  ArgoData.conda(:argopy)
-  argopy=ArgoData.pyimport(:argopy)
 end
 
 #make docs

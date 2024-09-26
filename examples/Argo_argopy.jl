@@ -36,6 +36,30 @@ md"""## Fetch Data
 Here we fetch data from a few selected Argo floats.
 """
 
+# ╔═╡ db2f5431-493a-4cb3-8fd8-6af4e923da02
+md"""## Software Packages"""
+
+# ╔═╡ f6d5abcf-0498-4cfe-a5f1-21ba920576ef
+argopy=try
+    ArgoData.pyimport(:argopy)
+catch
+    ArgoData.conda(:argopy)
+    ArgoData.pyimport(:argopy)
+end
+
+# ╔═╡ 68fc22ed-c8a0-498a-aca7-fc930b430fc8
+begin
+	ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))
+	ds_points = ds_fetcher.to_xarray()
+	ds_profiles = ds_points.argo.point2profile()
+end
+
+# ╔═╡ 545b7114-ccaf-4267-b9b5-f2531c5476d2
+begin
+	TEMP=ds_profiles["TEMP"]
+	TEMP_values=pyconvert(Array,TEMP.values)
+end
+
 # ╔═╡ cfffd375-bf1b-4317-8dba-9dc6284c3257
 function plot_profiles!(ax,TIME,PRES,TEMP,cmap)
 	ii=findall(((!ismissing).(PRES)).*((!ismissing).(TEMP)))
@@ -80,30 +104,8 @@ function plot_samples(ds_profiles)
 	fig1
 end
 
-# ╔═╡ db2f5431-493a-4cb3-8fd8-6af4e923da02
-md"""## Software Packages"""
-
-# ╔═╡ f6d5abcf-0498-4cfe-a5f1-21ba920576ef
-begin
-	ArgoData.conda(:argopy)
-    argopy=ArgoData.pyimport(:argopy)
-end
-
-# ╔═╡ 68fc22ed-c8a0-498a-aca7-fc930b430fc8
-begin
-	ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))
-	ds_points = ds_fetcher.to_xarray()
-	ds_profiles = ds_points.argo.point2profile()
-end
-
 # ╔═╡ 30fd48cf-1f82-4b7b-bd99-23ba47e4d32a
 plot_samples(ds_profiles)
-
-# ╔═╡ 545b7114-ccaf-4267-b9b5-f2531c5476d2
-begin
-	TEMP=ds_profiles["TEMP"]
-	TEMP_values=pyconvert(Array,TEMP.values)
-end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """

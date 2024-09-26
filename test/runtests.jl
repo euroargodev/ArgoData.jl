@@ -109,6 +109,20 @@ end
     @test !isempty(sta1)
 
     ##
+
+    list_all=MITprofStat.list_stat_configurations()
+    list=MITprofStat.DataFrame(:nmon => [],:npoint => [],:nobs => [])
+    push!(list,[5 30 1]); push!(list,[5 10 1])
+    for ii in 1:size(list,1)
+      MITprofStat.stat_driver(; varia=:Td, level=10,years=years=2002:2002,
+      nmon=list.nmon[ii], npoint=list.npoint[ii], sta=:mean,
+      output_path=MITprof.default_path, output_to_file=true)
+    end
+
+    x=MITprofStat.stat_combine(G,10,:Td, 12,stat_config=list)
+    @test !isempty(x)
+
+    ##
     
     dates=[ArgoTools.DateTime(2011,1,10) ArgoTools.DateTime(2011,1,20)]
     (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(dates)

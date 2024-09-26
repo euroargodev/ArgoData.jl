@@ -307,7 +307,11 @@ end
 
 function read_pos_level_for_stat(level; reference=:OCCA1, path=default_path)
   df=CSV.read(joinpath(path,"profile_positions.csv"),DataFrame)
-  add_k!(df,level,reference)
+  try
+    add_k!(df,level,reference)
+  catch
+    MITprofAnalysis.add_level!(df,level)
+  end
   df=trim(df)
   df.pos=MITprofAnalysis.parse_pos.(df.pos)
   df.Td=df.T-df.Te
@@ -441,6 +445,7 @@ module MITprofStat
 using NCDatasets, DataFrames, CSV, Statistics, Dates, MeshArrays, Bootstrap
 import ArgoData.GriddedFields
 import ArgoData.MITprofAnalysis
+import ArgoData.MITprof: default_path
 
 bootbias(x)= length(x)>=5 ? bias(bootstrap(mean, x, BasicSampling(100)))[1] : NaN
 bootstderr(x)= length(x)>=5 ? stderror(bootstrap(mean, x, BasicSampling(100)))[1] : NaN
@@ -617,21 +622,20 @@ end
     nmon=1, npoint=1, sta=:none, nobs=1, input_path="", output_path="")
 
 ```
-P=( variable=:Td, level=10, years=2004:2007, 
-    statistic=:median, npoint=3, nmon=3, 
-    input_path="MITprof_input",
-    output_path=joinpath(tempdir(),"stat_output"),
-    output_to_file=false
+P=( variable=:Td, level=10, years=2002:2002, 
+    statistic=:mean, npoint=3, nmon=3, 
+    output_path=MITprof.default_path,
+    output_to_file=true
     )
 
-MITprofStat.stat_driver(input_path=P.input_path,varia=P.variable,
+MITprofStat.stat_driver(; varia=P.variable,
         level=P.level,years=P.years,
         nmon=P.nmon, npoint=P.npoint, sta=P.statistic, 
         output_path=P.output_path, output_to_file=P.output_to_file)
 ```    
 """
 function stat_driver(;varia=:Td,level=1,years=2004:2022,output_to_file=false,
-    nmon=1, npoint=1, sta=:none, nobs=1, reference=:OCCA1,output_path="stat_output")
+    nmon=1, npoint=1, sta=:none, nobs=1, reference=:OCCA1,output_path=default_path)
    
     output_to_nc=false
     output_to_csv=true
@@ -674,9 +678,8 @@ function stat_driver(;varia=:Td,level=1,years=2004:2022,output_to_file=false,
     end
 end
 
-function stat_combine(G,level=5,varia=:Td, rec=120;
-    path_input="stat_output",stat_config="",
-    func=(x->x))
+function stat_combine(G,level=1,varia=:Td, rec=120;
+    path_input=default_path,stat_config="",func=(x->x))
 
     ar2=G.array(); ar2.=0.0
     ar2w=G.array(); ar2w.=0.0
@@ -703,6 +706,8 @@ function stat_combine(G,level=5,varia=:Td, rec=120;
         sdf1=CSV.read(fil,DataFrame)
         y=Int(ceil(rec/12))
         m=mod1(rec-12*Int(floor(rec/12)),12)
+        println("$(y) $(m)")
+        show(sdf1)
         sdf1=sdf1[(sdf1.m.==m).&&(sdf1.y.==y),:]
         ##
         sta=:mean

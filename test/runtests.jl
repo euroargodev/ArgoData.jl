@@ -125,8 +125,8 @@ end
     ##
     
     dates=[ArgoTools.DateTime(2011,1,10) ArgoTools.DateTime(2011,1,20)]
-    (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(dates)
-    (fac0,fac1,rec0,rec1)=ArgoTools.monthly_climatology_factors(dates[1])
+    (fac0,fac1,rec0,rec1)=GriddedFields.monthly_climatology_factors(dates)
+    (fac0,fac1,rec0,rec1)=GriddedFields.monthly_climatology_factors(dates[1])
     @test isapprox(fac0,0.20967741935483875)
     @test rec0==12
 

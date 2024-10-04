@@ -565,6 +565,17 @@ function sw_adtg(S,T,P)
     return ADTG
 end
 
+end #module ArgoTools
+
+##
+
+module GriddedFields
+
+using MeshArrays, Statistics, Climatology, Dates
+
+import ArgoData.MITprofStandard
+import ArgoData.ArgoTools
+
 """
     monthly_climatology_factors(date)
 
@@ -633,16 +644,6 @@ function monthly_climatology_factors(date)
         (fac0,fac1,rec0,rec1)
     end
 end
-
-end #module ArgoTools
-
-
-module GriddedFields
-
-using MeshArrays, Statistics, Climatology
-
-import ArgoData.MITprofStandard
-import ArgoData.ArgoTools
 
 function NaN_mask(Γ)
     msk=write(Γ.hFacC)

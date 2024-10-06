@@ -8,7 +8,7 @@ println(pth)
 #python dependencies
 
 run_argopy=true
-Sys.ARCH==:aarch64 ? run_argopy=false : nothing
+#Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
 if run_argopy
   using PythonCall, CondaPkg

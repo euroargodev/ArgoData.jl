@@ -571,10 +571,10 @@ end #module ArgoTools
 
 module GriddedFields
 
-using MeshArrays, Statistics, Climatology, Dates
-
+using MeshArrays, Statistics, Dates
 import ArgoData.MITprofStandard
 import ArgoData.ArgoTools
+import ArgoData: get_climatology
 
 """
     monthly_climatology_factors(date)
@@ -652,45 +652,18 @@ function NaN_mask(Γ)
     msk=MeshArrays.read(msk,Γ.hFacC)
 end
 
-function MonthlyClimatology(fil,msk)
-    fid = open(fil)
-    tmp = Array{Float32,4}(undef,(90,1170,50,12))
-    read!(fid,tmp)
-    tmp = hton.(tmp)
-    close(fid)
-    
-    T=Array{MeshArray,1}(undef,12)
-    for tt=1:12
-        T[tt]=msk*MeshArrays.read(tmp[:,:,:,tt],msk.grid)
-    end
-
-    return T
-end
-
-function AnnualClimatology(fil,msk)
-    fid = open(fil)
-    tmp=Array{Float32,3}(undef,(90,1170,50))
-    read!(fid,tmp)
-    tmp = hton.(tmp)
-    close(fid)
-
-    T=MeshArray(msk.grid,Float64,50)
-    T=msk*MeshArrays.read(convert(Array{Float64},tmp),T)
-    return T
-end
-
 """
     load()
 
-Load gridded fields from files (and download the files if needed).
-Originally this function returned `Γ,msk,T,S,σT,σS,array`. 
-    
-The embeded `array()` function returns a 2D array initialized to `missing`. 
-And `array(1)`, `array(3,2)`, etc add dimensions to the resulting array.
+Load gridded fields from files (and download them if needed), 
+and return a dictionary (:Γ, :msk, :T, :S, :σT, :σS, :array, :tile).
+
+note : the embeded `array()` function returns a 2D array initialized to `missing`,
+and `array(1)`, `array(3,2)`, etc add dimensions to the resulting array.
 
 ```
-using Climatology, MITgcm; Climatology.MITPROFclim_download()
-using ArgoData; gridded_fields=GriddedFields.load()
+using Climatology, ArgoData
+gridded_fields=GriddedFields.load()
 ```
 """
 function load()
@@ -698,12 +671,7 @@ function load()
     Γ=GridLoad(γ,option="full")
     
     msk=NaN_mask(Γ)
-
-    pth=Climatology.MITPROFclim_download()
-    T=MonthlyClimatology(joinpath(pth,"T_OWPv1_M_eccollc_90x50.bin"),msk)
-    S=MonthlyClimatology(joinpath(pth,"S_OWPv1_M_eccollc_90x50.bin"),msk)
-    σT=AnnualClimatology(joinpath(pth,"sigma_T_nov2015.bin"),msk)
-    σS=AnnualClimatology(joinpath(pth,"sigma_S_nov2015.bin"),msk)
+    (T,S,σT,σS)=get_climatology(msk)
 
     tmp=σT.grid.write(σT)
     for kk in 1:size(tmp,3)

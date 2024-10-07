@@ -3,7 +3,7 @@ module MITprofAnalysis
 using Dates, MeshArrays, NCDatasets, Glob, DataFrames, CSV, Statistics, JLD2, Glob
 
 import ArgoData.MITprofStandard
-import ArgoData.ArgoTools: monthly_climatology_factors
+import ArgoData.GriddedFields: monthly_climatology_factors
 import ArgoData.MITprof: default_path
 
 ## 1. Tasks that operate on MITprof files, directly, in a loop.

@@ -54,6 +54,13 @@ for i in lst
     cp(fil_in,fil_out[1:end-4]*"jl")
 end
 
+for fil in ["argo_synthetic-profile_index.txt", "ar_index_global_prof.txt"]
+    ArgoFiles.scan_txt(fil,do_write=true)
+    fil_in=joinpath(tempdir(),fil[1:end-4]*".csv")
+    fil_out=joinpath(@__DIR__,"build", fil[1:end-4]*".csv")
+    mv(fil_in,fil_out)
+end
+
 #deploy docs
 deploydocs(;
     repo="github.com/euroargodev/ArgoData.jl",

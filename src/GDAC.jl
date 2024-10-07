@@ -79,9 +79,9 @@ file=GDAC.download_file(files_list[10000,:])
 download_file(file::DataFrameRow,suff="prof",ftp=missing) = download_file(file.folder,file.wmo,suff,ftp)
 
 """
-    download_file(folder::String,wmo::Int,suff="prof",ftp=missing)
+    download_file(folder::String,wmo::Int,suff="prof",ftp="https://data-argo.ifremer.fr/dac/")
 
-Download Argo file from the GDAC server (`<ftp://ftp.ifremer.fr/ifremer/argo/dac/>` by default)
+Download Argo file from the GDAC server (`<https://data-argo.ifremer.fr/dac/>` by default)
 to a temporary folder (`joinpath(tempdir(),"Argo_DAC_files")`)
 
 The file name is given by `folder` and `wmo`.
@@ -101,10 +101,11 @@ GDAC.download_file("aoml",13857)
 
 #or:
 ftp="ftp://usgodae.org/pub/outgoing/argo/dac/"
+#ftp="ftp://ftp.ifremer.fr/ifremer/argo/dac/"
 GDAC.download_file("aoml",13857,"meta",ftp)
 ```
 """
-function download_file(folder::String,wmo::Int,suff="prof",ftp=missing)
+function download_file(folder::String,wmo::Int,suff="prof",ftp="https://data-argo.ifremer.fr/dac/")
     path=joinpath(tempdir(),"Argo_DAC_files")
     !isdir(path) ? mkdir(path) : nothing
     path=joinpath(path,folder)
@@ -114,8 +115,7 @@ function download_file(folder::String,wmo::Int,suff="prof",ftp=missing)
 
     if ismissing(ftp)||isa(ftp,String)
         fil_out=joinpath(path,string(wmo)*"_"*suff*".nc")
-        ismissing(ftp) ? path_ftp="ftp://ftp.ifremer.fr/ifremer/argo/dac/" : path_ftp=ftp
-        fil_in=path_ftp*folder*"/"*string(wmo)*"/"*string(wmo)*"_"*suff*".nc"
+        fil_in=ftp*folder*"/"*string(wmo)*"/"*string(wmo)*"_"*suff*".nc"
         try
             Downloads.download(fil_in, fil_out)
         catch

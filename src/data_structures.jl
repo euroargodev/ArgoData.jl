@@ -138,3 +138,37 @@ function Base.show(io::IO, mp::MITprofStandard)
     return
 end
 
+##
+
+struct OneArgoFloat
+    ID::Int64
+    data::NamedTuple
+end
+
+OneArgoFloat() = OneArgoFloat(0,NamedTuple())
+
+import Base: read
+
+"""
+    read(x::OneArgoFloat;wmo=2900668)
+
+Note: the first time this method is used, it calls `ArgoData.GDAC.files_list()` 
+to get the list of Argo floats from server, and save it to a temporary file.
+
+```
+using OceanRobots, ArgoData
+read(OneArgoFloat(),wmo=2900668)
+```
+"""
+function read(x::OneArgoFloat;wmo=2900668,files_list="")
+    isempty(files_list) ? nothing : @warn "specifycing files_list here is deprecated"
+    lst=try
+        ArgoFiles.list_floats()
+    catch
+        println("downloading floats list via ArgoData.jl")
+        ArgoFiles.list_floats(list=GDAC.files_list())
+    end
+    fil=ArgoFiles.download(lst,wmo)
+    arr=ArgoFiles.readfile(fil)
+    OneArgoFloat(wmo,arr)
+end

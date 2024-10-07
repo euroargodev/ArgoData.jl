@@ -1,6 +1,6 @@
 
 using ArgoData, MeshArrays, Test, Suppressor
-using Climatology, MITgcm, Dates
+using Climatology, MITgcm, Dates, CairoMakie
 
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 clim_path=Climatology.MITPROFclim_download()
@@ -129,6 +129,22 @@ end
     (fac0,fac1,rec0,rec1)=GriddedFields.monthly_climatology_factors(dates[1])
     @test isapprox(fac0,0.20967741935483875)
     @test rec0==12
+
+    ##
+
+    ArgoFiles.scan_txt("ar_index_global_prof.txt",do_write=true)
+    @test isfile(joinpath(tempdir(),"ar_index_global_prof.csv"))
+
+    ArgoFiles.scan_txt("argo_synthetic-profile_index.txt",do_write=true)
+    @test isfile(joinpath(tempdir(),"argo_synthetic-profile_index.csv"))
+
+    b=read(OneArgoFloat(),wmo=2900668)
+    @test isa(b,OneArgoFloat)
+
+    f1=plot(b,option=:samples)
+    f2=plot(b,option=:TS)
+    f3=plot(b,option=:standard)
+    @test isa(f3,Figure)
 
 end
 

@@ -38,14 +38,17 @@ end
     @test isa(tmp,GDAC.DataFrame)
 
     gridded_fields=GriddedFields.load()
-    input_file=GDAC.download_file("aoml",13857)    
+    input_file=GDAC.download_file("aoml",13857)
+
+    output_file=joinpath(dirname(input_file),"13857_MITprof.nc")
+    isfile(output_file) ? rm(output_file) : nothing
     output_file=MITprof.format(gridded_fields,input_file)
 
     @test isfile(output_file)
 	
     mp=MITprofStandard(output_file)
-    MITprof.write(output_file*".tmp1",mp);
-    MITprof.write(output_file*".tmp2",[mp,mp]);
+    MITprof.write(output_file*".tmp1",mp)
+    MITprof.write(output_file*".tmp2",[mp,mp])
     show(mp)
 
     @test isa(mp,MITprofStandard)
@@ -102,7 +105,7 @@ end
     G=GriddedFields.load()
     P=( variable=:Td, level=10, year=2002, month=1, input_path=MITprof.default_path,
         statistic=:mean, npoint=9, nmon=3, rng=(-1.0,1.0))
-    df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,input_path=P.input_path) )
+    df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.input_path) )
     GriddedFields.update_tile!(G,P.npoint)
     ar1=G.array()
     sta1=MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon,npoint=P.npoint);
@@ -113,10 +116,11 @@ end
     list_all=MITprofStat.list_stat_configurations()
     list=MITprofStat.DataFrame(:nmon => [],:npoint => [],:nobs => [])
     push!(list,[5 30 1]); push!(list,[5 10 1])
-    for ii in 1:size(list,1)
+    MITprofStat.save_stat_configurations(; list=list, grid=G, path_output=MITprof.default_path)
+
+    for nmap in 1:size(list,1)
       MITprofStat.stat_driver(; varia=:Td, level=10,years=years=2002:2002,
-      nmon=list.nmon[ii], npoint=list.npoint[ii], sta=:mean,
-      output_path=MITprof.default_path, output_to_file=true)
+      nmap=nmap, sta=:mean, output_path=MITprof.default_path, output_to_file=true)
     end
 
     x=MITprofStat.stat_combine(G,10,:Td, 12,stat_config=list)

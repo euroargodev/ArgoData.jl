@@ -1,4 +1,5 @@
 using NCDatasets
+using Dates
 
 """
    ProfileNative
@@ -97,14 +98,25 @@ mp=MITprof.MITprofStandard(fil)
 """
 function MITprofStandard(fil::String)
     ds=Dataset(fil)
-    haskey(ds,"prof_descr") ? ID=ds["prof_descr"] : ID="0000"
+    np=size(ds["prof_lon"])
+    da=ds["prof_date"]
+
+    if haskey(ds,"prof_descr")
+        ID=ds["prof_descr"][:,:]
+        ID=[parse(Int,prod(ID[:,a])) for a in 1:size(ID,2)]
+    else
+        ID=zeros(np)
+    end
+    Te=(haskey(ds,"prof_Testim") ? "prof_Testim" : "prof_TeccoV4R2clim")
+    Se=(haskey(ds,"prof_Sestim") ? "prof_Sestim" : "prof_SeccoV4R2clim")
     MITprofStandard(fil,
-        ds["prof_lon"],ds["prof_lat"],ds["prof_date"],ds["prof_depth"],
-        fill(ID,size(ds["prof_lon"])),
-        ds["prof_T"],ds["prof_Testim"],ds["prof_Tweight"],
-        ds["prof_S"],ds["prof_Sestim"],ds["prof_Sweight"]
+        ds["prof_lon"],ds["prof_lat"],da,ds["prof_depth"],ID,
+        ds["prof_T"],ds[Te],ds["prof_Tweight"],
+        ds["prof_S"],ds[Se],ds["prof_Sweight"]
         )
 end
+
+toDateTime(dt::NCDatasets.CFVariable)=Dates.julian2datetime.(dt.+Dates.datetime2julian(DateTime("000-01-01", "yyyy-mm-dd")))
 
 function Base.show(io::IO, mp::MITprofStandard)
     printstyled(io, "File name is ",color=:normal)

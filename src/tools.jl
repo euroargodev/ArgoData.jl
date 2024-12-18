@@ -571,7 +571,7 @@ end #module ArgoTools
 
 module GriddedFields
 
-using MeshArrays, Statistics, Dates
+using MeshArrays, Statistics, Dates, NCDatasets
 import ArgoData.MITprofStandard
 import ArgoData.ArgoTools
 import ArgoData: get_climatology
@@ -708,6 +708,13 @@ function update_tile!(G,npoint)
     T=MeshArray(γ)
     [T[t.face][t.i,t.j].=t.tile for t in τ]
     G.tile.=γ.write(T)
+end
+
+function update_tile!(G,filmap,nmap)
+    G.tile .= Dataset(filmap)["mapping"][:,:,nmap]
+    nmon = Dataset(filmap)["nmon"][nmap]
+    nobs = Dataset(filmap)["nobs"][nmap]
+    (nmon,nobs)
 end
 
 interp_h(z_in::MeshArray,f::Matrix,i,j,w,z_out) = interp_h(z_in,f[1,:],i[1,:],j[1,:],w[1,:],z_out)

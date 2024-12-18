@@ -12,6 +12,7 @@ import ArgoData.GDAC
 import ArgoData.thisversion
 
 default_path=joinpath(tempdir(),"Argo_MITprof_tmp")
+#default_path=joinpath(pwd(),"data","MITprof_2023_Argo_aux")
 
 ## downloading MITprof files
 
@@ -168,6 +169,7 @@ function write(fil::String,mps::Vector{MITprofStandard})
 
     list_variables=(:lon,:lat,:date,:depth,:T,:Te,:Tw,:S,:Se,:Sw)
     #to be added : ID, ymd, hms, and maybe more
+    #but need special treatment ; vectors will break `defVar_fromVar`
     [defVar_fromVar(fil,getfield(mps[1],var)) for var in list_variables]
 
     list_variables=(:lon,:lat,:date,:T,:Te,:Tw,:S,:Se,:Sw)

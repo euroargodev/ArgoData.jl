@@ -189,7 +189,7 @@ function map_stat_combine(G,level=5,varia=:Td, rec=120;
     func=(x->x))
 
     if isempty(stat_config)
-      list=MITprofStat.list_stat_configurations()
+      list=MITprofStat.basic_config()
     elseif isa(stat_config,String)
       list=CSV.read(stat_config,DataFrame)
     elseif isa(stat_config,DataFrame)

@@ -113,10 +113,10 @@ end
 
     ##
 
-    file,list=MITprofStat.geostat_config(output_path=MITprof.default_path)
+    file,list=MITprofStat.geostat_config(output_path=MITprof.default_path,years=2002:2002)
 
     for nmap in 1:size(list,1)
-      MITprofStat.stat_driver(; varia=:Td, level=10,years=years=2002:2002,
+      MITprofStat.stat_driver(; varia=:Td, level=10,
       nmap=nmap, sta=:mean, output_path=MITprof.default_path, output_to_file=true)
     end
 

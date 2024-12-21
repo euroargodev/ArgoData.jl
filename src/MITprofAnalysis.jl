@@ -879,7 +879,6 @@ function geostat_config(config=1; output_path=tempname(), output_format="MITgcm"
     end
 
     climatological_cycle ? list.nmon.=1 : nothing
-    years=2004:2022
 
     output_format!=="MITgcm" ? error("only known output format is MITGcm") : nothing
     nrec=length(list.nmon)

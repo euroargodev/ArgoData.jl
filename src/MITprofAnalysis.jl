@@ -221,20 +221,20 @@ Create Array of all values for one level, obtained by looping through files in `
 """
 function csv_of_levels(k=0; path=default_path, csv=joinpath(default_path,"profile_positions.csv"))
     df0=CSV.read(csv,DataFrame)
-    path_input=path
-    path_output=path
+    input_path=path
+    output_path=path
 
     k==0 ? kk=collect(1:55) : kk=[k]
     list_v=("prof_T","prof_Testim","prof_Tweight","prof_S","prof_Sestim","prof_Sweight")
     list_n=("T","Te","Tw","S","Se","Sw")
-    vv=findall([isfile(joinpath(path_input,v*".csv")) for v in list_v])
+    vv=findall([isfile(joinpath(input_path,v*".csv")) for v in list_v])
 
     for ff in vv
         println("starting variable $(list_v[ff])")
-        df=CSV.read(joinpath(path_input,list_v[ff]*".csv"),DataFrame)
+        df=CSV.read(joinpath(input_path,list_v[ff]*".csv"),DataFrame)
         name=list_n[ff]
         for k in kk
-            fil=joinpath(path_output,"k$(k).csv")
+            fil=joinpath(output_path,"k$(k).csv")
             if ff==vv[1]
                 println("creating file $(fil)")
                 df1=DataFrame(date=df0.date)
@@ -486,7 +486,7 @@ end
 
 """
     stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,G::NamedTuple;
-                    func=(x->x), nmon=1, npoint=1, nobs=1)
+                    func=(x->x), nmon=1, nobs=1)
 
 Compute map `ar` of statistic `sta` for variable `va` from DataFrame `df` for year `y` and month `m`.
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`.
@@ -496,20 +496,19 @@ using ArgoData
 G=GriddedFields.load();
 
 P=( variable=:Td, level=10, year=2002, month=1, input_path=MITprof.default_path,
-    statistic=:median, npoint=9, nmon=3, rng=(-1.0,1.0))
+    statistic=:median, nmon=3, rng=(-1.0,1.0))
 
 df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.input_path) )
 
 GriddedFields.update_tile!(G,P.npoint);
 ar1=G.array();
-MITprofStat.stat_monthly!(ar1,df1,
-    P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon,npoint=P.npoint);
+MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon);
 
 MITprofPlots.stat_map(ar1,G,rng=P.rng)
 ```
 """
 function stat_monthly!(ar::Array,df::DataFrame,va::Symbol,sta::Symbol,y::Int,m::Int,G::NamedTuple; 
-    func=(x->x), nmon=1, npoint=1, nobs=1)
+    func=(x->x), nmon=1, nobs=1)
     if nmon==1
         d0=DateTime(y,m,1)
         m==12 ? d1=DateTime(y+1,mod1(m+1,12),1) : d1=DateTime(y,m+1,1)
@@ -538,7 +537,7 @@ end
 
 """
     stat_monthly!(arr:Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple;
-                    func=(x->x), nmon=1, npoint=1, nobs=1)
+                    func=(x->x), nmon=1, nobs=1)
 
 Compute maps of statistic `sta` for variable `va` from DataFrame `df` for years `years`. 
 This assumes that `df.pos` are indices into Array `ar` and should be used to groupby `df`. 
@@ -555,7 +554,7 @@ MITprofStat.stat_monthly!(arr,df1,:Td,:median,years,G,nmon=3);
 ```
 """
 function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::NamedTuple; 
-                        func=(x->x), nmon=1, npoint=1, nobs=1)
+                        func=(x->x), nmon=1, nobs=1)
     ny=length(years)
     ar1=G.array()
     sdf1=fill(DataFrame(),12,ny)
@@ -563,7 +562,7 @@ function stat_monthly!(arr::Array,df::DataFrame,va::Symbol,sta::Symbol,years,G::
         m==1 ? println("starting year "*string(years[y])) : nothing
         ar1.=missing
         sdf1[m,y]=stat_monthly!(ar1,df,va,sta,years[y],m,G;
-            func=func, nmon=nmon, npoint=npoint, nobs=nobs)
+            func=func, nmon=nmon, nobs=nobs)
         arr[:,:,m,y].=ar1
     end
 
@@ -631,8 +630,7 @@ MITprofStat.stat_driver(; varia=P.variable,level=P.level,years=P.years,
         reference=P.reference, output_path=P.output_path, output_to_file=P.output_to_file)
 ```    
 """
-function stat_driver(;varia=:Td,level=1,years=2004:2022,
-    nmap=1, sta=:none, do_monthly_climatology=false, reference=:OCCA1,
+function stat_driver(; varia=:Td, level=1, nmap=1, sta=:none, reference=:OCCA1,
     output_to_file=false, output_path=default_path, input_path=default_path)
    
     output_to_nc=false
@@ -644,49 +642,49 @@ function stat_driver(;varia=:Td,level=1,years=2004:2022,
 
     filmap=joinpath(output_path,"argostats_mappings.nc")
     (nmon,nobs)=GriddedFields.update_tile!(G,filmap,nmap)
-    npoint=( maximum(G.tile)==prod(size(G.tile)) ? 1 : NaN)
-
-    if do_monthly_climatology
+    do_monthly_climatology=Dataset(filmap).attrib["climatological_cycle"]
+    years=Dataset(filmap)["years"][:]
+    
+    if do_monthly_climatology==1
       ny=1
       ye=years[1]
-      nm=1
       [df1.date[d]=reset_year(df1.date[d],ye) for d in 1:length(df1.date)]
     else
       ny=length(years)
       ye=years
-      nm=nmon
     end
     arr=G.array(12,ny)
 
-    sdf=stat_monthly!(arr,df1,varia,sta,ye,G,nmon=nm,npoint=npoint,nobs=nobs)
+    sdf=stat_monthly!(arr,df1,varia,sta,ye,G,nmon=nmon,nobs=nobs)
 
     return if output_to_file
-      if output_to_nc
+        ### temperary file, with the current nmap
+
+        ext=(output_to_nc ? ".nc" : ".csv")
+
         suf="tmp_"*string(varia)
-        ext=string(level)*"_m$(nmap).nc"
+        ext=string(level)*"_m$(nmap)"*ext
         level<10 ? output_file=suf*"_k0"*ext : output_file=suf*"_k"*ext
+        output_file=tempname()*"_"*output_file
 
-        println(output_file)
-
-        output_file=joinpath(output_path,output_file)
+        println(basename(output_file))
         !isdir(dirname(output_file)) ? mkdir(dirname(output_file)) : nothing
         isfile(output_file) ? rm(output_file) : nothing
 
-        stat_write(output_file,arr,varia)
-      end
-      if output_to_csv
-        suf="tmp_"*string(varia)
-        ext=string(level)*"_m$(nmap).csv"
-        level<10 ? output_file=suf*"_k0"*ext : output_file=suf*"_k"*ext
+        output_to_nc ? stat_write(output_file,arr,varia) : stat_write(output_file,sdf)
 
-        println(output_file)
+        ### combined file, with all nmap included
 
-        output_file=joinpath(output_path,output_file)
-        !isdir(dirname(output_file)) ? mkdir(dirname(output_file)) : nothing
-        isfile(output_file) ? rm(output_file) : nothing
+        do_append=(nmap==1 ? false : true)
 
-        stat_write(output_file,sdf)
-      end
+        output_file2=joinpath(output_path,"$(varia)_k$(level)_stats.csv")
+        order_of_variables=["nmap","tile","nmon","nobs","y","m","n","mean","bias","err"]
+        x=CSV.read(output_file,DataFrame)
+        x.tile.=Int.(x.tile); x.n.=Int.(x.n)
+        x.nmon.=nmon; x.nobs.=nobs; x.nmap.=nmap;
+        CSV.write(output_file2,select(x,order_of_variables),append=do_append)
+    
+        output_file
     else
         arr
     end
@@ -698,8 +696,7 @@ function reset_year(d,ye=2999)
     DateTime(ye,D[2:end]...)
  end
 
-function stat_combine(G,level=1,varia=:Td, rec=120;
-    path_input=default_path,stat_config="",func=(x->x))
+function stat_combine(G,level=1,varia=:Td, rec=120; input_path=default_path,func=(x->x))
 
     ar2=G.array(); ar2.=0.0
     ar2w=G.array(); ar2w.=0.0
@@ -707,18 +704,12 @@ function stat_combine(G,level=1,varia=:Td, rec=120;
     ar3w=G.array(); ar3w.=0.0
     level<10 ? lev="0"*string(level) : lev=string(level)
 
-    if isempty(stat_config)
-      list=MITprofStat.list_stat_configurations()
-    elseif isa(stat_config,String)
-      list=CSV.read(stat_config,DataFrame)
-    elseif isa(stat_config,DataFrame)
-      list=stat_config
-    end
+    csv_file=joinpath(input_path,"$(varia)_k$(level)_stats.csv")
+    gdf1=groupby(CSV.read(csv_file,DataFrame),:nmap)
+    nsize=length(gdf1)
 
-    nsize=size(list,1)
     for nmap in 1:nsize
-        fil=joinpath(path_input,"tmp_$(varia)_k"*lev*"_m$(nmap).csv")
-        sdf1=CSV.read(fil,DataFrame)
+        sdf1=gdf1[nmap]
 
         y=Int(ceil(rec/12))
         m=mod1(rec-12*Int(floor(rec/12)),12)
@@ -728,7 +719,7 @@ function stat_combine(G,level=1,varia=:Td, rec=120;
         ar3.=NaN
         ar3w.=NaN
 
-        filmap=joinpath(path_input,"argostats_mappings.nc")
+        filmap=joinpath(input_path,"argostats_mappings.nc")
         (nmon,nobs)=GriddedFields.update_tile!(G,filmap,nmap)
         for i in 1:size(sdf1,1)
             sdf1[i,:n]>=nobs ? ar3[G.tile.==sdf1[i,:tile]].=func(sdf1[i,sta]) : nothing
@@ -753,30 +744,29 @@ function stat_combine(G,level=1,varia=:Td, rec=120;
 end
 
 """
-    combine_driver(; 
-        grid=NamedTuple(),level=1,varia=:Td, nrec=12,
-        path_input=tempname(), path_output=tempdir(), 
-        stat_config=MITprof.list_stat_configurations(),
-        func=(x->x), output_format="MITgcm")
+    combine_driver(; level=1,varia=:Td, output_path=tempdir(), output_format="MITgcm")
 
 Loop over all records, call `stat_combine`, write to netcdf file.
 """
-function combine_driver(; 
-    grid=NamedTuple(),level=1,varia=:Td, nrec=12,
-    path_input=tempname(), path_output=tempdir(), 
-    stat_config=MITprof.list_stat_configurations(),
-    func=(x->x), output_format="MITgcm")
+function combine_driver(; level=1,varia=:Td, output_path=tempdir(), output_format="MITgcm")
 
     output_format!=="MITgcm" ? error("only known output format is MITGcm") : nothing
 
+    grid=GriddedFields.load()  
     arr=grid.array()
     siz=size(arr)
 
-    fi=joinpath(path_output,"argostats_$(varia)_$(level).nc")
+    filmap=joinpath(output_path,"argostats_mappings.nc")
+    climatological_cycle=Dataset(filmap).attrib["climatological_cycle"]
+    years=Dataset(filmap)["years"][:]
+    nrec=12*(climatological_cycle==1 ? 1 : length(years))
+
+    fi=joinpath(output_path,"argostats_$(varia)_$(level).nc")
     isfile(fi) ? rm(fi) : nothing
 
     ds = Dataset(fi,"c")
-    ds.attrib["author"] = "Gael Forget"
+#    ds.attrib["author"] = "Gael Forget"
+    ds.attrib["source"] = "ArgoData.jl"
     defDim(ds,"i",siz[1]); defDim(ds,"j",siz[2]); defDim(ds,"t",nrec); 
 
     time = defVar(ds,"t",Int,("t",))
@@ -785,7 +775,7 @@ function combine_driver(;
 
     for rec in 1:nrec
 #      y=div(rec,12); m=rem(rec,12)
-      arr.=stat_combine(grid,level,varia, rec,stat_config=stat_config,path_input=path_input)
+      arr.=stat_combine(grid,level,varia,rec,input_path=output_path)
       anomaly[:,:,rec].=arr
     end
 
@@ -793,12 +783,50 @@ function combine_driver(;
     fi
 end
 
+###
+
+using MeshArrays, DataDeps
+
+function post_process_output(; varia=:Td, output_path=tempdir(), output_format="MITgcm", 
+    climatological_cycle=false, years=2004:2022)
+    γ=GridSpec(ID=:LLC90)
+    λ=MeshArrays.interpolation_setup()
+  
+    fi=joinpath(output_path,"argostats_$(varia)_interpolated.nc")
+    isfile(fi) ? rm(fi) : nothing
+    nk=55
+    nt=12*(climatological_cycle ? 1 : length(years))
+    siz=[720,360,nk,nt]
+    arr=zeros(720,360,nt)
+  
+    ds = Dataset(fi,"c")
+  #    ds.attrib["author"] = "Gael Forget"
+    ds.attrib["source"] = "ArgoData.jl"
+    defDim(ds,"i",siz[1]); defDim(ds,"j",siz[2]); defDim(ds,"k",siz[3]); defDim(ds,"t",siz[4])
+  
+    time = defVar(ds,"t",Int,("t",))
+    time[:] = 1:siz[4]
+    anomaly = defVar(ds,varia,Float32,("i","j","k","t"))
+  
+    for k in 1:siz[3]
+      filin=joinpath(output_path,"argostats_$(varia)_$k.nc")
+      dsin=Dataset(filin)
+      for rec in 1:siz[4]
+        arr[:,:,rec].=Interpolate(read(dsin["Td"][:,:,rec],γ),λ)[3]
+      end
+      anomaly[:,:,k,:]=arr
+      close(dsin)
+    end
+  
+    close(ds)  
+end
+
 """
-    list_stat_configurations(;preset=1)
+    basic_config(;preset=1)
 
 List of confiburations (each one a choice of nmon,npoint,nobs) to be used in `stat_combine`.
 """
-function list_stat_configurations(;preset=1)
+function basic_config(;preset=1)
   list=DataFrame(:nmon => [],:npoint => [],:nobs => [])
   if preset==0
     push!(list,[5 30 50])
@@ -824,7 +852,34 @@ function list_stat_configurations(;preset=1)
   list
 end
 
-function save_stat_configurations(; list=[], grid=NamedTuple(), path_output=tempdir(), output_format="MITgcm")
+function geostat_config(config=1; output_path=tempname(), output_format="MITgcm", 
+    climatological_cycle=false, years=2004:2022)
+
+    grid=GriddedFields.load()
+    γ=GridSpec(ID=:LLC90)
+
+    if config==1
+        list=MITprofStat.basic_config(preset=1) #[1:3,:]
+        tmp=Any[]
+        for nmap in 1:length(list.nmon)
+            GriddedFields.update_tile!(grid,list.npoint[nmap])
+            push!(tmp,copy(grid.tile))
+        end
+        list.mapping.=tmp
+    else
+        list=DataFrame(:nmon=>[5],:nobs=>[100],:mapping=>[γ.write(ocean_basins_split!())])
+        push!(list,[5, 80, γ.write(ocean_basins_split!(lats=-90:20:90,lons=-180:60:180))])
+        push!(list,[5, 60, γ.write(ocean_basins_split!(lats=-90:15:90,lons=-180:45:180))])
+        push!(list,[5, 30, γ.write(ocean_basins_split!(lats=-90:10:90,lons=-180:20:180))])
+        push!(list,[5, 20, γ.write(ocean_basins_split!(lats=-90: 6:90,lons=-180: 6:180))])
+        push!(list,[5, 20, γ.write(ocean_basins_split!(lats=-90: 5:90,lons=-180: 5:180))])
+        push!(list,[5, 10, γ.write(ocean_basins_split!(lats=-90: 3:90,lons=-180: 3:180))])
+        push!(list,[5,  5, γ.write(ocean_basins_split!(lats=-90: 2:90,lons=-180: 2:180))])
+        push!(list,[5,  3, γ.write(ocean_basins_split!(lats=-90: 1:90,lons=-180: 1:180))])
+    end
+
+    climatological_cycle ? list.nmon.=1 : nothing
+    years=2004:2022
 
     output_format!=="MITgcm" ? error("only known output format is MITGcm") : nothing
     nrec=length(list.nmon)
@@ -832,7 +887,8 @@ function save_stat_configurations(; list=[], grid=NamedTuple(), path_output=temp
     arr=grid.array()
     siz=size(arr)
 
-    fi=joinpath(path_output,"argostats_mappings.nc")
+    ispath(output_path) ? nothing : mkdir(output_path)
+    fi=joinpath(output_path,"argostats_mappings.nc")
     isfile(fi) ? rm(fi) : nothing
 
     ds = Dataset(fi,"c")
@@ -842,16 +898,52 @@ function save_stat_configurations(; list=[], grid=NamedTuple(), path_output=temp
     nmon = defVar(ds,"nmon",Int64,("n",))
     nobs = defVar(ds,"nobs",Int64,("n",))
 
+    ds.attrib["climatological_cycle"] = Int(climatological_cycle)
+    defDim(ds,"ny",length(years))
+    ye = defVar(ds,"years",Int64,("ny",))
+    ye.=Int.(years)
+
+    γ=GridSpec(ID=:LLC90)    
     for nmap in 1:nrec
-        filmap=joinpath(path_output,"argostats_mappings.nc")
-        GriddedFields.update_tile!(grid,list.npoint[nmap])
-        mapping[:,:,nmap].=grid.tile
+        mapping[:,:,nmap].=list.mapping[nmap]
         nmon[nmap]=list.nmon[nmap]
         nobs[nmap]=list.nobs[nmap]
     end
 
     close(ds)
-    fi
+    fi,list[:,[:nmon,:nobs]],years
+end
+
+function ocean_basins_split!(;lats=-90:30:90,lons=-180:360:180)
+    γ=GridSpec(ID=:LLC90)
+    Γ=GridLoad(γ,option=:minimal)
+    basins=demo.ocean_basins()
+
+    AtlExt=demo.extended_basin(basins,:Atl)
+    PacExt=demo.extended_basin(basins,:Pac)
+    IndExt=demo.extended_basin(basins,:Ind)
+    jj=findall(basins.name.=="Arctic")[1]
+    Arctic=1.0*(basins.mask.==jj)
+    jj=findall(basins.name.=="Barents Sea")[1]
+    Barents=1.0*(basins.mask.==jj)
+    
+    msk=0.0*Γ.XC
+    nla=length(lats)-1
+    nlo=length(lons)-1
+    for la in 1:length(lats)-1
+        for lo in 1:length(lons)-1
+            la0=lats[la]; la1=lats[la+1]
+            lo0=lons[lo]; lo1=lons[lo+1]
+            msk0=(Γ.YC.>=la0)*(Γ.YC.<=la1)*(Γ.XC.>=lo0)*(Γ.XC.<=lo1)
+            msk=msk+(lo+nlo*(la-1)+0*nla*nlo)*msk0*AtlExt
+            msk=msk+(lo+nlo*(la-1)+1*nla*nlo)*msk0*PacExt
+            msk=msk+(lo+nlo*(la-1)+2*nla*nlo)*msk0*IndExt
+            msk=msk+(lo+nlo*(la-1)+3*nla*nlo)*msk0*Arctic
+            msk=msk+(lo+nlo*(la-1)+4*nla*nlo)*msk0*Barents
+        end
+    end
+    msk[findall(isnan.(msk))].=0
+    msk
 end
 
 end #module MITprofStat

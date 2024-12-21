@@ -1,7 +1,7 @@
 name = "ArgoData"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 authors = ["gaelforget <gforget@mit.edu>"]
-version = "0.1.27"
+version = "0.1.28"
 
 [deps]
 Bootstrap = "e28b5b4c-05e8-5b66-bc03-6f0c0a0a06e0"

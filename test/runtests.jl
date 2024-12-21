@@ -121,7 +121,7 @@ end
     end
 
     G=GriddedFields.load()
-    x=MITprofStat.stat_combine(G,10,:Td, 12,stat_config=list)
+    x=MITprofStat.stat_combine(G,10,:Td, 12,input_path=MITprof.default_path)
     @test !isempty(x)
 
     ##

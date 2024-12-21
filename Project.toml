@@ -1,11 +1,12 @@
 name = "ArgoData"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 authors = ["gaelforget <gforget@mit.edu>"]
-version = "0.1.27"
+version = "0.1.28"
 
 [deps]
 Bootstrap = "e28b5b4c-05e8-5b66-bc03-6f0c0a0a06e0"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dataverse = "9c0b9be8-e31e-490f-90fe-77697562404d"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -32,12 +33,12 @@ PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 
 [extensions]
+ArgoDataClimatologyExt = ["Climatology"]
 ArgoDataCondaExt = ["Conda"]
 ArgoDataCondaPkgExt = ["CondaPkg"]
 ArgoDataMakieExt = ["Makie"]
 ArgoDataPyCallExt = ["PyCall"]
 ArgoDataPythonCallExt = ["PythonCall"]
-ArgoDataClimatologyExt = ["Climatology"]
 
 [compat]
 Bootstrap = "2"
@@ -45,6 +46,7 @@ CSV = "0.10"
 Climatology = "0.5"
 Conda = "1"
 CondaPkg = "0.2"
+DataDeps = "0.7"
 DataFrames = "1"
 Dataverse = "0.2"
 Downloads = "1"

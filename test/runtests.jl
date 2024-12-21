@@ -108,22 +108,20 @@ end
     df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.input_path) )
     GriddedFields.update_tile!(G,P.npoint)
     ar1=G.array()
-    sta1=MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon,npoint=P.npoint);
+    sta1=MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon)
     @test !isempty(sta1)
 
     ##
 
-    list_all=MITprofStat.list_stat_configurations()
-    list=MITprofStat.DataFrame(:nmon => [],:npoint => [],:nobs => [])
-    push!(list,[5 30 1]); push!(list,[5 10 1])
-    MITprofStat.save_stat_configurations(; list=list, grid=G, path_output=MITprof.default_path)
+    file,list=MITprofStat.geostat_config(output_path=MITprof.default_path,years=2002:2002)
 
     for nmap in 1:size(list,1)
-      MITprofStat.stat_driver(; varia=:Td, level=10,years=years=2002:2002,
+      MITprofStat.stat_driver(; varia=:Td, level=10,
       nmap=nmap, sta=:mean, output_path=MITprof.default_path, output_to_file=true)
     end
 
-    x=MITprofStat.stat_combine(G,10,:Td, 12,stat_config=list)
+    G=GriddedFields.load()
+    x=MITprofStat.stat_combine(G,10,:Td, 12,input_path=MITprof.default_path)
     @test !isempty(x)
 
     ##

@@ -106,7 +106,7 @@ end
     G=GriddedFields.load()
     P=( variable=:Td, level=10, year=2002, month=1, input_path=MITprof.default_path,
         statistic=:mean, npoint=9, nmon=3, rng=(-1.0,1.0))
-    df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.input_path) )
+    df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.input_path),:T )
     GriddedFields.update_tile!(G,P.npoint)
     ar1=G.array()
     sta1=MITprofStat.stat_monthly!(ar1,df1,P.variable,P.statistic,P.year,P.month,G,nmon=P.nmon)

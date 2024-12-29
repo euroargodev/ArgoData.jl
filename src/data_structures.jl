@@ -101,12 +101,14 @@ function MITprofStandard(fil::String)
     np=size(ds["prof_lon"])
     da=ds["prof_date"]
 
-    if haskey(ds,"prof_descr")
+#    if haskey(ds,"prof_descr")
+    ID=try
         ID=ds["prof_descr"][:,:]
-        ID=[parse(Int,prod(ID[:,a])) for a in 1:size(ID,2)]
-    else
-        ID=zeros(np)
+        [parse(Int,prod(ID[:,a])) for a in 1:size(ID,2)]
+    catch
+        zeros(np)
     end
+#    println(ID)
     Te=(haskey(ds,"prof_Testim") ? "prof_Testim" : "prof_TeccoV4R2clim")
     Se=(haskey(ds,"prof_Sestim") ? "prof_Sestim" : "prof_SeccoV4R2clim")
     MITprofStandard(fil,

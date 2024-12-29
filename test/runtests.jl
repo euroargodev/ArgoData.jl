@@ -94,7 +94,7 @@ end
     df.pos=MITprofAnalysis.parse_pos.(df.pos)
     df.Td=df.T-df.Te
     df.Sd=df.S-df.Se
-    df=trim_high_cost(df,:T,fcmax=5.0)  
+    df=MITprofAnalysis.trim_high_cost(df,:T,fcmax=5.0)  
     MITprofAnalysis.add_climatology_factors!(df)
     MITprofAnalysis.add_tile!(df,Γ,30)  
     d0=DateTime("2002-01-01T00:00:00")

@@ -107,7 +107,11 @@ function csv_of_positions(path,Γ,file="")
 
 #        da=Dates.julian2datetime.(Dates.datetime2julian(DateTime(0,1,1)) .+mp.date[:])
 #        da=Dates.julian2datetime.(ds["prof_date"].+Dates.datetime2julian(DateTime("000-01-01", "yyyy-mm-dd")))
-        da=toDateTime(mp.date)
+        da=if isa(mp.date[1],DateTime) 
+            DateTime.(mp.date[:])
+        else
+            toDateTime(mp.date)
+        end
 
         y[ff,1]=year(minimum(da))
         y[ff,2]=year(maximum(da))
@@ -121,10 +125,12 @@ function csv_of_positions(path,Γ,file="")
         (f,i,j,c)=MeshArrays.knn(Γ.XC,Γ.YC,lon,lat)
         pos=[[f[ii],i[ii],j[ii]] for ii in 1:length(c)]
 
-        nbT=sum((!ismissing).(mp.T[:,:]),dims=2)
-        nbS=sum((!ismissing).(mp.S[:,:]),dims=2)
+        dim=(size(mp.T)==(length(mp.depth),length(mp.lon)) ? 1 : 2)
+        nbT=sum((!ismissing).(mp.T[:,:]),dims=dim)
+        nbS=sum((!ismissing).(mp.S[:,:]),dims=dim)
 
         ID = (eltype(mp.ID)==String ? parse.(Int,mp.ID) : mp.ID)
+
         d[ff]=DataFrame(ID=ID,lon=lon,lat=lat,
             date=da,pos=c[:],nbT=nbT[:],nbS=nbS[:])
     end
@@ -165,7 +171,14 @@ function csv_of_variables(name::String; path=default_path, csv=joinpath(default_
             ds[name][:,:]
         end # ds is closed
         s=size(tmp)
-        x[n0[1]+1:n0[1]+s[1],:].=tmp
+#        println(s)
+        tmp1,s1=if s[1]>s[2]
+            tmp,s
+        else
+            tmp1=[permutedims(tmp) fill(missing,s[2],55-s[1])]
+            tmp1,(s[2],55)
+        end
+        x[n0[1]+1:n0[1]+s1[1],:].=tmp1
         n0[1]+=s[1]
     end
 
@@ -185,9 +198,13 @@ The results are stored in a file called `csv/profile_coeffs.jld2` at the end.
 using SharedArrays, Distributed
 
 @everywhere begin
-    using ArgoData
-    G=GriddedFields.load()
-    df=MITprofAnalysis.read_pos_level(5)
+    using ArgoData, MeshArrays, CSV, DataFrames
+    Γ=GridLoad(ID=:LLC90,option=:full)
+    
+    #df=MITprofAnalysis.read_pos_level(5)
+    pth="data/MITprof_combined"
+    csv_file=joinpath(pth,"profile_positions.csv")
+    df=CSV.read(csv_file,DataFrame)
 
     np=size(df,1)
     n0=10000
@@ -200,14 +217,14 @@ end
 @sync @distributed for m in 1:nq
     ii=n0*(m-1) .+collect(1:n0)
     ii[end]>np ? ii=n0*(m-1) .+collect(1:n0+np-ii[end]) : nothing
-    tmp=MITprofAnalysis.prepare_interpolation(G.Γ,df.lon[ii],df.lat[ii])
+    tmp=MITprofAnalysis.prepare_interpolation(Γ,df.lon[ii],df.lat[ii])
     f[ii,:].=tmp[1]
     i[ii,:].=tmp[2]
     j[ii,:].=tmp[3]
     w[ii,:].=tmp[4]
 end
 
-fil=joinpath("csv","profile_coeffs.jld2")
+fil=joinpath(pth,"profile_coeffs.jld2")
 co=[(f=f[ii,:],i=i[ii,:],j=j[ii,:],w=w[ii,:]) for ii in 1:np]
 save_object(fil,co)
 ```
@@ -311,18 +328,38 @@ function add_level!(df,k; path=default_path)
     (("Sw" in names(df))&&("Sd" in names(df))) ? df.Snd=df.Sd.*sqrt.(df.Sw) : nothing
 end
 
-function read_pos_level_for_stat(level; reference=:OCCA1, path=default_path)
+function read_pos_level_for_stat(level; reference=:OCCA1, path=default_path, initial_adjustment="", varia=:T)
   df=CSV.read(joinpath(path,"profile_positions.csv"),DataFrame)
   try
     add_k!(df,level,reference,path=path)
   catch
-    MITprofAnalysis.add_level!(df,level,path=path)
+    add_level!(df,level,path=path)
   end
-  df=trim(df)
-  df.pos=MITprofAnalysis.parse_pos.(df.pos)
+
+  test_with_ini_adj=false
+  test_with_ini_adj ? df.T.=0*df.T : nothing
+  test_with_ini_adj ? df.Te.=0*df.Te : nothing
+
+    if !isempty(initial_adjustment)
+        initial_adjustment_k!(df,level,initial_adjustment,path=path)
+    end
+
+    test_with_ini_adj ? df.Te.=-df.Te : nothing
+
+  df=trim(df,varia)
   df.Td=df.T-df.Te
   df.Sd=df.S-df.Se
-  df
+  df=trim_high_cost(df,varia,fcmax=5.0)
+  df.pos=parse_pos.(df.pos)
+  if varia==:TS
+    df
+  elseif varia==:T
+    df[:,[:Td,:Tw,:pos,:lon,:lat,:date]]
+  elseif varia==:S
+    df[:,[:Sd,:Sw,:pos,:lon,:lat,:date]]
+  else
+    error("unknown variable")
+  end
 end
 
 function read_k(fil,k)
@@ -345,6 +382,13 @@ function add_k!(df,k,reference; path=default_path)
     df.Te=read_k(joinpath(path,"Te.jld2"),k); GC.gc()
     df.Se=read_k(joinpath(path,"Se.jld2"),k); GC.gc()
   end
+end
+
+function initial_adjustment_k!(df,k,initial_adjustment; path=default_path)
+    for ad in initial_adjustment
+        println("adding initial_adjustment $ad")
+        df.Te.+=read_k(joinpath(path,"THETA_$(ad).jld2"),k)
+    end
 end
 
 """
@@ -430,16 +474,56 @@ Filter out data points that lack T, Te, etc.
 ```
 df=CSV.read("csv/profile_positions.csv",DataFrame)
 MITprofAnalysis.add_level!(df,1)
-df1=MITprofAnalysis.trim(df)
+df1=MITprofAnalysis.trim(df,:T)
 ```
 """
-trim(df) = df[
+trim(df,variable) = 
+if variable==:TS
+    df[
     (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
     (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
     (!isnan).(df.T) .& (!isnan).(df.Te) .&
     (!isnan).(df.S) .& (!isnan).(df.Se) .&
     (df.date .> date_min) .& (df.date .< date_max)
     ,:]
+elseif variable==:T
+    df[
+    (!ismissing).(df.T) .& (!ismissing).(df.Te) .& (df.Tw.>0) .&
+    (!isnan).(df.T) .& (!isnan).(df.Te) .&
+    (df.date .> date_min) .& (df.date .< date_max)
+    ,:]
+elseif variable==:S
+    df[
+    (!ismissing).(df.S) .& (!ismissing).(df.Se) .& (df.Sw.>0) .&
+    (!isnan).(df.S) .& (!isnan).(df.Se) .&
+    (df.date .> date_min) .& (df.date .< date_max)
+    ,:]
+else
+    error("unknown variable")
+end
+
+"""
+    trim_high_cost(df)
+
+Filter out data points that lack T, Te, etc.
+
+```
+df=CSV.read("csv/profile_positions.csv",DataFrame)
+MITprofAnalysis.add_level!(df,1)
+df=MITprofAnalysis.trim(df,:T)
+df=MITprofAnalysis.trim_high_cost(df,:T,fcmax=5.0)
+```
+"""
+trim_high_cost(df,variable; fcmax=5.0) = 
+if variable==:TS
+    df[((df.Tw.*(df.Td.^2).<=5)).&((df.Sw.*(df.Sd.^2).<=5)),:]
+elseif variable==:T
+    df[((df.Tw.*(df.Td.^2).<=5)),:]
+elseif variable==:S
+    df[((df.Sw.*(df.Sd.^2).<=5)),:]
+else
+    error("unknown variable")
+end
 
 #to restrict analysis to arbitrary time period:
 date_min=DateTime(1000,1,1)
@@ -498,7 +582,7 @@ G=GriddedFields.load();
 P=( variable=:Td, level=10, year=2002, month=1, input_path=MITprof.default_path,
     statistic=:median, nmon=3, rng=(-1.0,1.0))
 
-df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.input_path) )
+df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(P.level,path=P.input_path), :T)
 
 GriddedFields.update_tile!(G,P.npoint);
 ar1=G.array();
@@ -546,7 +630,7 @@ For each year in `years`, twelve fields are computed -- one per month.
 ```
 using ArgoData
 G=GriddedFields.load()
-df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(1, path="MITprof_input") )
+df1=MITprofAnalysis.trim( MITprofAnalysis.read_pos_level(1, path="MITprof_input") , :T)
 
 years=2004:2007
 arr=G.array(12,length(years))
@@ -621,24 +705,24 @@ Call `stat_monthly!` with parameters from the `nmap` line of `joinpath(output_pa
 
 
 ```
-P=( variable=:Td, level=10, years=2002:2002, 
-    nmap=1, sta=:mean, do_monthly_climatology=false, reference=:OCCA1,
+P=( variable=:Td, level=10, nmap=1, sta=:mean, 
     output_to_file=true, output_path=MITprof.default_path)
 
-MITprofStat.stat_driver(; varia=P.variable,level=P.level,years=P.years,
-        nmap=P.nmap, sta=P.statistic, do_monthly_climatology=P.do_monthly_climatology,
-        reference=P.reference, output_path=P.output_path, output_to_file=P.output_to_file)
+MITprofStat.stat_driver(; varia=P.variable,level=P.level, nmap=P.nmap, sta=P.statistic, 
+        reference=P.reference, output_path=P.output_path, output_to_file=P.output_to_file,
+        initial_adjustment="")
 ```    
 """
 function stat_driver(; varia=:Td, level=1, nmap=1, sta=:none, reference=:OCCA1,
-    output_to_file=false, output_path=default_path, input_path=default_path)
+    output_to_file=false, output_path=default_path, input_path=default_path,
+    initial_adjustment="")
    
     output_to_nc=false
     output_to_csv=true
 
     G=GriddedFields.load()
     df1=MITprofAnalysis.read_pos_level_for_stat(level,
-    	reference=reference,path=input_path)
+    	reference=reference,path=input_path,initial_adjustment=initial_adjustment)
 
     filmap=joinpath(output_path,"argostats_mappings.nc")
     (nmon,nobs)=GriddedFields.update_tile!(G,filmap,nmap)
@@ -787,7 +871,20 @@ end
 
 using MeshArrays, DataDeps
 
-function post_process_output(; varia=:Td, output_path=tempdir(), output_format="MITgcm", 
+function post_process_output(; varia=:Td, output_path=tempdir(), output_format="interpolated", 
+    climatological_cycle=false, years=2004:2022)
+    if output_format=="interpolated"
+        post_process_interpolation(; varia=varia, output_path=output_path, 
+        climatological_cycle=climatological_cycle, years=years)
+    elseif output_format=="MITgcm"
+        post_process_LLC90(; varia=varia, output_path=output_path, 
+        climatological_cycle=climatological_cycle, years=years)    
+    else
+        @warn "unknown output_format"
+    end
+end
+
+function post_process_interpolation(; varia=:Td, output_path=tempdir(), 
     climatological_cycle=false, years=2004:2022)
     γ=GridSpec(ID=:LLC90)
     λ=MeshArrays.interpolation_setup()
@@ -810,16 +907,66 @@ function post_process_output(; varia=:Td, output_path=tempdir(), output_format="
   
     for k in 1:siz[3]
       filin=joinpath(output_path,"argostats_$(varia)_$k.nc")
-      dsin=Dataset(filin)
-      for rec in 1:siz[4]
-        arr[:,:,rec].=Interpolate(read(dsin["Td"][:,:,rec],γ),λ)[3]
-      end
-      anomaly[:,:,k,:]=arr
-      close(dsin)
+        if isfile(filin)
+            dsin=Dataset(filin)
+            for rec in 1:siz[4]
+                arr[:,:,rec].=Interpolate(read(dsin["Td"][:,:,rec],γ),λ)[3]
+            end
+            anomaly[:,:,k,:]=arr
+            close(dsin)
+        end
     end
   
     close(ds)  
 end
+
+
+function post_process_LLC90(; varia=:Td, output_path=tempdir(),
+    climatological_cycle=false, years=2004:2022)
+    γ=GridSpec(ID=:LLC90)
+    z_RC=-GridLoadVar("RC",γ)    
+    z_RF=-GridLoadVar("RF",γ)    
+  
+    fi=joinpath(output_path,"argostats_$(varia)_llc90.nc")
+    isfile(fi) ? rm(fi) : nothing
+    nk=55
+    z_std=Float64.([[5:10:185]... ; [200:20:500]... ; [550:50:1000]...; [1100:100:6000]...])
+    z_std=z_std[1:nk]
+    f_std=[joinpath(output_path,"argostats_$(varia)_$k.nc") for k in 1:nk] 
+    
+    nt=12*(climatological_cycle ? 1 : length(years))
+    siz=[90,1170,nk,nt]
+    arr=zeros(90,1170,nt)
+    tmp=zeros(90,1170)
+  
+    ds = Dataset(fi,"c")
+  #    ds.attrib["author"] = "Gael Forget"
+    ds.attrib["source"] = "ArgoData.jl"
+    defDim(ds,"i",siz[1]); defDim(ds,"j",siz[2]); defDim(ds,"k",siz[3]); defDim(ds,"t",siz[4])
+  
+    time = defVar(ds,"t",Int,("t",))
+    time[:] = 1:siz[4]
+    anomaly = defVar(ds,varia,Float32,("i","j","k","t"))
+  
+    for k in 1:length(z_RC)
+        kk=findall( (z_std.>=z_RF[k]).&&(z_std.<=z_RF[k+1]).&&(isfile.(f_std)) )
+        arr[:,:,:].=0.0
+        for kkk in kk
+            filin=joinpath(output_path,"argostats_$(varia)_$kkk.nc")
+#            println([k kkk])
+            dsin=Dataset(filin)
+            for rec in 1:siz[4]
+              tmp.=dsin["Td"][:,:,rec]/length(kk)
+              tmp[isnan.(tmp)].=0.0
+              arr[:,:,rec].+=tmp
+            end
+            close(dsin)
+        end
+        anomaly[:,:,k,:]=arr
+    end
+    close(ds)
+end
+
 
 """
     basic_config(;preset=1)

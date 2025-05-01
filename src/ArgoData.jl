@@ -19,6 +19,7 @@ include("GDAC.jl")
 include("MITprof.jl")
 include("MITprofAnalysis.jl")
 include("ArgoFiles.jl")
+include("Parquet.jl")
 import NetworkOptions
 
 ##
@@ -27,6 +28,7 @@ export GDAC, ArgoTools, GriddedFields
 export MITprof, MITprofAnalysis, MITprofStat
 export ProfileNative, ProfileStandard, MITprofStandard
 export ArgoFiles, OneArgoFloat
+export Argo_parquet
 
 ## initialize data deps
 

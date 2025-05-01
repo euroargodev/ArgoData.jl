@@ -44,7 +44,7 @@ GDAC.CSV.write("Argo_float_files.csv",files_list)
 mv("Argo_float_files.csv",joinpath(@__DIR__,"build", "Argo_float_files.csv"))
 
 #run notebooks
-lst=("ArgoToMITprof.jl",)
+lst=("ArgoToMITprof.jl","ArgoParquetDev.jl")
 run_argopy ? lst=(lst...,"Argo_argopy.jl") : nothing
 for i in lst
     fil_in=joinpath(@__DIR__,"..", "examples",i)

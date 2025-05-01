@@ -78,6 +78,8 @@ lst=Dataverse.file_list(doi)
 
 ## Argo via Python API
 
+👉 [Notebook](../Argo_argopy.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/Argo_argopy.jl)
+
 The python library called [argopy](https://github.com/euroargodev/argopy#readme) provides more ways to access, manipulate, and visualize [Argo data](https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo). 
 
 ```@example argopy
@@ -92,4 +94,7 @@ ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766
 ds_points = ds_fetcher.to_xarray()
 ```
 
-👉 [Notebook](../Argo_argopy.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/Argo_argopy.jl)
+## Argo via Parquet Format
+
+👉 [Notebook](../ArgoParquet.html) 👈 [(code)](https://raw.githubusercontent.com/euroargodev/ArgoData.jl/master/examples/ArgoParquet.jl)
+

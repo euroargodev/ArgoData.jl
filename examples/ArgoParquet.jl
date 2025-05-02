@@ -30,10 +30,14 @@ md"""# Argo in parquet format
 
 ### Notebook History
 
-- Test data provided by Roo Nicholson (@dnicholson) and Enrico Milanese from WHOI
-- Examples provided by Enrico Milanese (@enrico-mi) as a Jupyter notebook + env
-- Gael Forget (@gaelforget) : streamline code, float subset example,
-    Plots, conversion to `Pluto` notebook, and module in `src/Parquet.jl`
+- Test data provided by Enrico Milanese (@enrico-mi) and Roo Nicholson (@dnicholson)
+- Examples provided by Enrico Milanese as a Jupyter notebook + env
+- Gael Forget (@gaelforget) : 
+  - streamline notebook code
+  - add float subset example, Plots
+  - convert to `Pluto` notebook
+  - streamline code via `Argo_parquet` module in `src/Parquet.jl`
+  - streamline code via `Argo_pq` struct in src
 """
 
 # ╔═╡ 3b3258fe-f86f-4a32-9443-e9704b52e067
@@ -340,7 +344,7 @@ version = "1.1.2"
 
 [[deps.ArgoData]]
 deps = ["Bootstrap", "CSV", "DataDeps", "DataFrames", "Dataverse", "Dates", "Downloads", "FTPClient", "Glob", "Interpolations", "IntervalSets", "JLD2", "MeshArrays", "NCDatasets", "NetworkOptions", "OrderedCollections", "Parquet2", "Pkg", "Printf", "Statistics", "TableOperations", "Tables", "YAML"]
-path = "/Users/gaelforget/work/code/julia_pkg/ArgoData.jl/"
+git-tree-sha1 = "e06868e47a4d4097437a6860f090662517b09031"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 version = "0.2.1"
 

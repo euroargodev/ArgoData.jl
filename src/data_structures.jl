@@ -1,3 +1,6 @@
+
+## MITprof data strcutures
+
 using NCDatasets
 using Dates
 
@@ -185,4 +188,38 @@ function read(x::OneArgoFloat;wmo=2900668,files_list="")
     fil=ArgoFiles.download(lst,wmo)
     arr=ArgoFiles.readfile(fil)
     OneArgoFloat(wmo,arr)
+end
+
+## Argo_parquet 
+
+import Parquet2, Tables
+
+"""
+```
+Base.@kwdef struct Argo_pq
+    Dataset  ::Parquet2.Dataset
+    schema   ::Tables.Schema
+    files    ::Vector
+    folder   ::String
+end
+```
+"""
+Base.@kwdef struct Argo_pq
+    Dataset  ::Parquet2.Dataset
+    schema   ::Tables.Schema
+    files    ::Vector
+    folder   ::String
+end
+
+function Base.show(io::IO, pq::Argo_pq)
+    (; Dataset,schema,files,folder) =pq
+    printstyled(io, "  folder    = ",color=:normal)
+    printstyled(io, "$(folder) \n",color=:blue)
+    printstyled(io, "  files     = ",color=:normal)
+    printstyled(io, "$(length(files)) \n",color=:blue)
+    printstyled(io, "  Dataset   = ",color=:normal)
+    printstyled(io, "$(Dataset) \n",color=:blue)
+    printstyled(io, "  schema    = ",color=:normal)
+    printstyled(io, "$(schema) \n",color=:green)
+  return
 end

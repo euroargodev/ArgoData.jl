@@ -12,6 +12,7 @@ Content of this section:
 ProfileNative
 ProfileStandard
 MITprofStandard
+Argo_pq
 ```
 
 ## Module: GDAC
@@ -50,4 +51,10 @@ Modules = [MITprofStat]
 Order   = [:type,:function]
 ```
 
+## Module: Argo_parquet
+
+```@autodocs
+Modules = [Argo_parquet]
+Order   = [:type,:function]
+```
 

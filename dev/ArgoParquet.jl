@@ -145,16 +145,6 @@ let
 end
 
 # ╔═╡ 8d31ed4e-fbb8-459a-bd5b-e08767a6fda4
-function get_positions(df3::DataFrame)
-    lo = Tables.getcolumn(df3, :LONGITUDE)
-    la = Tables.getcolumn(df3, :LATITUDE)
-    juld = Tables.getcolumn(df3, :JULD)
-    pos3=[(lo[i],la[i],juld[i]) for i in 1:length(lo)]
-    pos3=unique(pos3)
-    ([a[1] for a in pos3],
-    [a[2] for a in pos3],
-    [a[3] for a in pos3])
-end
 
 # ╔═╡ bd997e85-a3ab-4dce-ac67-a4ccdbac3896
 

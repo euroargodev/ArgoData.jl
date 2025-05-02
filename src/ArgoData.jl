@@ -28,7 +28,7 @@ export GDAC, ArgoTools, GriddedFields
 export MITprof, MITprofAnalysis, MITprofStat
 export ProfileNative, ProfileStandard, MITprofStandard
 export ArgoFiles, OneArgoFloat
-export Argo_parquet
+export Argo_parquet, Argo_pq
 
 ## initialize data deps
 

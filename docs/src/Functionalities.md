@@ -50,4 +50,10 @@ Modules = [MITprofStat]
 Order   = [:type,:function]
 ```
 
+## Module: Argo_parquet
+
+```@autodocs
+Modules = [Argo_parquet]
+Order   = [:type,:function]
+```
 

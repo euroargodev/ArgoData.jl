@@ -153,11 +153,11 @@ end
 
 @testset "ArgoParquet.jl" begin
     folder_pq=Argo_parquet.sample_download("ARGO_PHY_SAMPLE_QC")
-    ds2 = Argo_parquet.Parquet2.Dataset(folder_pq)
-    ### append all row groups (important step)
-    Argo_parquet.Parquet2.appendall!(ds2)
-    df2=Argo_parquet.get_subset_region(ds2)
-    df3=Argo_parquet.get_subset_float(ds2,ID=1901730)
+    da=Argo_parquet.Dataset(folder_pq)
+    df2=Argo_parquet.get_subset_region(da.Dataset)
+    (lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
+    (lo,la,te)=Argo_parquet.get_positions(df2)
+    df3=Argo_parquet.get_subset_float(da.Dataset,ID=1901730)
     @test isa(df3,Argo_parquet.DataFrame)
 end
 

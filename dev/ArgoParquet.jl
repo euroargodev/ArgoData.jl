@@ -18,14 +18,26 @@ end
 TableOfContents()
 
 # ╔═╡ 7e88a057-c298-4c9d-b4a5-1e90756467c2
-md"""# Argo parquet prototyping
+md"""# Argo in parquet format
+
+!!! note 
+    This notebook is based on the data set published in Milanese, E., & Nicholson, D. (2025).
+
+- Milanese, E., & Nicholson, D. (2025). Sample parquet datasets of Argo program ocean data [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15198578
+- https://github.com/boom-lab/argo2parquet-public
+- https://github.com/boom-lab/crocolaketools-public
+- https://euroargodev.github.io/ArgoData.jl/dev/
 
 ### Notebook History
 
-- Test data provided by Roo Nicholson (@dnicholson) and Enrico Milanese from WHOI
-- Examples provided by Enrico Milanese (@enrico-mi) as a Jupyter notebook + env
-- Some streamlining and float subset example by @gaelforget
-- Added Plots and conversion to Pluto notebook by @gaelforget
+- Test data provided by Enrico Milanese (@enrico-mi) and Roo Nicholson (@dnicholson)
+- Examples provided by Enrico Milanese as a Jupyter notebook + env
+- Gael Forget (@gaelforget) : 
+  - streamline notebook code
+  - add float subset example, Plots
+  - convert to `Pluto` notebook
+  - streamline code via `Argo_parquet` module in `src/Parquet.jl`
+  - streamline code via `Argo_pq` struct in src
 """
 
 # ╔═╡ 3b3258fe-f86f-4a32-9443-e9704b52e067
@@ -146,6 +158,7 @@ end
 
 # ╔═╡ 8d31ed4e-fbb8-459a-bd5b-e08767a6fda4
 
+
 # ╔═╡ bd997e85-a3ab-4dce-ac67-a4ccdbac3896
 
 
@@ -213,9 +226,7 @@ ArgoData = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-Dataverse = "9c0b9be8-e31e-490f-90fe-77697562404d"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
-Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 GeoJSON = "61d90e0f-e114-555e-ac52-39dfb47a3ef9"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
@@ -230,7 +241,6 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 CairoMakie = "~0.13.1"
 DataDeps = "~0.7.13"
 DataFrames = "~1.7.0"
-Dataverse = "~0.2.7"
 GeoJSON = "~0.8.2"
 Glob = "~1.3.1"
 IntervalSets = "~0.7.10"
@@ -247,7 +257,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "3845fb5c590ae1600bb86af4bf556f969f31ecc5"
+project_hash = "eff08309b71f7c0c370f9b522b72884748503892"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]

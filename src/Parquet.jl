@@ -17,7 +17,7 @@ function sample_download(folder="ARGO_PHY_SAMPLE_QC")
 end
 
 function get_subset_region(ds2; lons=-75 .. -50, lats=25 .. 40, 
-    dates=DateTime("2018-01-01T00:00:00") .. DateTime("2018-12-31T23:59:59"),
+    dates=DateTime("2001-01-01T00:00:00") .. DateTime("2024-12-31T23:59:59"),
     variables=(:JULD, :LATITUDE, :LONGITUDE, :PRES, :TEMP, :PLATFORM_NUMBER))
 
     rule_juld = x -> in.(coalesce.(x, DateTime("2100-01-01T00:00:00")), Ref(dates))
@@ -52,6 +52,17 @@ function get_lon_lat_temp(df3)
     te=[x[1,:TEMP] for x in gdf3];
     ii=findall((!ismissing).(te))
     (lo[ii],la[ii],Float64.(te[ii]))
+end
+
+function get_positions(df3::DataFrame)
+    lo = Tables.getcolumn(df3, :LONGITUDE)
+    la = Tables.getcolumn(df3, :LATITUDE)
+    juld = Tables.getcolumn(df3, :JULD)
+    pos3=[(lo[i],la[i],juld[i]) for i in 1:length(lo)]
+    pos3=unique(pos3)
+    ([a[1] for a in pos3],
+    [a[2] for a in pos3],
+    [a[3] for a in pos3])
 end
 
 end

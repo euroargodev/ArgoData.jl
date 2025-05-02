@@ -151,3 +151,14 @@ end
 
 end
 
+@testset "ArgoParquet.jl" begin
+    folder_pq=Argo_parquet.sample_download("ARGO_PHY_SAMPLE_QC")
+    ds2 = Argo_parquet.Parquet2.Dataset(folder_pq)
+    ### append all row groups (important step)
+    Argo_parquet.Parquet2.appendall!(ds2)
+    df2=Argo_parquet.get_subset_region(ds2)
+    df3=Argo_parquet.get_subset_float(ds2,ID=1901730)
+    @test isa(df3,Argo_parquet.DataFrame)
+end
+
+

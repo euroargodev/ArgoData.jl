@@ -28,7 +28,7 @@ md"""# Argo in parquet format
 - https://github.com/boom-lab/crocolaketools-public
 - https://euroargodev.github.io/ArgoData.jl/dev/
 
-### Notebook History
+## Notebook History
 
 - Test data provided by Enrico Milanese (@enrico-mi) and Roo Nicholson (@dnicholson)
 - Examples provided by Enrico Milanese as a Jupyter notebook + env
@@ -47,15 +47,20 @@ md"""## Download Sample Files"""
 folder_pq=Argo_parquet.sample_download("ARGO_PHY_SAMPLE_QC")
 
 # ╔═╡ 972907dd-f4e8-436a-ba58-446a75af6c3f
-begin
-#	folder_pq=joinpath(pwd(),"data_pq")
-	files=glob("*parquet",folder_pq)
-end
+files=glob("*parquet",folder_pq)
+
+# ╔═╡ db0e87dd-7e6b-450a-99c2-540036d8b0f3
+md"""## Open via `ArgoDAta.jl`"""
+
+# ╔═╡ 7433aae8-896b-448c-afb8-9abfe769b3b8
+da = Argo_parquet.Dataset(folder_pq)
 
 # ╔═╡ 269f9fc3-094b-4a31-83ef-38aae3ca81bc
-md"""## Single File Example
+md"""## A Closer Look
 
-Demonstrates several ways to access data, column subsets, and row subsets
+### Single File Example
+
+Here we look at several ways to access data, column subsets, and row subsets.
 
 """
 
@@ -79,36 +84,34 @@ let
 end
 
 # ╔═╡ 57dda4dc-fcf9-4c66-8777-8175ddf8508c
-md"""## Parquet Folder Example"""
+md"""### Whole Parquet Folder"""
 
 # ╔═╡ 96c05578-60c4-4d1f-81ed-dd61d325ecc6
-begin
+let
 	ds2 = Parquet2.Dataset(folder_pq)
 	### append all row groups (important step)
 	Parquet2.appendall!(ds2)
 	Parquet2.filelist(ds2)
+	Tables.schema(ds2)
 end
 
-# ╔═╡ d87a588a-fad1-404d-943b-be61eee018c4
-sch=Tables.schema(ds2)
-
 # ╔═╡ 5a0c669b-6251-48de-8ea4-9f322118d9f3
-md"""### Extract data from one region"""
+md"""## Extract data from one region"""
 
 # ╔═╡ bb1e1c9b-9900-4efe-9705-5361c53f7915
-df2=Argo_parquet.get_subset_region(ds2,dates=DateTime("2001-01-01T00:00:00") .. DateTime("2024-12-31T23:59:59"))
+df2=Argo_parquet.get_subset_region(da.Dataset)
 
 # ╔═╡ e946b254-d70d-488a-adc4-897fddf708b6
-md"""### Extract data from one profiler"""
+md"""## Extract data from one profiler"""
 
 # ╔═╡ b7cd9016-0752-4464-8d73-d487b0920ec6
-begin
-	ID  = Tables.getcolumn(ds2, :PLATFORM_NUMBER)
+let
+	ID  = Tables.getcolumn(da.Dataset, :PLATFORM_NUMBER)
 	IDu = unique(ID)
 end
 
 # ╔═╡ 3a91625a-56e3-4f4e-a0ac-f214a9d76eae
-df3=Argo_parquet.get_subset_float(ds2,ID=1901730)
+df3=Argo_parquet.get_subset_float(da.Dataset,ID=1901730)
 
 # ╔═╡ a77a1207-a948-4ea0-b90c-bbf87583bb1f
 md"""## Appendix
@@ -118,12 +121,6 @@ md"""## Appendix
 
 # ╔═╡ b56288fb-1613-458e-9441-501cff0d8058
 md"""### Helper Functions"""
-
-# ╔═╡ b137e8e5-9d63-444d-a678-a0bba9795381
-
-
-# ╔═╡ 0c28c06b-e764-4706-b470-39d142bd47e7
-
 
 # ╔═╡ 92f8f108-1e10-44ff-953c-1cd0a1b67ed7
 begin
@@ -155,12 +152,6 @@ let
 	scatter!(Axis(fig4[2,1]),DateTime.(df3.JULD[ii]),-df3.PRES[ii],color=Float64.(df3.TEMP[ii]),markersize=2)
 	fig4
 end
-
-# ╔═╡ 8d31ed4e-fbb8-459a-bd5b-e08767a6fda4
-
-
-# ╔═╡ bd997e85-a3ab-4dce-ac67-a4ccdbac3896
-
 
 # ╔═╡ b4093077-cf8e-48f0-958c-451987b6cda5
 function plot_lo_la_etc(lo,la; te=[], pol=pol)
@@ -344,9 +335,9 @@ version = "1.1.2"
 
 [[deps.ArgoData]]
 deps = ["Bootstrap", "CSV", "DataDeps", "DataFrames", "Dataverse", "Dates", "Downloads", "FTPClient", "Glob", "Interpolations", "IntervalSets", "JLD2", "MeshArrays", "NCDatasets", "NetworkOptions", "OrderedCollections", "Parquet2", "Pkg", "Printf", "Statistics", "TableOperations", "Tables", "YAML"]
-git-tree-sha1 = "e06868e47a4d4097437a6860f090662517b09031"
+git-tree-sha1 = "57b8018900521a5d0a75348c3ef756bca6b9cc5c"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
-version = "0.2.1"
+version = "0.2.2"
 
     [deps.ArgoData.extensions]
     ArgoDataClimatologyExt = ["Climatology"]
@@ -2449,12 +2440,13 @@ version = "3.6.0+0"
 # ╟─3b3258fe-f86f-4a32-9443-e9704b52e067
 # ╠═98bcf543-3c27-42d7-b2f6-c773e33ad187
 # ╠═972907dd-f4e8-436a-ba58-446a75af6c3f
+# ╟─db0e87dd-7e6b-450a-99c2-540036d8b0f3
+# ╠═7433aae8-896b-448c-afb8-9abfe769b3b8
 # ╟─269f9fc3-094b-4a31-83ef-38aae3ca81bc
 # ╠═ac99c466-a461-4cce-9f32-06efef7a8629
 # ╠═fd70ac75-41b1-45cd-bed3-0c41286b6449
 # ╟─57dda4dc-fcf9-4c66-8777-8175ddf8508c
 # ╠═96c05578-60c4-4d1f-81ed-dd61d325ecc6
-# ╠═d87a588a-fad1-404d-943b-be61eee018c4
 # ╟─5a0c669b-6251-48de-8ea4-9f322118d9f3
 # ╠═bb1e1c9b-9900-4efe-9705-5361c53f7915
 # ╠═0f23b8a5-601a-4cfe-9e75-6c5f5a849003
@@ -2465,13 +2457,9 @@ version = "3.6.0+0"
 # ╟─a77a1207-a948-4ea0-b90c-bbf87583bb1f
 # ╠═5cc74c7e-e0a3-11ef-2b10-1f8256dd944a
 # ╟─b56288fb-1613-458e-9441-501cff0d8058
-# ╟─b137e8e5-9d63-444d-a678-a0bba9795381
-# ╟─0c28c06b-e764-4706-b470-39d142bd47e7
 # ╟─92f8f108-1e10-44ff-953c-1cd0a1b67ed7
 # ╟─aeae88de-cd8b-44b1-a28f-c5010b2c3ff6
 # ╟─5f07df64-6f41-400e-a11a-db8cb950b449
-# ╟─8d31ed4e-fbb8-459a-bd5b-e08767a6fda4
-# ╟─bd997e85-a3ab-4dce-ac67-a4ccdbac3896
 # ╟─b4093077-cf8e-48f0-958c-451987b6cda5
 # ╟─c9d44a5b-73c7-4a08-b1c3-0eff91d1f103
 # ╟─00000000-0000-0000-0000-000000000001

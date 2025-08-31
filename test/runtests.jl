@@ -11,7 +11,7 @@ run_argopy=true
 if run_argopy
   using PythonCall, CondaPkg
   @testset "argopy" begin
-    @suppress ArgoData.conda(:argopy)
+    ArgoData.conda(:argopy)
     println(CondaPkg.status())
     argopy=ArgoData.pyimport(:argopy)
     println(argopy.status())

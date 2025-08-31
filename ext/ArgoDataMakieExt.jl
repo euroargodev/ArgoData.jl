@@ -1,6 +1,6 @@
 module ArgoDataMakieExt
 
-using ArgoData, Makie
+using ArgoData, Makie, Dates
 import Makie: plot
 
 """
@@ -59,11 +59,17 @@ end
 
 function heatmap_profiles!(ax,TIME,TEMP,cmap)
 	x=TIME[1,:]; y=collect(0.0:5:500.0)
+	x=convert_time(TIME[1,:]) #heatmap! use to work with TIME[1,:] directly
 	co=Float64.(permutedims(TEMP))
 	rng=extrema(TEMP[:])
 	sca=heatmap!(ax, x , y , co, colorrange=rng,colormap=cmap)
 	ax.ylabel="depth (m)"
 	sca
+end
+
+function convert_time(tim)
+	y1=year(tim[1])
+	y1.+(tim.-DateTime(y1))./Millisecond(1)/1000/86400/365.25
 end
 
 function plot_profiles!(ax,TIME,PRES,TEMP,cmap)

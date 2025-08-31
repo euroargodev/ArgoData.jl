@@ -5,15 +5,15 @@ using Climatology, MITgcm, Dates, CairoMakie
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 clim_path=Climatology.MITPROFclim_download()
 
-run_argopy=false
+run_argopy=true
 #Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
 if run_argopy
   using PythonCall, CondaPkg
   @testset "argopy" begin
-    ArgoData.conda(:argopy)
+    @suppress ArgoData.conda(:argopy)
     println(CondaPkg.status())
-    argopy=ArgoData.pyimport(:argopy)
+    argopy=ArgoData.pyimport("argopy")
     println(argopy.status())
 
     ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))

@@ -5,7 +5,7 @@ using Climatology, MITgcm, Dates, CairoMakie
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 clim_path=Climatology.MITPROFclim_download()
 
-run_argopy=true
+run_argopy=false
 #Sys.ARCH==:aarch64 ? run_argopy=false : nothing
 
 if run_argopy

@@ -13,7 +13,7 @@ if run_argopy
   @testset "argopy" begin
     @suppress ArgoData.conda(:argopy)
     println(CondaPkg.status())
-    argopy=ArgoData.pyimport(:argopy)
+    argopy=ArgoData.pyimport("argopy")
     println(argopy.status())
 
     ds_fetcher=argopy.DataFetcher().float(pylist([6902746, 6902747, 6902757, 6902766]))

@@ -8,7 +8,14 @@ using NCDatasets, CSV, DataFrames, FTPClient, Downloads, Printf
 
 Read "ar_greylist.txt" file into a DataFrame.
 """
-grey_list(fil::String) = DataFrame(CSV.File(fil))
+function grey_list(fil::String)
+    try
+        DataFrame(CSV.File(fil))
+    catch e
+        @warn "file not found : $(fil)"
+        DataFrame()
+    end
+end
 
 """
     grey_list()
@@ -16,8 +23,12 @@ grey_list(fil::String) = DataFrame(CSV.File(fil))
 Download "ar_greylist.txt" from GDAC and read file into a DataFrame.
 """
 function grey_list()
-    Downloads.download("https://data-argo.ifremer.fr/ar_greylist.txt",joinpath(tempdir(),"ar_greylist.txt"))
-    grey_list(joinpath(tempdir(),"ar_greylist.txt"))
+    try
+        Downloads.download("https://data-argo.ifremer.fr/ar_greylist.txt",joinpath(tempdir(),"ar_greylist.txt"))
+    catch e
+        @warn "file not downloaded : ar_greylist.txt"
+    end
+    grey_list(joinpath(tempdir(),"ar_greylist.txt"))        
 end
 
 """

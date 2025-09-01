@@ -4,7 +4,7 @@ using PythonCall, ArgoData
 import ArgoData: NetworkOptions
 
 function ArgoData.pyimport(flag=:argopy)
-    if flag==:argopy
+    if string(flag)=="argopy"
 #        @py import ssl
 #        p=ssl.get_default_verify_paths()
 #        string(p.cafile)

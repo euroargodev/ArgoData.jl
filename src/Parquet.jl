@@ -63,10 +63,6 @@ end
     dates=DateTime("2001-01-01T00:00:00") .. DateTime("2024-12-31T23:59:59"),
     variables=(:JULD, :LATITUDE, :LONGITUDE, :PRES, :TEMP, :PLATFORM_NUMBER))
 """
-    get_subset_float(ds2::Parquet2.Dataset ; ID=3901064,
-    variables=(:JULD, :LATITUDE, :LONGITUDE, :PRES, :TEMP, :PLATFORM_NUMBER))
-    rule_PLATFORM_NUMBER = x -> coalesce.(x, 0).==Ref(string(ID))
-"""
 function get_subset_region(ds2::Parquet2.Dataset; 
     lons=-75 .. -50, 
     lats=25 .. 40, 
@@ -123,7 +119,7 @@ function get_subset_region(ds2::Parquet2.Dataset;
     if isempty(filtered_dfs)
         if verbose
             println("No data matched filters after detailed filtering")
-                    end
+            end
         return DataFrame([col => [] for col in variables]...)
     end
     
@@ -140,6 +136,22 @@ function get_subset_region(ds2::Parquet2.Dataset;
     
     return df_result
 end
+
+"""
+    get_subset_float(ds2::Parquet2.Dataset ; ID=3901064,
+    variables=(:JULD, :LATITUDE, :LONGITUDE, :PRES, :TEMP, :PLATFORM_NUMBER))
+    rule_PLATFORM_NUMBER = x -> coalesce.(x, 0).==Ref(string(ID))
+"""
+function get_subset_float(ds2::Parquet2.Dataset ; ID=3901064,
+    variables=(:JULD, :LATITUDE, :LONGITUDE, :PRES, :TEMP, :PLATFORM_NUMBER))
+    rule_PLATFORM_NUMBER = x -> coalesce.(x, 0).==Ref(string(ID))
+#	rule_PLATFORM_NUMBER = x -> coalesce.(x, 0).==Ref(ID)
+    row_groups = filter(x -> any(rule_PLATFORM_NUMBER(Parquet2.load(x["PLATFORM_NUMBER"]))), ds2.row_groups)
+    df_subset3 = reduce(vcat,DataFrame.(row_groups,copycols=false)) |> TO.select(variables...) |> DataFrame
+    subset!(df_subset3, :PLATFORM_NUMBER => rule_PLATFORM_NUMBER)
+    df_subset3
+end
+
 """
     get_lon_lat_temp(df3)
 """

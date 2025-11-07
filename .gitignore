@@ -10,3 +10,5 @@ argo
 MITprof
 examples/*.ipynb
 .ipynb_checkpoints/
+
+!./examples/ArgoParquet.ipynb

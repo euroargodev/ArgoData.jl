@@ -50,7 +50,7 @@ function cost_functions(pth,vv="prof_T",JJ=[])
         if tmp2>0
             push!(np,tmp2)
             push!(nz,sum(tmp1)/tmp2)
-            tmp1=(ds[vv]-ds[vv*"estim"]).^2 .*ds[vv*"weight"]
+            tmp1=Array((ds[vv]-ds[vv*"estim"]).^2 .*ds[vv*"weight"])
             if ~isa(tmp1,Matrix{Missing})
                 tmp1[findall(ismissing.(tmp1))].=0.0
                 push!(cost,sum(tmp1[:])/sum((tmp1[:].>0.0)))

@@ -177,7 +177,7 @@ function write(fil::String,mps::Vector{MITprofStandard})
     for var in list_variables
         for ii in 1:length(mps)
             tmp=getfield(mps[ii],var)
-            ii==1 ? jj=collect(1:nps[1]) : jj=collect(nps[ii-1]+1:nps[ii])
+            jj=(ii==1 ? (1:nps[1]) : (nps[ii-1]+1:nps[ii]))
             if ndims(tmp)==1
                 ds[name(tmp)][jj].=tmp[:]
             else

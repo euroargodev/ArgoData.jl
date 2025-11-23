@@ -1,6 +1,6 @@
 
-using ArgoData, MeshArrays, Test, Suppressor
-using Climatology, MITgcm, Dates, CairoMakie
+using ArgoData, Test, Suppressor
+import MeshArrays, Climatology, Dates, CairoMakie
 
 ENV["DATADEPS_ALWAYS_ACCEPT"]=true
 clim_path=Climatology.MITPROFclim_download()
@@ -60,7 +60,7 @@ end
 
     ##
 
-    Γ=GridLoad(ID=:LLC90,option=:light)
+    Γ=MeshArrays.GridLoad(ID=:LLC90,option=:light)
     pth=MITprof.default_path
     files=MITprof.download(ids=5,path=pth) #ids=5 for 2002
     df=MITprofAnalysis.csv_of_positions(pth,Γ,files[1])
@@ -97,8 +97,8 @@ end
     df=MITprofAnalysis.trim_high_cost(df,:T,fcmax=5.0)  
     MITprofAnalysis.add_climatology_factors!(df)
     MITprofAnalysis.add_tile!(df,Γ,30)  
-    d0=DateTime("2002-01-01T00:00:00")
-    d1=DateTime("2002-02-01T00:00:00")
+    d0=Dates.DateTime("2002-01-01T00:00:00")
+    d1=Dates.DateTime("2002-02-01T00:00:00")
     df1=MITprofAnalysis.subset(df,dates=(d0,d1))
     df2=MITprofAnalysis.subset(df,lons=(-180,0),lats=(20,50),dates=(d0,d1))
     @test !isempty(df2)
@@ -144,10 +144,10 @@ end
     b=read(OneArgoFloat(),wmo=2900668)
     @test isa(b,OneArgoFloat)
 
-    f1=plot(b,option=:samples)
-    f2=plot(b,option=:TS)
-    f3=plot(b,option=:standard)
-    @test isa(f3,Figure)
+    f1=CairoMakie.plot(b,option=:samples)
+    f2=CairoMakie.plot(b,option=:TS)
+    f3=CairoMakie.plot(b,option=:standard)
+    @test isa(f3,CairoMakie.Figure)
 
 end
 

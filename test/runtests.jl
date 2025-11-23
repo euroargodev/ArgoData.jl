@@ -147,7 +147,7 @@ end
     f1=CairoMakie.plot(b,option=:samples)
     f2=CairoMakie.plot(b,option=:TS)
     f3=CairoMakie.plot(b,option=:standard)
-    @test isa(f3,Figure)
+    @test isa(f3,CairoMakie.Figure)
 
 end
 

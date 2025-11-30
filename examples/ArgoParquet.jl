@@ -4,6 +4,18 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    #! format: off
+    return quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+    #! format: on
+end
+
 # ╔═╡ 5cc74c7e-e0a3-11ef-2b10-1f8256dd944a
 begin
 	using ArgoData
@@ -99,7 +111,47 @@ end
 md"""## Extract data from one region"""
 
 # ╔═╡ bb1e1c9b-9900-4efe-9705-5361c53f7915
-df2=Argo_parquet.get_subset_region(da.Dataset)
+df2=Argo_parquet.get_subset_region(da.Dataset,lons=-180 .. 180)
+
+# ╔═╡ d412a7c1-203c-46e5-a07f-3fce68f9ddcf
+begin
+	#import GeoJSON, MeshArrays, DataDeps
+	import GeometryOps as GO, GeoInterface as GI
+end
+
+# ╔═╡ 18b1eb82-b584-44fe-a580-1d5880d496e6
+
+begin
+	fil_ocean=MeshArrays.demo.download_polygons("oceans.geojson")
+	ocean_pols=GeoJSON.read(fil_ocean)
+	ocean_pols[11].name
+end
+
+# ╔═╡ 1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
+begin
+	pol_NorthAtl=ocean_pols[11].geometry
+	NaN_point=GI.Point(NaN,NaN)
+	
+	rule_pol = (x,y) -> GO.within(GI.Point(x,y), pol_NorthAtl)
+	rule_pol_vec = (x,y) -> rule_pol.(x,y)
+
+		#GO.within(GI.Point(df2.LONGITUDE[1],df2.LATITUDE[1]),pol)
+		#rule_pol(df2.LONGITUDE[1],df2.LATITUDE[1])
+		#rule_pol_vec(df2.LONGITUDE,df2.LATITUDE)
+	df2sub=subset(df2, [:LONGITUDE,:LATITUDE] => rule_pol_vec, skipmissing=false)
+end
+
+# ╔═╡ 52e2c96a-44a9-4926-b877-46421930a04b
+@bind dlo PlutoUI.Select(-30:5:0,default=0)
+
+# ╔═╡ 24e77787-7bb5-4bc3-9683-2e3eedd1a52c
+function get_point_temp(df2)
+	(lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
+
+	np=length(lo)
+	points=[GI.Point(lo[i],la[i]) for i in 1:np]
+	(point=points,temperature=te)
+end
 
 # ╔═╡ e946b254-d70d-488a-adc4-897fddf708b6
 md"""## Extract data from one profiler"""
@@ -125,8 +177,25 @@ md"""### Helper Functions"""
 # ╔═╡ 92f8f108-1e10-44ff-953c-1cd0a1b67ed7
 begin
 	fil=MeshArrays.demo.download_polygons("countries.geojson")
-	pol=MeshArrays.read_polygons(fil)
+	pol_countries=MeshArrays.read_polygons(fil)
 	"polygons for plotting"
+end
+
+# ╔═╡ 1eeccd4d-4b16-4d41-99a7-a709d1ff1565
+let
+	points=get_point_temp(df2).point
+	points_sub=get_point_temp(df2sub).point
+
+	name=ocean_pols[11].name
+	pol=ocean_pols[11].geometry
+	
+#	np=length(points)
+#	is_in_pol=[GO.within(p,pol) for p in points[1:np]];
+#	ii=findall(is_in_pol)
+	
+	lines(pol_countries,color=:black); plot!(points)
+	plot!(points_sub,color=:red); lines!(pol,color=:red)
+	current_figure()
 end
 
 # ╔═╡ aeae88de-cd8b-44b1-a28f-c5010b2c3ff6
@@ -172,7 +241,7 @@ end
 # ╔═╡ 0f23b8a5-601a-4cfe-9e75-6c5f5a849003
 let
 	(lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
-	plot_lo_la_etc(lo,la; te=te, pol=pol)
+	plot_lo_la_etc(lo,la; te=te, pol=pol_countries)
 end
 
 # ╔═╡ c9d44a5b-73c7-4a08-b1c3-0eff91d1f103
@@ -218,7 +287,9 @@ CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+GeoInterface = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
 GeoJSON = "61d90e0f-e114-555e-ac52-39dfb47a3ef9"
+GeometryOps = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 MeshArrays = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
@@ -227,6 +298,22 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 TableOperations = "ab02a1b2-a7df-11e8-156e-fb1833f50b87"
 Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
+
+[compat]
+ArgoData = "~0.2.4"
+CairoMakie = "~0.15.7"
+DataDeps = "~0.7.13"
+DataFrames = "~1.8.1"
+GeoInterface = "~1.6.0"
+GeoJSON = "~0.8.4"
+GeometryOps = "~0.1.31"
+Glob = "~1.3.1"
+IntervalSets = "~0.7.13"
+MeshArrays = "~0.3.24"
+Parquet2 = "~0.2.33"
+PlutoUI = "~0.7.75"
+TableOperations = "~1.2.0"
+Tables = "~1.12.1"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -235,7 +322,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.12.1"
 manifest_format = "2.0"
-project_hash = "3a7ae712869ced136f600ad1cbbce88d14bc3011"
+project_hash = "db513bf20f3af3deb52ea4f1fca9d98889c63ac3"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -643,6 +730,12 @@ git-tree-sha1 = "439e35b0b36e2e5881738abc8857bd92ad6ff9a8"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
 version = "0.6.3"
 
+[[deps.CoordinateTransformations]]
+deps = ["LinearAlgebra", "StaticArrays"]
+git-tree-sha1 = "a692f5e257d332de1e554e4566a4e5a8a72de2b2"
+uuid = "150eb455-5306-5404-9cee-2592286d6298"
+version = "0.6.4"
+
 [[deps.Crayons]]
 git-tree-sha1 = "249fe38abf76d48563e2f4556bebd215aa317e15"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
@@ -967,6 +1060,32 @@ weakdeps = ["GeoInterface"]
 
     [deps.GeometryBasics.extensions]
     GeometryBasicsGeoInterfaceExt = "GeoInterface"
+
+[[deps.GeometryOps]]
+deps = ["AbstractTrees", "AdaptivePredicates", "CoordinateTransformations", "DataAPI", "DelaunayTriangulation", "ExactPredicates", "Extents", "GeoFormatTypes", "GeoInterface", "GeometryOpsCore", "LinearAlgebra", "Random", "SortTileRecursiveTree", "StaticArrays", "Statistics", "Tables"]
+git-tree-sha1 = "9fa16be9c28d9c01bf2b5d73f7768d482c12b118"
+uuid = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
+version = "0.1.31"
+
+    [deps.GeometryOps.extensions]
+    GeometryOpsDataFramesExt = "DataFrames"
+    GeometryOpsFlexiJoinsExt = "FlexiJoins"
+    GeometryOpsLibGEOSExt = "LibGEOS"
+    GeometryOpsProjExt = "Proj"
+    GeometryOpsTGGeometryExt = "TGGeometry"
+
+    [deps.GeometryOps.weakdeps]
+    DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+    FlexiJoins = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
+    LibGEOS = "a90b1aa1-3769-5649-ba7e-abc5a9d163eb"
+    Proj = "c94c279d-25a6-4763-9509-64d165bea63e"
+    TGGeometry = "d7e755d2-3c95-4bcf-9b3c-79ab1a78647b"
+
+[[deps.GeometryOpsCore]]
+deps = ["DataAPI", "GeoInterface", "StableTasks", "Tables"]
+git-tree-sha1 = "69fc98947b06f8ac4279cf5bf8810373fe042be4"
+uuid = "05efe853-fabf-41c8-927e-7063c8b9f013"
+version = "0.1.7"
 
 [[deps.GettextRuntime_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll"]
@@ -2007,6 +2126,12 @@ version = "0.1.5"
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 version = "1.11.0"
 
+[[deps.SortTileRecursiveTree]]
+deps = ["AbstractTrees", "Extents", "GeoInterface"]
+git-tree-sha1 = "f9aa6616a9b3bd01f93f27c010f1d25fc5a094a9"
+uuid = "746ee33f-1797-42c2-866d-db2fce69d14d"
+version = "0.1.4"
+
 [[deps.SortingAlgorithms]]
 deps = ["DataStructures"]
 git-tree-sha1 = "64d974c2e6fdf07f8155b5b2ca2ffa9069b608d9"
@@ -2039,6 +2164,11 @@ deps = ["Random"]
 git-tree-sha1 = "4f96c596b8c8258cc7d3b19797854d368f243ddc"
 uuid = "860ef19b-820b-49d6-a774-d7a799459cd3"
 version = "1.0.4"
+
+[[deps.StableTasks]]
+git-tree-sha1 = "c4f6610f85cb965bee5bfafa64cbeeda55a4e0b2"
+uuid = "91464d47-22a1-43fe-8b7f-2d57ee82463f"
+version = "0.1.7"
 
 [[deps.StackViews]]
 deps = ["OffsetArrays"]
@@ -2520,6 +2650,12 @@ version = "4.1.0+0"
 # ╠═96c05578-60c4-4d1f-81ed-dd61d325ecc6
 # ╟─5a0c669b-6251-48de-8ea4-9f322118d9f3
 # ╠═bb1e1c9b-9900-4efe-9705-5361c53f7915
+# ╠═d412a7c1-203c-46e5-a07f-3fce68f9ddcf
+# ╠═18b1eb82-b584-44fe-a580-1d5880d496e6
+# ╠═1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
+# ╟─52e2c96a-44a9-4926-b877-46421930a04b
+# ╠═1eeccd4d-4b16-4d41-99a7-a709d1ff1565
+# ╠═24e77787-7bb5-4bc3-9683-2e3eedd1a52c
 # ╠═0f23b8a5-601a-4cfe-9e75-6c5f5a849003
 # ╟─e946b254-d70d-488a-adc4-897fddf708b6
 # ╠═b7cd9016-0752-4464-8d73-d487b0920ec6

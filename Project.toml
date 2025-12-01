@@ -1,7 +1,7 @@
 name = "ArgoData"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
 authors = ["gaelforget <gforget@mit.edu>"]
-version = "0.2.4"
+version = "0.2.5"
 
 [deps]
 Bootstrap = "e28b5b4c-05e8-5b66-bc03-6f0c0a0a06e0"
@@ -60,7 +60,7 @@ Interpolations = "0.13, 0.14, 0.15, 0.16"
 IntervalSets = "0.7"
 JLD2 = "0.4, 0.5, 0.6"
 Makie = "0.21, 0.22, 0.23, 0.24"
-MeshArrays = "0.3"
+MeshArrays = "0.3, 0.4"
 NCDatasets = "0.12, 0.13, 0.14"
 NetworkOptions = "1"
 OrderedCollections = "1"

@@ -19,15 +19,24 @@ end
 # ╔═╡ 5cc74c7e-e0a3-11ef-2b10-1f8256dd944a
 begin
 	using ArgoData
-	using Parquet2, Tables, DataFrames, IntervalSets, Glob, Dates
-	using MeshArrays, DataDeps, GeoJSON, CairoMakie, PlutoUI
+	import Parquet2, Tables, Glob
+	import MeshArrays, DataDeps, GeoJSON, PlutoUI
+	import GeoJSON, MeshArrays, DataDeps
+	
+	using IntervalSets
+	import DataFrames: DataFrame, groupby, subset!, subset
+	import CairoMakie: Figure, scatter!, Axis, AxisAspect, lines!, lines, Colorbar, Relative, plot!, plot, current_figure, limits!
+	import Dates: DateTime
+	import MeshArrays: GI
+	import GeometryOps as GO
+
 	#using Parquet2: Dataset, filelist, appendall!, showtree
 	import TableOperations as TO
 	using Pkg; Pkg.status()
 end
 
 # ╔═╡ 5a6ee248-6ecb-4e44-ad17-0b9f5b4c8232
-TableOfContents()
+PlutoUI.TableOfContents()
 
 # ╔═╡ 7e88a057-c298-4c9d-b4a5-1e90756467c2
 md"""# Argo in parquet format
@@ -59,7 +68,7 @@ md"""## Download Sample Files"""
 folder_pq=Argo_parquet.sample_download("ARGO_PHY_SAMPLE_QC")
 
 # ╔═╡ 972907dd-f4e8-436a-ba58-446a75af6c3f
-files=glob("*parquet",folder_pq)
+files=Glob.glob("*parquet",folder_pq)
 
 # ╔═╡ db0e87dd-7e6b-450a-99c2-540036d8b0f3
 md"""## Open via `ArgoDAta.jl`"""
@@ -108,50 +117,14 @@ let
 end
 
 # ╔═╡ 5a0c669b-6251-48de-8ea4-9f322118d9f3
-md"""## Extract data from one region"""
+md"""## Extract data from one region
+
+1. extract data from a latitude band (from Parquet folder)
+1. extract subset from one ocean basin (from DataFrame)
+"""
 
 # ╔═╡ bb1e1c9b-9900-4efe-9705-5361c53f7915
 df2=Argo_parquet.get_subset_region(da.Dataset,lons=-180 .. 180)
-
-# ╔═╡ d412a7c1-203c-46e5-a07f-3fce68f9ddcf
-begin
-	#import GeoJSON, MeshArrays, DataDeps
-	import GeometryOps as GO, GeoInterface as GI
-end
-
-# ╔═╡ 18b1eb82-b584-44fe-a580-1d5880d496e6
-
-begin
-	fil_ocean=MeshArrays.demo.download_polygons("oceans.geojson")
-	ocean_pols=GeoJSON.read(fil_ocean)
-	ocean_pols[11].name
-end
-
-# ╔═╡ 1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
-begin
-	pol_NorthAtl=ocean_pols[11].geometry
-	NaN_point=GI.Point(NaN,NaN)
-	
-	rule_pol = (x,y) -> GO.within(GI.Point(x,y), pol_NorthAtl)
-	rule_pol_vec = (x,y) -> rule_pol.(x,y)
-
-		#GO.within(GI.Point(df2.LONGITUDE[1],df2.LATITUDE[1]),pol)
-		#rule_pol(df2.LONGITUDE[1],df2.LATITUDE[1])
-		#rule_pol_vec(df2.LONGITUDE,df2.LATITUDE)
-	df2sub=subset(df2, [:LONGITUDE,:LATITUDE] => rule_pol_vec, skipmissing=false)
-end
-
-# ╔═╡ 52e2c96a-44a9-4926-b877-46421930a04b
-@bind dlo PlutoUI.Select(-30:5:0,default=0)
-
-# ╔═╡ 24e77787-7bb5-4bc3-9683-2e3eedd1a52c
-function get_point_temp(df2)
-	(lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
-
-	np=length(lo)
-	points=[GI.Point(lo[i],la[i]) for i in 1:np]
-	(point=points,temperature=te)
-end
 
 # ╔═╡ e946b254-d70d-488a-adc4-897fddf708b6
 md"""## Extract data from one profiler"""
@@ -174,28 +147,33 @@ md"""## Appendix
 # ╔═╡ b56288fb-1613-458e-9441-501cff0d8058
 md"""### Helper Functions"""
 
-# ╔═╡ 92f8f108-1e10-44ff-953c-1cd0a1b67ed7
-begin
-	fil=MeshArrays.demo.download_polygons("countries.geojson")
-	pol_countries=MeshArrays.read_polygons(fil)
-	"polygons for plotting"
+# ╔═╡ 24e77787-7bb5-4bc3-9683-2e3eedd1a52c
+function get_point_temp(df2)
+	(lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
+
+	np=length(lo)
+	points=[GI.Point(lo[i],la[i]) for i in 1:np]
+	(point=points,temperature=te)
 end
 
-# ╔═╡ 1eeccd4d-4b16-4d41-99a7-a709d1ff1565
-let
-	points=get_point_temp(df2).point
-	points_sub=get_point_temp(df2sub).point
+# ╔═╡ 92f8f108-1e10-44ff-953c-1cd0a1b67ed7
+begin
+	pol_countries=MeshArrays.Dataset("countries_geojson1")
+	ocean_pols=MeshArrays.Dataset("oceans_geojson1")
+	"polygons for plotting and Subsetting"
+end
 
-	name=ocean_pols[11].name
-	pol=ocean_pols[11].geometry
-	
-#	np=length(points)
-#	is_in_pol=[GO.within(p,pol) for p in points[1:np]];
-#	ii=findall(is_in_pol)
-	
-	lines(pol_countries,color=:black); plot!(points)
-	plot!(points_sub,color=:red); lines!(pol,color=:red)
-	current_figure()
+# ╔═╡ 18b1eb82-b584-44fe-a580-1d5880d496e6
+@bind polID PlutoUI.Select(1:length(ocean_pols),default=11)
+
+# ╔═╡ 356b09d0-a7b3-4cd0-a2b8-47bb9d31396e
+begin
+	name=ocean_pols[polID].name
+	pol=ocean_pols[polID].geometry
+
+	#NaN_point=GI.Point(NaN,NaN)
+	rule = (x,y) -> GO.within(GI.Point(x,y), pol)
+	rule_vec = (x,y) -> rule.(x,y)
 end
 
 # ╔═╡ aeae88de-cd8b-44b1-a28f-c5010b2c3ff6
@@ -233,7 +211,7 @@ function plot_lo_la_etc(lo,la; te=[], pol=pol)
             tickalign = 1, width = 14, ticksize = 14)
     end
     #fig[i, j+1] = cbar
-    [lines!(ax,l1,color = :black, linewidth = 0.5) for l1 in pol]
+    [lines!(ax,l1.geometry,color = :black, linewidth = 0.5) for l1 in pol]
     limits!(ax,(-180,180),(-90,90))
     fig
 end
@@ -242,6 +220,24 @@ end
 let
 	(lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
 	plot_lo_la_etc(lo,la; te=te, pol=pol_countries)
+end
+
+# ╔═╡ 1eeccd4d-4b16-4d41-99a7-a709d1ff1565
+function plot_subset(df2,df2sub,pol)
+	points=get_point_temp(df2).point
+	points_sub=get_point_temp(df2sub).point
+	
+	fi=Figure(); ax=Axis(fi[1,1],limits=(-180,180,-90,90))
+	[lines!(ax,l1.geometry,color = :black, linewidth = 0.5) for l1 in pol_countries]
+	plot!(points); lines!(pol,color=:red)
+	isempty(points_sub) ? nothing : plot!(points_sub,color=:red); 
+	current_figure()
+end
+
+# ╔═╡ 1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
+begin
+	df2sub=subset(df2, [:LONGITUDE,:LATITUDE] => rule_vec, skipmissing=false)
+	plot_subset(df2,df2sub,pol)
 end
 
 # ╔═╡ c9d44a5b-73c7-4a08-b1c3-0eff91d1f103
@@ -287,7 +283,6 @@ CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
-GeoInterface = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
 GeoJSON = "61d90e0f-e114-555e-ac52-39dfb47a3ef9"
 GeometryOps = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
@@ -300,16 +295,15 @@ TableOperations = "ab02a1b2-a7df-11e8-156e-fb1833f50b87"
 Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 
 [compat]
-ArgoData = "~0.2.4"
+ArgoData = "~0.2.5"
 CairoMakie = "~0.15.7"
 DataDeps = "~0.7.13"
 DataFrames = "~1.8.1"
-GeoInterface = "~1.6.0"
 GeoJSON = "~0.8.4"
 GeometryOps = "~0.1.31"
 Glob = "~1.3.1"
 IntervalSets = "~0.7.13"
-MeshArrays = "~0.3.24"
+MeshArrays = "~0.4.0"
 Parquet2 = "~0.2.33"
 PlutoUI = "~0.7.75"
 TableOperations = "~1.2.0"
@@ -322,7 +316,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.12.1"
 manifest_format = "2.0"
-project_hash = "db513bf20f3af3deb52ea4f1fca9d98889c63ac3"
+project_hash = "71fb7fdfc64e1ff27e136640c28c8b80dfea5b37"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -409,9 +403,9 @@ version = "1.1.2"
 
 [[deps.ArgoData]]
 deps = ["Bootstrap", "CSV", "DataDeps", "DataFrames", "Dataverse", "Dates", "Downloads", "FTPClient", "Glob", "Interpolations", "IntervalSets", "JLD2", "MeshArrays", "NCDatasets", "NetworkOptions", "OrderedCollections", "Parquet2", "Pkg", "Printf", "Statistics", "TableOperations", "Tables", "YAML"]
-git-tree-sha1 = "4aa8b74d04252857736134cfc700d008df329d8b"
+git-tree-sha1 = "8e03ca0734fa404d9f88f28a9216cb85e92e679d"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
-version = "0.2.4"
+version = "0.2.5"
 
     [deps.ArgoData.extensions]
     ArgoDataClimatologyExt = ["Climatology"]
@@ -1101,9 +1095,9 @@ version = "5.2.3+0"
 
 [[deps.Glib_jll]]
 deps = ["Artifacts", "GettextRuntime_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Libiconv_jll", "Libmount_jll", "PCRE2_jll", "Zlib_jll"]
-git-tree-sha1 = "50c11ffab2a3d50192a228c313f05b5b5dc5acb2"
+git-tree-sha1 = "6b4d2dc81736fe3980ff0e8879a9fc7c33c44ddf"
 uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
-version = "2.86.0+0"
+version = "2.86.2+0"
 
 [[deps.Glob]]
 git-tree-sha1 = "97285bbd5230dd766e9ef6749b80fc617126d496"
@@ -1449,9 +1443,9 @@ version = "1.4.0"
 
 [[deps.LazyArrays]]
 deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra", "MacroTools", "SparseArrays"]
-git-tree-sha1 = "5cd2e1e2f3ed5d785693382acc1c3bca3c543815"
+git-tree-sha1 = "70ebe3bcf87d6a1e7435ef5182c13a91161ba9b8"
 uuid = "5078a376-72f3-5289-bfd5-ec5146d43c02"
-version = "2.9.3"
+version = "2.9.4"
 
     [deps.LazyArrays.extensions]
     LazyArraysBandedMatricesExt = "BandedMatrices"
@@ -1658,10 +1652,10 @@ uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.1010+0"
 
 [[deps.MeshArrays]]
-deps = ["CatViews", "Dates", "Distributed", "Glob", "LazyArtifacts", "NearestNeighbors", "Pkg", "Printf", "SharedArrays", "SparseArrays", "Statistics", "Unitful"]
-git-tree-sha1 = "3ea2dc9aaaa4f4aa8799d568a4fef5abcfd2b7bf"
+deps = ["CatViews", "Dates", "Distributed", "GeoInterface", "Glob", "LazyArtifacts", "NearestNeighbors", "Pkg", "Printf", "SharedArrays", "SparseArrays", "Statistics", "Unitful"]
+git-tree-sha1 = "bc4820b8c8648fc0d60503562a6acae0aeef312d"
 uuid = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
-version = "0.3.24"
+version = "0.4.0"
 
     [deps.MeshArrays.extensions]
     MeshArraysDataDepsExt = ["DataDeps"]
@@ -2204,9 +2198,9 @@ weakdeps = ["SparseArrays"]
 
 [[deps.StatsAPI]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "9d72a13a3f4dd3795a195ac5a44d7d6ff5f552ff"
+git-tree-sha1 = "178ed29fd5b2a2cfc3bd31c13375ae925623ff36"
 uuid = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
-version = "1.7.1"
+version = "1.8.0"
 
 [[deps.StatsBase]]
 deps = ["AliasTables", "DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
@@ -2650,13 +2644,10 @@ version = "4.1.0+0"
 # ╠═96c05578-60c4-4d1f-81ed-dd61d325ecc6
 # ╟─5a0c669b-6251-48de-8ea4-9f322118d9f3
 # ╠═bb1e1c9b-9900-4efe-9705-5361c53f7915
-# ╠═d412a7c1-203c-46e5-a07f-3fce68f9ddcf
-# ╠═18b1eb82-b584-44fe-a580-1d5880d496e6
-# ╠═1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
-# ╟─52e2c96a-44a9-4926-b877-46421930a04b
-# ╠═1eeccd4d-4b16-4d41-99a7-a709d1ff1565
-# ╠═24e77787-7bb5-4bc3-9683-2e3eedd1a52c
 # ╠═0f23b8a5-601a-4cfe-9e75-6c5f5a849003
+# ╟─18b1eb82-b584-44fe-a580-1d5880d496e6
+# ╠═356b09d0-a7b3-4cd0-a2b8-47bb9d31396e
+# ╠═1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
 # ╟─e946b254-d70d-488a-adc4-897fddf708b6
 # ╠═b7cd9016-0752-4464-8d73-d487b0920ec6
 # ╠═3a91625a-56e3-4f4e-a0ac-f214a9d76eae
@@ -2664,10 +2655,12 @@ version = "4.1.0+0"
 # ╟─a77a1207-a948-4ea0-b90c-bbf87583bb1f
 # ╠═5cc74c7e-e0a3-11ef-2b10-1f8256dd944a
 # ╟─b56288fb-1613-458e-9441-501cff0d8058
+# ╠═24e77787-7bb5-4bc3-9683-2e3eedd1a52c
 # ╠═92f8f108-1e10-44ff-953c-1cd0a1b67ed7
 # ╠═aeae88de-cd8b-44b1-a28f-c5010b2c3ff6
 # ╠═5f07df64-6f41-400e-a11a-db8cb950b449
 # ╠═b4093077-cf8e-48f0-958c-451987b6cda5
+# ╠═1eeccd4d-4b16-4d41-99a7-a709d1ff1565
 # ╟─c9d44a5b-73c7-4a08-b1c3-0eff91d1f103
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

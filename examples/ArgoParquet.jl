@@ -168,12 +168,11 @@ end
 
 # ╔═╡ 356b09d0-a7b3-4cd0-a2b8-47bb9d31396e
 begin
-	name=ocean_pols[polID].name
 	pol=ocean_pols[polID].geometry
-
-	#NaN_point=GI.Point(NaN,NaN)
-	rule = (x,y) -> GO.within(GI.Point(x,y), pol)
+	name,rule=MeshArrays.within_pol(ocean_pols,ID=polID)
 	rule_vec = (x,y) -> rule.(x,y)
+
+	df2sub=subset(df2, [:LONGITUDE,:LATITUDE] => rule_vec, skipmissing=false)
 end
 
 # ╔═╡ aeae88de-cd8b-44b1-a28f-c5010b2c3ff6
@@ -235,10 +234,7 @@ function plot_subset(df2,df2sub,pol)
 end
 
 # ╔═╡ 1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
-begin
-	df2sub=subset(df2, [:LONGITUDE,:LATITUDE] => rule_vec, skipmissing=false)
-	plot_subset(df2,df2sub,pol)
-end
+plot_subset(df2,df2sub,pol)
 
 # ╔═╡ c9d44a5b-73c7-4a08-b1c3-0eff91d1f103
 md"""### Distributed Example
@@ -342,9 +338,9 @@ version = "0.4.5"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
-git-tree-sha1 = "3b86719127f50670efe356bc11073d84b4ed7a5d"
+git-tree-sha1 = "856ecd7cebb68e5fc87abecd2326ad59f0f911f3"
 uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-version = "0.1.42"
+version = "0.1.43"
 
     [deps.Accessors.extensions]
     AxisKeysExt = "AxisKeys"
@@ -668,9 +664,9 @@ version = "0.13.1"
 
 [[deps.CommonDataModel]]
 deps = ["CFTime", "DataStructures", "Dates", "DiskArrays", "Preferences", "Printf", "Statistics"]
-git-tree-sha1 = "675149c3c06350dabb9a807ca3dd473de8173703"
+git-tree-sha1 = "cd10f8b38725a6458dd971464daa5a751a67e6b0"
 uuid = "1fbeeb36-5f17-413c-809b-666fb144f157"
-version = "0.4.1"
+version = "0.4.2"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
@@ -1653,13 +1649,14 @@ version = "2.28.1010+0"
 
 [[deps.MeshArrays]]
 deps = ["CatViews", "Dates", "Distributed", "GeoInterface", "Glob", "LazyArtifacts", "NearestNeighbors", "Pkg", "Printf", "SharedArrays", "SparseArrays", "Statistics", "Unitful"]
-git-tree-sha1 = "bc4820b8c8648fc0d60503562a6acae0aeef312d"
+git-tree-sha1 = "800287d780dc8ac7ff0e955e56c3c74a5091822a"
 uuid = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
-version = "0.4.0"
+version = "0.4.1"
 
     [deps.MeshArrays.extensions]
     MeshArraysDataDepsExt = ["DataDeps"]
     MeshArraysGeoJSONExt = ["GeoJSON"]
+    MeshArraysGeometryOpsExt = ["GeometryOps"]
     MeshArraysJLD2Ext = ["JLD2"]
     MeshArraysMakieExt = ["Makie"]
     MeshArraysProjExt = ["Proj"]
@@ -1668,6 +1665,7 @@ version = "0.4.0"
     [deps.MeshArrays.weakdeps]
     DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
     GeoJSON = "61d90e0f-e114-555e-ac52-39dfb47a3ef9"
+    GeometryOps = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
     JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
     Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
     Proj = "c94c279d-25a6-4763-9509-64d165bea63e"
@@ -1801,9 +1799,9 @@ version = "5.0.9+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "NetworkOptions", "OpenSSL_jll", "Sockets"]
-git-tree-sha1 = "386b47442468acfb1add94bf2d85365dea10cbab"
+git-tree-sha1 = "1d1aaa7d449b58415f97d2839c318b70ffb525a0"
 uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
-version = "1.6.0"
+version = "1.6.1"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "Libdl"]

@@ -4,18 +4,39 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    #! format: off
+    return quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+    #! format: on
+end
+
 # ╔═╡ 5cc74c7e-e0a3-11ef-2b10-1f8256dd944a
 begin
 	using ArgoData
-	using Parquet2, Tables, DataFrames, IntervalSets, Glob, Dates
-	using MeshArrays, DataDeps, GeoJSON, CairoMakie, PlutoUI
+	import Parquet2, Tables, Glob
+	import MeshArrays, DataDeps, GeoJSON, PlutoUI
+	import GeoJSON, MeshArrays, DataDeps
+	
+	using IntervalSets
+	import DataFrames: DataFrame, groupby, subset!, subset
+	import CairoMakie: Figure, scatter!, Axis, AxisAspect, lines!, lines, Colorbar, Relative, plot!, plot, current_figure, limits!
+	import Dates: DateTime
+	import MeshArrays: GI
+	import GeometryOps as GO
+
 	#using Parquet2: Dataset, filelist, appendall!, showtree
 	import TableOperations as TO
 	using Pkg; Pkg.status()
 end
 
 # ╔═╡ 5a6ee248-6ecb-4e44-ad17-0b9f5b4c8232
-TableOfContents()
+PlutoUI.TableOfContents()
 
 # ╔═╡ 7e88a057-c298-4c9d-b4a5-1e90756467c2
 md"""# Argo in parquet format
@@ -47,7 +68,7 @@ md"""## Download Sample Files"""
 folder_pq=Argo_parquet.sample_download("ARGO_PHY_SAMPLE_QC")
 
 # ╔═╡ 972907dd-f4e8-436a-ba58-446a75af6c3f
-files=glob("*parquet",folder_pq)
+files=Glob.glob("*parquet",folder_pq)
 
 # ╔═╡ db0e87dd-7e6b-450a-99c2-540036d8b0f3
 md"""## Open via `ArgoDAta.jl`"""
@@ -96,10 +117,14 @@ let
 end
 
 # ╔═╡ 5a0c669b-6251-48de-8ea4-9f322118d9f3
-md"""## Extract data from one region"""
+md"""## Extract data from one region
+
+1. extract data from a latitude band (from Parquet folder)
+1. extract subset from one ocean basin (from DataFrame)
+"""
 
 # ╔═╡ bb1e1c9b-9900-4efe-9705-5361c53f7915
-df2=Argo_parquet.get_subset_region(da.Dataset)
+df2=Argo_parquet.get_subset_region(da.Dataset,lons=-180 .. 180)
 
 # ╔═╡ e946b254-d70d-488a-adc4-897fddf708b6
 md"""## Extract data from one profiler"""
@@ -122,11 +147,32 @@ md"""## Appendix
 # ╔═╡ b56288fb-1613-458e-9441-501cff0d8058
 md"""### Helper Functions"""
 
+# ╔═╡ 24e77787-7bb5-4bc3-9683-2e3eedd1a52c
+function get_point_temp(df2)
+	(lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
+
+	np=length(lo)
+	points=[GI.Point(lo[i],la[i]) for i in 1:np]
+	(point=points,temperature=te)
+end
+
 # ╔═╡ 92f8f108-1e10-44ff-953c-1cd0a1b67ed7
 begin
-	fil=MeshArrays.demo.download_polygons("countries.geojson")
-	pol=MeshArrays.read_polygons(fil)
-	"polygons for plotting"
+	pol_countries=MeshArrays.Dataset("countries_geojson1")
+	ocean_pols=MeshArrays.Dataset("oceans_geojson1")
+	"polygons for plotting and Subsetting"
+end
+
+# ╔═╡ 18b1eb82-b584-44fe-a580-1d5880d496e6
+@bind polID PlutoUI.Select(1:length(ocean_pols),default=11)
+
+# ╔═╡ 356b09d0-a7b3-4cd0-a2b8-47bb9d31396e
+begin
+	pol=ocean_pols[polID].geometry
+	name,rule=MeshArrays.within_pol(ocean_pols,ID=polID)
+	rule_vec = (x,y) -> rule.(x,y)
+
+	df2sub=subset(df2, [:LONGITUDE,:LATITUDE] => rule_vec, skipmissing=false)
 end
 
 # ╔═╡ aeae88de-cd8b-44b1-a28f-c5010b2c3ff6
@@ -164,7 +210,7 @@ function plot_lo_la_etc(lo,la; te=[], pol=pol)
             tickalign = 1, width = 14, ticksize = 14)
     end
     #fig[i, j+1] = cbar
-    [lines!(ax,l1,color = :black, linewidth = 0.5) for l1 in pol]
+    [lines!(ax,l1.geometry,color = :black, linewidth = 0.5) for l1 in pol]
     limits!(ax,(-180,180),(-90,90))
     fig
 end
@@ -172,8 +218,23 @@ end
 # ╔═╡ 0f23b8a5-601a-4cfe-9e75-6c5f5a849003
 let
 	(lo,la,te)=Argo_parquet.get_lon_lat_temp(df2)
-	plot_lo_la_etc(lo,la; te=te, pol=pol)
+	plot_lo_la_etc(lo,la; te=te, pol=pol_countries)
 end
+
+# ╔═╡ 1eeccd4d-4b16-4d41-99a7-a709d1ff1565
+function plot_subset(df2,df2sub,pol)
+	points=get_point_temp(df2).point
+	points_sub=get_point_temp(df2sub).point
+	
+	fi=Figure(); ax=Axis(fi[1,1],limits=(-180,180,-90,90))
+	[lines!(ax,l1.geometry,color = :black, linewidth = 0.5) for l1 in pol_countries]
+	plot!(points); lines!(pol,color=:red)
+	isempty(points_sub) ? nothing : plot!(points_sub,color=:red); 
+	current_figure()
+end
+
+# ╔═╡ 1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
+plot_subset(df2,df2sub,pol)
 
 # ╔═╡ c9d44a5b-73c7-4a08-b1c3-0eff91d1f103
 md"""### Distributed Example
@@ -219,6 +280,7 @@ DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 GeoJSON = "61d90e0f-e114-555e-ac52-39dfb47a3ef9"
+GeometryOps = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 MeshArrays = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
@@ -227,6 +289,21 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 TableOperations = "ab02a1b2-a7df-11e8-156e-fb1833f50b87"
 Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
+
+[compat]
+ArgoData = "~0.2.5"
+CairoMakie = "~0.15.7"
+DataDeps = "~0.7.13"
+DataFrames = "~1.8.1"
+GeoJSON = "~0.8.4"
+GeometryOps = "~0.1.31"
+Glob = "~1.3.1"
+IntervalSets = "~0.7.13"
+MeshArrays = "~0.4.0"
+Parquet2 = "~0.2.33"
+PlutoUI = "~0.7.75"
+TableOperations = "~1.2.0"
+Tables = "~1.12.1"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -235,7 +312,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.12.1"
 manifest_format = "2.0"
-project_hash = "3a7ae712869ced136f600ad1cbbce88d14bc3011"
+project_hash = "71fb7fdfc64e1ff27e136640c28c8b80dfea5b37"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -261,9 +338,9 @@ version = "0.4.5"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
-git-tree-sha1 = "3b86719127f50670efe356bc11073d84b4ed7a5d"
+git-tree-sha1 = "856ecd7cebb68e5fc87abecd2326ad59f0f911f3"
 uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-version = "0.1.42"
+version = "0.1.43"
 
     [deps.Accessors.extensions]
     AxisKeysExt = "AxisKeys"
@@ -322,9 +399,9 @@ version = "1.1.2"
 
 [[deps.ArgoData]]
 deps = ["Bootstrap", "CSV", "DataDeps", "DataFrames", "Dataverse", "Dates", "Downloads", "FTPClient", "Glob", "Interpolations", "IntervalSets", "JLD2", "MeshArrays", "NCDatasets", "NetworkOptions", "OrderedCollections", "Parquet2", "Pkg", "Printf", "Statistics", "TableOperations", "Tables", "YAML"]
-git-tree-sha1 = "4aa8b74d04252857736134cfc700d008df329d8b"
+git-tree-sha1 = "8e03ca0734fa404d9f88f28a9216cb85e92e679d"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
-version = "0.2.4"
+version = "0.2.5"
 
     [deps.ArgoData.extensions]
     ArgoDataClimatologyExt = ["Climatology"]
@@ -587,9 +664,9 @@ version = "0.13.1"
 
 [[deps.CommonDataModel]]
 deps = ["CFTime", "DataStructures", "Dates", "DiskArrays", "Preferences", "Printf", "Statistics"]
-git-tree-sha1 = "675149c3c06350dabb9a807ca3dd473de8173703"
+git-tree-sha1 = "cd10f8b38725a6458dd971464daa5a751a67e6b0"
 uuid = "1fbeeb36-5f17-413c-809b-666fb144f157"
-version = "0.4.1"
+version = "0.4.2"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
@@ -642,6 +719,12 @@ weakdeps = ["IntervalSets", "LinearAlgebra", "StaticArrays"]
 git-tree-sha1 = "439e35b0b36e2e5881738abc8857bd92ad6ff9a8"
 uuid = "d38c429a-6771-53c6-b99e-75d170b6e991"
 version = "0.6.3"
+
+[[deps.CoordinateTransformations]]
+deps = ["LinearAlgebra", "StaticArrays"]
+git-tree-sha1 = "a692f5e257d332de1e554e4566a4e5a8a72de2b2"
+uuid = "150eb455-5306-5404-9cee-2592286d6298"
+version = "0.6.4"
 
 [[deps.Crayons]]
 git-tree-sha1 = "249fe38abf76d48563e2f4556bebd215aa317e15"
@@ -968,6 +1051,32 @@ weakdeps = ["GeoInterface"]
     [deps.GeometryBasics.extensions]
     GeometryBasicsGeoInterfaceExt = "GeoInterface"
 
+[[deps.GeometryOps]]
+deps = ["AbstractTrees", "AdaptivePredicates", "CoordinateTransformations", "DataAPI", "DelaunayTriangulation", "ExactPredicates", "Extents", "GeoFormatTypes", "GeoInterface", "GeometryOpsCore", "LinearAlgebra", "Random", "SortTileRecursiveTree", "StaticArrays", "Statistics", "Tables"]
+git-tree-sha1 = "9fa16be9c28d9c01bf2b5d73f7768d482c12b118"
+uuid = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
+version = "0.1.31"
+
+    [deps.GeometryOps.extensions]
+    GeometryOpsDataFramesExt = "DataFrames"
+    GeometryOpsFlexiJoinsExt = "FlexiJoins"
+    GeometryOpsLibGEOSExt = "LibGEOS"
+    GeometryOpsProjExt = "Proj"
+    GeometryOpsTGGeometryExt = "TGGeometry"
+
+    [deps.GeometryOps.weakdeps]
+    DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+    FlexiJoins = "e37f2e79-19fa-4eb7-8510-b63b51fe0a37"
+    LibGEOS = "a90b1aa1-3769-5649-ba7e-abc5a9d163eb"
+    Proj = "c94c279d-25a6-4763-9509-64d165bea63e"
+    TGGeometry = "d7e755d2-3c95-4bcf-9b3c-79ab1a78647b"
+
+[[deps.GeometryOpsCore]]
+deps = ["DataAPI", "GeoInterface", "StableTasks", "Tables"]
+git-tree-sha1 = "69fc98947b06f8ac4279cf5bf8810373fe042be4"
+uuid = "05efe853-fabf-41c8-927e-7063c8b9f013"
+version = "0.1.7"
+
 [[deps.GettextRuntime_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll"]
 git-tree-sha1 = "45288942190db7c5f760f59c04495064eedf9340"
@@ -982,9 +1091,9 @@ version = "5.2.3+0"
 
 [[deps.Glib_jll]]
 deps = ["Artifacts", "GettextRuntime_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Libiconv_jll", "Libmount_jll", "PCRE2_jll", "Zlib_jll"]
-git-tree-sha1 = "50c11ffab2a3d50192a228c313f05b5b5dc5acb2"
+git-tree-sha1 = "6b4d2dc81736fe3980ff0e8879a9fc7c33c44ddf"
 uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
-version = "2.86.0+0"
+version = "2.86.2+0"
 
 [[deps.Glob]]
 git-tree-sha1 = "97285bbd5230dd766e9ef6749b80fc617126d496"
@@ -1330,9 +1439,9 @@ version = "1.4.0"
 
 [[deps.LazyArrays]]
 deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra", "MacroTools", "SparseArrays"]
-git-tree-sha1 = "5cd2e1e2f3ed5d785693382acc1c3bca3c543815"
+git-tree-sha1 = "70ebe3bcf87d6a1e7435ef5182c13a91161ba9b8"
 uuid = "5078a376-72f3-5289-bfd5-ec5146d43c02"
-version = "2.9.3"
+version = "2.9.4"
 
     [deps.LazyArrays.extensions]
     LazyArraysBandedMatricesExt = "BandedMatrices"
@@ -1539,14 +1648,15 @@ uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.1010+0"
 
 [[deps.MeshArrays]]
-deps = ["CatViews", "Dates", "Distributed", "Glob", "LazyArtifacts", "NearestNeighbors", "Pkg", "Printf", "SharedArrays", "SparseArrays", "Statistics", "Unitful"]
-git-tree-sha1 = "3ea2dc9aaaa4f4aa8799d568a4fef5abcfd2b7bf"
+deps = ["CatViews", "Dates", "Distributed", "GeoInterface", "Glob", "LazyArtifacts", "NearestNeighbors", "Pkg", "Printf", "SharedArrays", "SparseArrays", "Statistics", "Unitful"]
+git-tree-sha1 = "800287d780dc8ac7ff0e955e56c3c74a5091822a"
 uuid = "cb8c808f-1acf-59a3-9d2b-6e38d009f683"
-version = "0.3.24"
+version = "0.4.1"
 
     [deps.MeshArrays.extensions]
     MeshArraysDataDepsExt = ["DataDeps"]
     MeshArraysGeoJSONExt = ["GeoJSON"]
+    MeshArraysGeometryOpsExt = ["GeometryOps"]
     MeshArraysJLD2Ext = ["JLD2"]
     MeshArraysMakieExt = ["Makie"]
     MeshArraysProjExt = ["Proj"]
@@ -1555,6 +1665,7 @@ version = "0.3.24"
     [deps.MeshArrays.weakdeps]
     DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
     GeoJSON = "61d90e0f-e114-555e-ac52-39dfb47a3ef9"
+    GeometryOps = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
     JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
     Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
     Proj = "c94c279d-25a6-4763-9509-64d165bea63e"
@@ -1688,9 +1799,9 @@ version = "5.0.9+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "NetworkOptions", "OpenSSL_jll", "Sockets"]
-git-tree-sha1 = "386b47442468acfb1add94bf2d85365dea10cbab"
+git-tree-sha1 = "1d1aaa7d449b58415f97d2839c318b70ffb525a0"
 uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
-version = "1.6.0"
+version = "1.6.1"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -2007,6 +2118,12 @@ version = "0.1.5"
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 version = "1.11.0"
 
+[[deps.SortTileRecursiveTree]]
+deps = ["AbstractTrees", "Extents", "GeoInterface"]
+git-tree-sha1 = "f9aa6616a9b3bd01f93f27c010f1d25fc5a094a9"
+uuid = "746ee33f-1797-42c2-866d-db2fce69d14d"
+version = "0.1.4"
+
 [[deps.SortingAlgorithms]]
 deps = ["DataStructures"]
 git-tree-sha1 = "64d974c2e6fdf07f8155b5b2ca2ffa9069b608d9"
@@ -2039,6 +2156,11 @@ deps = ["Random"]
 git-tree-sha1 = "4f96c596b8c8258cc7d3b19797854d368f243ddc"
 uuid = "860ef19b-820b-49d6-a774-d7a799459cd3"
 version = "1.0.4"
+
+[[deps.StableTasks]]
+git-tree-sha1 = "c4f6610f85cb965bee5bfafa64cbeeda55a4e0b2"
+uuid = "91464d47-22a1-43fe-8b7f-2d57ee82463f"
+version = "0.1.7"
 
 [[deps.StackViews]]
 deps = ["OffsetArrays"]
@@ -2074,9 +2196,9 @@ weakdeps = ["SparseArrays"]
 
 [[deps.StatsAPI]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "9d72a13a3f4dd3795a195ac5a44d7d6ff5f552ff"
+git-tree-sha1 = "178ed29fd5b2a2cfc3bd31c13375ae925623ff36"
 uuid = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
-version = "1.7.1"
+version = "1.8.0"
 
 [[deps.StatsBase]]
 deps = ["AliasTables", "DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
@@ -2521,6 +2643,9 @@ version = "4.1.0+0"
 # ╟─5a0c669b-6251-48de-8ea4-9f322118d9f3
 # ╠═bb1e1c9b-9900-4efe-9705-5361c53f7915
 # ╠═0f23b8a5-601a-4cfe-9e75-6c5f5a849003
+# ╟─18b1eb82-b584-44fe-a580-1d5880d496e6
+# ╠═356b09d0-a7b3-4cd0-a2b8-47bb9d31396e
+# ╠═1bf0f37d-0cb6-4b9b-9aa0-1564c0077589
 # ╟─e946b254-d70d-488a-adc4-897fddf708b6
 # ╠═b7cd9016-0752-4464-8d73-d487b0920ec6
 # ╠═3a91625a-56e3-4f4e-a0ac-f214a9d76eae
@@ -2528,10 +2653,12 @@ version = "4.1.0+0"
 # ╟─a77a1207-a948-4ea0-b90c-bbf87583bb1f
 # ╠═5cc74c7e-e0a3-11ef-2b10-1f8256dd944a
 # ╟─b56288fb-1613-458e-9441-501cff0d8058
+# ╠═24e77787-7bb5-4bc3-9683-2e3eedd1a52c
 # ╠═92f8f108-1e10-44ff-953c-1cd0a1b67ed7
 # ╠═aeae88de-cd8b-44b1-a28f-c5010b2c3ff6
 # ╠═5f07df64-6f41-400e-a11a-db8cb950b449
 # ╠═b4093077-cf8e-48f0-958c-451987b6cda5
+# ╠═1eeccd4d-4b16-4d41-99a7-a709d1ff1565
 # ╟─c9d44a5b-73c7-4a08-b1c3-0eff91d1f103
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

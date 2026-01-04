@@ -1,6 +1,6 @@
 name = "ArgoData"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
-version = "0.2.6"
+version = "0.2.7"
 authors = ["gaelforget <gforget@mit.edu>"]
 
 [deps]

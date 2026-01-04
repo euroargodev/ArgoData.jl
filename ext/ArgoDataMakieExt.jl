@@ -4,7 +4,7 @@ using ArgoData, Makie, Dates
 import Makie: plot
 
 """
-    plot(x::OneArgoFloat; option=:standard, markersize=2,pol=Any[],size=(900,600)
+    plot(x::OneArgoFloat; option=:standard, markersize=2,pol=missing,size=(900,600)
 
 Default plot for OneArgoFloat (see https://argopy.readthedocs.io/en/latest/what_is_argo.html#what-is-argo).
 
@@ -21,7 +21,7 @@ f2=plot(argo,option=:TS)
 f3=plot(argo,option=:standard)
 ```
 """
-plot(x::OneArgoFloat; option=:standard, markersize=2,pol=Any[],size=(900,600)) = begin
+plot(x::OneArgoFloat; option=:standard, markersize=2,pol=missing,size=(900,600)) = begin
 	if option==:standard
 		T_std,S_std=ArgoFiles.interp_z_all(x.data)
 		spd=ArgoFiles.speed(x.data)
@@ -89,10 +89,10 @@ function plot_profiles!(ax,TIME,PRES,TEMP,cmap)
 end
 
 function plot_trajectory!(ax,lon,lat,co;
-		markersize=2,linewidth=3, pol=Any[],xlims=(-180,180),ylims=(-90,90),title="")
+		markersize=2,linewidth=3, pol=missing,xlims=(-180,180),ylims=(-90,90),title="")
 	li=lines!(ax,lon, lat, linewidth=linewidth, color=co, colormap=:turbo)
 	scatter!(ax,lon, lat, marker=:circle, markersize=markersize, color=:black)
-	!isempty(pol) ? [lines!(ax,l1,color = :black, linewidth = 0.5) for l1 in pol] : nothing
+	ismissing(pol) ? nothing : lines!(pol,color = :black, linewidth = 0.5)
 	ax.xlabel="longitude";  ax.ylabel="latitude"; ax.title=title
 	xlims!(xlims...); ylims!(ylims...)
 	li
@@ -110,7 +110,7 @@ yrng(lat)=begin
 	b=(max(a[1]-dx/2,-90),min(a[2]+dx/2,90))
 end
 
-function plot_standard(wmo,arr,spd,T_std,S_std; markersize=2,pol=Any[],size=(900,600))
+function plot_standard(wmo,arr,spd,T_std,S_std; markersize=2,pol=missing,size=(900,600))
 
 	xlims=xrng(arr.lon)
 	ylims=yrng(arr.lat)

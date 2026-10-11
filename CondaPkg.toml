@@ -1,0 +1,8 @@
+[dev.deps]
+python = "3.12.*"
+ca-certificates = ""
+certifi = ""
+
+[dev.pip.deps]
+argopy = ""
+erddapy = "<3.3"

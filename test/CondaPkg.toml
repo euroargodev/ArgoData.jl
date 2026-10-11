@@ -1,0 +1,6 @@
+[deps]
+erddapy = "<3.3"
+ca-certificates = ""
+certifi = ""
+[pip.deps]
+argopy = ""

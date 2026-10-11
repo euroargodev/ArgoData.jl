@@ -46,7 +46,7 @@ ArgoDataPythonCallExt = ["PythonCall"]
 
 [compat]
 Bootstrap = "2"
-CSV = "0.10"
+CSV = "0.10, 1"
 Climatology = "0.5"
 Conda = "1"
 CondaPkg = "0.2"

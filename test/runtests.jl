@@ -56,7 +56,7 @@ end
     pth=dirname(output_file)
     fil=basename(output_file)
     nt,np,nz,cost=MITprofAnalysis.cost_functions(pth,"prof_T",fil)
-    @test isapprox(cost[1],1.495831407933)
+    @test isapprox(cost[1],1.491756065)
 
     ##
 

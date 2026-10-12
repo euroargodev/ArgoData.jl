@@ -1,6 +1,6 @@
 name = "ArgoData"
 uuid = "9eb831cf-c491-48dc-bed4-6aca718df73c"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["gaelforget <gforget@mit.edu>"]
 
 [deps]
@@ -46,11 +46,11 @@ ArgoDataPythonCallExt = ["PythonCall"]
 
 [compat]
 Bootstrap = "2"
-CSV = "0.10"
-Climatology = "0.5"
+CSV = "0.10, 1"
+Climatology = "0.5, 0.6"
 Conda = "1"
 CondaPkg = "0.2"
-DataDeps = "0.7"
+DataDeps = "0.7, 1"
 DataFrames = "1"
 Dataverse = "0.2"
 Downloads = "1"
@@ -63,7 +63,7 @@ Makie = "0.21, 0.22, 0.23, 0.24"
 MeshArrays = "0.3, 0.4, 0.5"
 NCDatasets = "0.12, 0.13, 0.14"
 NetworkOptions = "1"
-OrderedCollections = "1"
+OrderedCollections = "1, 2"
 Parquet2 = "0.2"
 PyCall = "1"
 PythonCall = "0.9"
